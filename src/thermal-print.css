@@ -1,0 +1,242 @@
+/**
+ * Professional Thermal Receipt CSS (80mm)
+ *
+ * A robust, well-organized, and attractive stylesheet for thermal receipt printers.
+ *
+ * Features:
+ * - Solves the common "overlay" print issue by isolating the receipt.
+ * - Uses a comprehensive set of CSS variables for deep and easy customization.
+ * - Employs a clean, monospace font with tabular numbers for perfect alignment.
+ * - Structured for clarity with sections for header, body, items table, and footer.
+ * - Modern layout techniques (Flexbox) for robust alignment of totals and meta-details.
+ * - Includes styles for separators, QR codes, and other common elements.
+ *
+ * @version 1.1
+ * @author Your Name/Company
+ */
+
+@media print {
+  /* --- [1] Configuration: CSS Variables --- */
+  /*
+   * Customize your receipt's appearance here. These variables control widths,
+   * fonts, sizes, and spacing throughout the document.
+   */
+  :root {
+    /* Page & Layout */
+    --paper-width: 80mm;
+    --paper-margin: 2mm;
+    --printable-width: calc(var(--paper-width) - (var(--paper-margin) * 2));
+
+    /* Typography */
+    /* A robust font-stack for thermal printers. Starts with modern, clear monospace fonts 
+       and falls back to system defaults. Monospace is crucial for character alignment. */
+    --font-family-main: 'SF Mono', 'Consolas', 'Lucida Console', 'Menlo', 'Courier New', monospace;
+    --font-size-base: 10pt;
+    --font-size-sm: 8.5pt;
+    --font-size-lg: 12pt;
+    --line-height-base: 1.3;
+    --font-weight-bold: 700;
+
+    /* Spacing */
+    --spacing-unit: 6px;
+
+    /* Borders */
+    --border-color: #000;
+    --border-style-separator: 1px dashed var(--border-color);
+  }
+
+  /* --- [2] Print Setup: Page & Visibility --- */
+  /*
+   * These rules prepare the document for printing, ensuring only the
+   * receipt is visible and the page size is set correctly.
+   */
+  @page {
+    size: var(--paper-width) auto; /* Set paper size and allow height to grow */
+    margin: var(--paper-margin);
+  }
+
+  /* Reset styles for the print view */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #fff !important;
+  }
+
+  /* The "No Overlay" fix: Hide everything on the page by default */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Then, make the receipt container and everything inside it visible */
+  .receipt-print-container,
+  .receipt-print-container * {
+    visibility: visible !important;
+  }
+
+  /* Position the container to fill the print area */
+  .receipt-print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  /* --- [3] General Typography & Layout --- */
+  /*
+   * Base styles for the main receipt element and common utilities.
+   */
+  .receipt {
+    width: var(--printable-width) !important;
+    margin: 0 auto !important;
+    font-family: var(--font-family-main) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height-base) !important;
+    color: #000 !important;
+    background: #fff !important;
+    font-variant-numeric: tabular-nums !important; /* Critical for aligning numbers */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Utility Classes */
+  .no-print {
+    display: none !important;
+  }
+  .text-center {
+    text-align: center !important;
+  }
+  .text-right {
+    text-align: right !important;
+  }
+  .font-bold {
+    font-weight: var(--font-weight-bold) !important;
+  }
+
+  /* --- [4] Receipt Structure: Header, Body, Footer --- */
+  /*
+   * Defines the main sections of the receipt for better organization.
+   */
+  .receipt-header {
+    text-align: center !important;
+    padding-bottom: calc(var(--spacing-unit) * 2) !important;
+  }
+  .receipt-header .store-name {
+    font-size: var(--font-size-lg) !important;
+    font-weight: var(--font-weight-bold) !important;
+    margin-bottom: calc(var(--spacing-unit) / 2) !important;
+  }
+  .receipt-header .store-info {
+    font-size: var(--font-size-sm) !important;
+    line-height: 1.4 !important;
+  }
+  
+  /* Transaction Details (Date, Receipt No, etc.) */
+  .receipt-meta {
+    margin-top: calc(var(--spacing-unit) * 1.5) !important;
+    padding-top: calc(var(--spacing-unit) * 1.5) !important;
+    border-top: var(--border-style-separator) !important;
+    font-size: var(--font-size-sm) !important;
+  }
+  .meta-line {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 1.5px 0 !important;
+  }
+
+  .receipt-footer {
+    text-align: center !important;
+    padding-top: var(--spacing-unit) !important;
+    margin-top: calc(var(--spacing-unit) * 2) !important;
+    border-top: var(--border-style-separator) !important;
+  }
+  .receipt-footer .thank-you-msg {
+    font-size: var(--font-size-base) !important;
+    font-weight: var(--font-weight-bold) !important;
+    margin-bottom: var(--spacing-unit) !important;
+  }
+  .receipt-footer .footer-details {
+    font-size: var(--font-size-sm) !important;
+    line-height: 1.4 !important;
+  }
+
+  /* --- [5] Content Styling: Tables, Totals, Separators --- */
+  /*
+   * Styles for the itemized list, calculation totals, and visual separators.
+   */
+
+  /* Separators */
+  .separator {
+    border-top: var(--border-style-separator) !important;
+    margin: var(--spacing-unit) 0 !important;
+  }
+
+  /* Itemization Table */
+  .items-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 4px 0 !important;
+    vertical-align: top !important;
+    font-size: calc(var(--font-size-base) - 0.5pt) !important;
+  }
+
+  .items-table thead th {
+    border-bottom: var(--border-style-separator) !important;
+    font-weight: var(--font-weight-bold) !important;
+    padding-bottom: 6px !important;
+    text-align: left !important;
+  }
+
+  /* Column Widths & Alignment */
+  .col-item {
+    width: 50% !important;
+    word-break: break-word;
+  }
+  .col-qty {
+    width: 15% !important;
+    text-align: right !important;
+  }
+  .col-price {
+    width: 17% !important;
+    text-align: right !important;
+  }
+  .col-total {
+    width: 18% !important;
+    text-align: right !important;
+  }
+
+  /* Totals Section */
+  .totals-section {
+    margin-top: var(--spacing-unit) !important;
+  }
+  .total-line {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 2px 0 !important;
+    font-size: var(--font-size-base) !important;
+  }
+  .total-line.grand-total {
+    font-weight: var(--font-weight-bold) !important;
+    font-size: calc(var(--font-size-base) + 2pt) !important;
+    border-top: 2px double var(--border-color) !important;
+    margin-top: var(--spacing-unit) !important;
+    padding-top: var(--spacing-unit) !important;
+  }
+
+  /* QR Code / Barcode */
+  .qr-code {
+    margin-top: calc(var(--spacing-unit) * 2) !important;
+    text-align: center !important;
+  }
+  .qr-code img,
+  .qr-code svg {
+    width: 50mm !important; /* Adjust size as needed */
+    height: auto !important;
+  }
+}
+
