@@ -9,7 +9,8 @@ import {
   onOrdersRealtime,
 } from "../firebase/firebase";
 import BillPanel from "../components/BillPanel";
-import "../thermal-print.css"; // ensure on-screen preview uses the same styles
+// 1. IMPORT THE CSS AS A STRING
+import thermalPrintCss from "../thermal-print.css?inline";
 
 const Billing = () => {
   const [tables, setTables] = useState([]);
@@ -135,8 +136,8 @@ const Billing = () => {
     }
 
     const billHTML = billPanelRef.current.innerHTML || billPanelRef.current.outerHTML || "";
-    // NOTE: We use a link to /thermal-print.css so your dedicated CSS is applied inside the iframe.
-    // Ensure that file is served at /thermal-print.css (copy to public/thermal-print.css if needed).
+    
+    // 2. INJECT THE IMPORTED CSS STRING INTO A <STYLE> TAG
     const docHtml = `
       <!doctype html>
       <html>
@@ -144,11 +145,11 @@ const Billing = () => {
           <meta charset="utf-8"/>
           <meta name="viewport" content="width=device-width,initial-scale=1"/>
           <title>Receipt</title>
-          <link rel="stylesheet" href="/thermal-print.css" />
+          <style>${thermalPrintCss}</style>
         </head>
         <body>
-          <div class="print-container">
-            <div class="bill-panel-print receipt">
+          <div class="receipt-print-container">
+            <div class="receipt">
               ${billHTML}
             </div>
           </div>
@@ -218,9 +219,9 @@ const Billing = () => {
     push([ESC, 0x45, 0x00]); // bold off
     pushText(`Served by: ${details.staffName || "N/A"}\n`);
     pushText(`Order: ${details.order?.id || ""}\n`);
-    push([ESC, 0x61, 0x00]); // left
 
     pushText('\n');
+    push([ESC, 0x61, 0x00]); // left align for the rest
     pushText('No  ITEM                     QTY   RATE     AMT\n');
     push([ESC, 0x2d, 0x01]); // underline on
     pushText('---------------------------------------------\n');

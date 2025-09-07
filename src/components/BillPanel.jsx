@@ -1,220 +1,175 @@
 // src/components/BillPanel.jsx
-import React, { forwardRef } from "react";
-
-/**
- * Final, professional BillPanel
- * - stable, non-overlapping table using CSS classes for print layout
- * - numeric columns use tabular-nums and nowrap to avoid mixing/overflow
- * - item cell supports name + small modifiers/description (multi-line)
- * - interactive controls are hidden during print via .no-print
- * - forwardRef exposes DOM for iframe printing
- *
- * Props:
- * - details: { order, items, tableName, staffName }
- * - discount: number
- * - onDiscountChange: (e) => void
- * - onPrint: () => void
- */
+import React, { forwardRef, useMemo } from 'react';
+// 1. IMPORT THE SVG VERSION
+import { QRCodeSVG } from 'qrcode.react'; 
+import '../thermal-print.css';
 
 const BillPanel = forwardRef(
-  (
-    {
-      details,
-      discount = 0,
-      onDiscountChange = () => {},
-      onPrint = () => {},
-    },
-    ref
-  ) => {
-    if (!details) return null;
+  ({ details, discount = 0, onDiscountChange, onPrint }, ref) => {
+    if (!details) {
+      return null;
+    }
 
     const {
       order = {},
       items: rawItems = [],
-      tableName = "N/A",
-      staffName = "N/A",
+      tableName = 'N/A',
+      staffName = 'N/A',
     } = details;
-    const items = Array.isArray(rawItems) ? rawItems : [];
 
-    // normalize items
-    const normalized = items.map((it) => {
-      const qty = Number(it.quantity ?? it.qty ?? 1);
-      const price = Number(it.price ?? it.rate ?? 0);
-      const name = it.name ?? it.itemName ?? "Item";
-      const notes = it.notes ?? it.modifiers ?? it.description ?? "";
-      return {
-        ...it,
-        name: String(name),
-        notes: String(notes),
-        quantity: Number.isFinite(qty) ? qty : 1,
-        price: Number.isFinite(price) ? price : 0,
-        amount:
-          Number.isFinite(qty) && Number.isFinite(price) ? qty * price : 0,
-      };
-    });
+    const normalizedItems = useMemo(() => {
+      const items = Array.isArray(rawItems) ? rawItems : [];
+      return items.map((it) => {
+        const qty = Number(it.quantity ?? it.qty ?? 1);
+        const price = Number(it.price ?? it.rate ?? 0);
+        return {
+          itemId: it.itemId ?? Math.random(),
+          name: String(it.name ?? it.itemName ?? 'Item'),
+          notes: String(it.notes ?? it.modifiers ?? it.description ?? ''),
+          quantity: Number.isFinite(qty) ? qty : 1,
+          price: Number.isFinite(price) ? price : 0,
+          amount: Number.isFinite(qty) && Number.isFinite(price) ? qty * price : 0,
+        };
+      });
+    }, [rawItems]);
 
-    const computedSubtotal = normalized.reduce(
-      (s, it) => s + (Number(it.amount) || 0),
-      0
-    );
-    const subTotal = Number(order.total ?? computedSubtotal ?? 0);
-    const disc = Number(discount || 0);
-    const grandTotal = Number(Math.max(0, subTotal - disc).toFixed(2));
+    const { subTotal, grandTotal } = useMemo(() => {
+      const computedSubtotal = normalizedItems.reduce((s, it) => s + it.amount, 0);
+      const subTotal = Number(order.total ?? computedSubtotal);
+      const disc = Number(discount || 0);
+      const grandTotal = Math.max(0, subTotal - disc);
+      return { subTotal, grandTotal };
+    }, [normalizedItems, order.total, discount]);
 
-    const safeDate = (d) => {
+    const { dateStr, timeStr } = useMemo(() => {
+      const now = new Date();
       try {
-        const dt = new Date(d);
-        return isNaN(dt.getTime()) ? null : dt;
+        const dateObj = new Date(order.createdAt ?? order.date);
+        if (isNaN(dateObj.getTime())) return {
+            dateStr: now.toLocaleDateString('en-IN'),
+            timeStr: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit'})
+        };
+        return {
+          dateStr: dateObj.toLocaleDateString('en-IN'),
+          timeStr: dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit'}),
+        };
       } catch {
-        return null;
+        return { 
+            dateStr: now.toLocaleDateString('en-IN'),
+            timeStr: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit'})
+        };
       }
-    };
+    }, [order.createdAt, order.date]);
 
-    const dateObj = safeDate(order.createdAt ?? order.date);
-    const dateStr = dateObj ? dateObj.toLocaleDateString("en-IN") : "";
-    const timeStr = dateObj ? dateObj.toLocaleTimeString("en-IN") : "";
-
-    // local CSS for print + layout
-    const localStyles = `
-      .bill-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
-      .bill-table th, .bill-table td { padding: 4px 0; vertical-align: top; }
-      .bill-table thead th { font-size: 10px; font-weight: 700; }
-      .col-qty, .col-price, .col-total { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
-      .col-item { word-break: break-word; white-space: normal; }
-      .item-notes { font-size: 11px; color: #555; margin-top: 2px; }
-      .sep { border-top: 1px dashed rgba(0,0,0,0.7); margin: 6px 0; height: 1px; }
-      .totals { font-size: 11px; }
-      .total-strong { font-weight: 800; font-size: 13px; }
-      @media print { .no-print { display: none !important; } }
-      .bill-panel * { box-sizing: border-box; }
-    `;
-
+    const upiLink = useMemo(() => {
+      const payeeName = "SyncServe Restaurant".replace(/\s/g, '%20');
+      const transactionNote = `Bill%20for%20${tableName}`.replace(/\s/g, '%20');
+      return `upi://pay?pa=sinankp@fam&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${transactionNote}`;
+    }, [grandTotal, tableName]);
+    
     return (
-      <div
-        ref={ref}
-        className="bill-panel bill-panel-print bg-white p-3 rounded-sm shadow-sm w-full max-w-[78mm] mx-auto"
-        role="region"
-        aria-label={`Bill for ${tableName}`}
-      >
-        <style dangerouslySetInnerHTML={{ __html: localStyles }} />
+      <div ref={ref} className="thermal-print" aria-label={`Bill for ${tableName}`}>
+        <header className="header">
+          <div className="logo-placeholder">[Your Logo Here]</div>
+          <h1 className="business-name">SyncServe Restaurant</h1>
+          <p className="business-details">123 Culinary Lane, Edakkara, Kerala</p>
+          <p className="invoice-title">--- INVOICE ---</p>
+        </header>
 
-        {/* header */}
-        <div className="text-center mb-2">
-          <div className="text-base font-bold">SyncServe</div>
-          <div className="text-xs text-gray-600">Invoice</div>
-        </div>
-
-        {/* meta */}
-        <div className="flex justify-between text-xs mb-3">
-          <div>
-            <div>
-              <span className="font-medium">Table:</span> {tableName}
-            </div>
-            <div>
-              <span className="font-medium">Served by:</span> {staffName}
-            </div>
+        <section className="meta-info">
+          <div className="meta-row">
+            <span>Table: <strong>{tableName}</strong></span>
+            <span>Date: {dateStr}</span>
           </div>
-          <div className="text-right">
-            <div>
-              <span className="font-medium">Date:</span> {dateStr}
-            </div>
-            <div>
-              <span className="font-medium">Time:</span> {timeStr}
-            </div>
+          <div className="meta-row">
+            <span>Staff: <strong>{staffName}</strong></span>
+            <span>Time: {timeStr}</span>
           </div>
-        </div>
+        </section>
 
-        {/* items table */}
-        <table className="bill-table" aria-label="Bill items">
+        <table className="items-table">
           <thead>
             <tr>
-              <th className="text-left" style={{ width: "8%" }}>#</th>
-              <th className="text-left col-item">ITEM</th>
-              <th className="text-right col-qty">QTY</th>
-              <th className="text-right col-price">RATE</th>
-              <th className="text-right col-total">AMT</th>
+              <th className="col-sno">#</th>
+              <th className="col-item">ITEM</th>
+              <th className="col-qty">QTY</th>
+              <th className="col-price">RATE</th>
+              <th className="col-total">TOTAL</th>
             </tr>
           </thead>
           <tbody>
-            {normalized.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-3 text-xs">
-                  No items
-                </td>
-              </tr>
+            {normalizedItems.length === 0 ? (
+              <tr><td colSpan="5" className="no-items">No items in this order.</td></tr>
             ) : (
-              normalized.map((it, i) => (
-                <tr key={it.itemId ?? i}>
-                  <td className="pr-1">{i + 1}</td>
-                  <td className="col-item pr-2">
-                    <div style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.05 }}>
-                      {it.name}
-                    </div>
-                    {it.notes ? (
-                      <div className="item-notes">{it.notes}</div>
-                    ) : null}
+              normalizedItems.map((item, index) => (
+                <tr key={item.itemId}>
+                  <td className="col-sno">{index + 1}</td>
+                  <td className="col-item">
+                    <span className="item-name">{item.name}</span>
+                    {item.notes && <span className="item-notes">{item.notes}</span>}
                   </td>
-                  <td className="col-qty pr-1">{it.quantity}</td>
-                  <td className="col-price pr-1">{Number(it.price).toFixed(2)}</td>
-                  <td className="col-total">{Number(it.amount).toFixed(2)}</td>
+                  <td className="col-qty">{item.quantity}</td>
+                  <td className="col-price">{item.price.toFixed(2)}</td>
+                  <td className="col-total">{item.amount.toFixed(2)}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
 
-        {/* separator */}
-        <div className="sep" />
-
-        {/* totals block */}
-        <div className="totals text-sm">
-          <div className="flex justify-between">
+        <section className="totals">
+          <div className="total-row">
             <span>Sub Total</span>
             <span>₹{subTotal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between items-center mt-1">
+          <div className="total-row no-print">
             <span>Discount</span>
-            <div className="flex items-center gap-2">
-              <span style={{ minWidth: 64, textAlign: "right" }}>
-                ₹{disc.toFixed(2)}
-              </span>
+            <div className="discount-control">
+              <span>₹{Number(discount).toFixed(2)}</span>
               <input
                 type="number"
-                step="0.01"
                 value={discount}
                 onChange={onDiscountChange}
-                className="no-print px-2 py-1 border rounded text-right"
-                style={{ width: 88 }}
-                aria-label="Discount"
+                className="discount-input"
+                aria-label="Discount amount"
               />
             </div>
           </div>
-          <div className="flex justify-between items-center mt-2 pt-2 border-t">
-            <div className="total-strong">Grand Total</div>
-            <div className="total-strong">₹{grandTotal.toFixed(2)}</div>
+          <div className="total-row print-only">
+            <span>Discount</span>
+            <span>₹{Number(discount).toFixed(2)}</span>
           </div>
-        </div>
+          <div className="total-row grand-total">
+            <span>Grand Total</span>
+            <span>₹{grandTotal.toFixed(2)}</span>
+          </div>
+        </section>
 
-        {/* actions */}
-        <div className="no-print mt-3">
-          <button
-            onClick={onPrint}
-            className="w-full py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700"
-            type="button"
-          >
-            Print / Finalize
+        <div className="actions no-print">
+          <button onClick={onPrint} className="print-button">
+            Print / Finalize Bill
           </button>
         </div>
 
-        {/* footer for print */}
-        <div className="footer text-center text-xs mt-3 print:block hidden">
-          <div>Thank you for dining with us!</div>
-          {order?.id && (
-            <div style={{ marginTop: 4, fontSize: 10 }}>
-              Order ID: {String(order.id)}
-            </div>
-          )}
-        </div>
+        <footer className="footer">
+          <div className="qr-code-container">
+            {grandTotal > 0 ? (
+              // 2. USE THE SVG COMPONENT
+              <QRCodeSVG
+                value={upiLink}
+                size={110}
+                bgColor={"#ffffff"}
+                fgColor={"#000000"}
+                level={"L"}
+                includeMargin={false}
+              />
+            ) : (
+              <div className="qr-placeholder">[QR Code Here]</div>
+            )}
+          </div>
+          <p className="footer-message">Thank you for your visit!</p>
+          {order.id && <p className="order-id">Order ID: {String(order.id)}</p>}
+        </footer>
       </div>
     );
   }
