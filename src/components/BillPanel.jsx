@@ -64,7 +64,7 @@ const BillPanel = forwardRef(
     const upiLink = useMemo(() => {
       const payeeName = "SyncServe Restaurant".replace(/\s/g, '%20');
       const transactionNote = `Bill%20for%20${tableName}`.replace(/\s/g, '%20');
-      return `upi://pay?pa=sinankp@fam&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${transactionNote}`;
+      return `upi://pay?pa=shankp@fam&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${transactionNote}`;
     }, [grandTotal, tableName]);
     
     return (
