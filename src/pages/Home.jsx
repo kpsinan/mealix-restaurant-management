@@ -1,7 +1,7 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { addTable, getTables } from "../firebase/firebase";
+import { addTable, onTablesRealtime, deleteTable } from "../firebase/firebase"; // Assuming deleteTable is exported
 import Modal from "../components/Modal";
 import TableCard from "../components/TableCard";
 
@@ -9,51 +9,57 @@ const Home = () => {
   const [tables, setTables] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tableName, setTableName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchTables = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getTables(); //
-      setTables(data || []);
-    } catch (err) {
-      console.error("Error loading tables:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchTables();
-
-    const handler = () => {
-      fetchTables();
-    };
-    window.addEventListener("tablesUpdated", handler); //
-
-    return () => {
-      window.removeEventListener("tablesUpdated", handler); //
-    };
-  }, [fetchTables]);
+    setLoading(true);
+    const unsubscribe = onTablesRealtime(
+      (tablesData) => {
+        setTables(tablesData || []);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching tables in real-time:", error);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
 
   const openOrderFor = (tableId) => {
     if (!tableId) return;
-    navigate(`/order?tableId=${encodeURIComponent(tableId)}`); //
+    navigate(`/order?tableId=${encodeURIComponent(tableId)}`);
   };
 
   const handleAddTable = async () => {
     const name = tableName.trim();
     if (!name) return;
     try {
-      const newTable = await addTable(name); //
-      setTables((prev) => [...prev, newTable]);
+      await addTable(name);
       setTableName("");
       setIsModalOpen(false);
-      window.dispatchEvent(new CustomEvent("tablesUpdated")); //
     } catch (err) {
       console.error("Error adding table:", err);
       alert("Failed to add table.");
+    }
+  };
+
+  const handleDeleteTable = async (tableId) => {
+    if (!tableId) return;
+
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this table? This action cannot be undone."
+    );
+
+    if (isConfirmed) {
+      try {
+        await deleteTable(tableId); // Assumes deleteTable function exists in firebase.js
+        // UI will update automatically via the real-time listener
+      } catch (error) {
+        console.error("Error deleting table:", error);
+        alert("Failed to delete table. Please try again.");
+      }
     }
   };
 
@@ -72,7 +78,6 @@ const Home = () => {
         ) : null}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {/* Table cards sorted by numeric name */}
           {[...tables]
             .sort((a, b) => {
               const numA = parseInt(a.name.replace(/\D/g, ""), 10) || 0;
@@ -85,18 +90,17 @@ const Home = () => {
                 <TableCard
                   key={id}
                   table={table}
-                  onDoubleClick={() => openOrderFor(table.id ?? table._id)} //
-                  onLongPress={() => openOrderFor(table.id ?? table._id)} //
+                  onDoubleClick={() => openOrderFor(table.id ?? table._id)}
+                  onLongPress={() => openOrderFor(table.id ?? table._id)}
+                  onDelete={() => handleDeleteTable(table.id ?? table._id)}
                 />
               );
             })}
 
-          {/* Add table card at the end */}
           <TableCard isAddButton onClick={() => setIsModalOpen(true)} />
         </div>
       </div>
 
-      {/* Add Table Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="p-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
