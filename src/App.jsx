@@ -7,7 +7,8 @@ import Order from './pages/Order';
 import Menu from './pages/Menu';
 import Staff from './pages/Staff';
 import Kitchen from './pages/Kitchen';
-import Billing from './pages/Billing'; // Import the new Billing page
+import Billing from './pages/Billing';
+import Settings from './pages/Settings'; // <-- IMPORT the new Settings page
 
 const App = () => {
   return (
@@ -20,7 +21,8 @@ const App = () => {
           <Route path="/menu" element={<Menu />} />
           <Route path="/staff" element={<Staff />} />
           <Route path="/kitchen" element={<Kitchen />} />
-          <Route path="/billing" element={<Billing />} /> {/* Add the new route */}
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/settings" element={<Settings />} /> {/* <-- ADD the new route */}
         </Routes>
       </main>
     </div>

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   getMenuItems,
   getStaff,
+  getSettings, // <-- IMPORT getSettings
   updateTableStatus,
   deleteOrder,
   onTablesRealtime,
@@ -17,6 +18,7 @@ const Billing = () => {
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [settings, setSettings] = useState(null); // <-- ADD settings state
   const [selectedTableId, setSelectedTableId] = useState("");
   const [billDetails, setBillDetails] = useState(null);
   const [discount, setDiscount] = useState(0);
@@ -26,17 +28,19 @@ const Billing = () => {
   const tableSelectRef = useRef(null);
   const billPanelRef = useRef(null);
 
-  // Initial fetch for menuItems and staff
+  // Initial fetch for menuItems, staff, and settings
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [menuItemsData, staffData] = await Promise.all([
+        const [menuItemsData, staffData, settingsData] = await Promise.all([
           getMenuItems(),
           getStaff(),
+          getSettings(), // <-- FETCH settings
         ]);
         setMenuItems(menuItemsData || []);
         setStaff(staffData || []);
+        setSettings(settingsData || {}); // <-- SET settings state
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
         setError("Could not load necessary data. Please refresh.");
@@ -207,6 +211,9 @@ const Billing = () => {
       const enc = new TextEncoder(); // UTF-8; change to CP437 / server-side if needed
       chunks.push(enc.encode(txt));
     };
+    
+    // <-- USE DYNAMIC RESTAURANT NAME
+    const restaurantName = settings?.restaurantName || "SyncServe"; 
 
     // Init
     push([ESC, 0x40]); // ESC @
@@ -215,7 +222,7 @@ const Billing = () => {
     push([ESC, 0x61, 0x01]); // center
     push([ESC, 0x45, 0x01]); // bold on
     pushText(`${details.tableName || "TABLE"}\n`);
-    pushText(`SyncServe\n`);
+    pushText(`${restaurantName}\n`); // <-- UPDATED
     push([ESC, 0x45, 0x00]); // bold off
     pushText(`Served by: ${details.staffName || "N/A"}\n`);
     pushText(`Order: ${details.order?.id || ""}\n`);
@@ -275,7 +282,7 @@ const Billing = () => {
       a.href = url;
       a.download = `receipt_${String(billDetails.order?.id || "receipt")}.bin`;
       document.body.appendChild(a);
-      a.click();
+a.click();
       a.remove();
       URL.revokeObjectURL(url);
       alert("ESC/POS payload downloaded. Send this raw .bin to your printer service.");
@@ -340,6 +347,7 @@ const Billing = () => {
           <BillPanel
             ref={billPanelRef}
             details={billDetails}
+            settings={settings} // <-- PASS settings as a prop
             discount={discount}
             onDiscountChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
             onPrint={handleFinalizeAndPrint}

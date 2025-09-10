@@ -20,6 +20,7 @@ const navItems = [
   { path: "/staff", label: "Staff", icon: FaUsers },
   { path: "/order", label: "Order", icon: FaClipboardList },
   { path: "/kitchen", label: "Kitchen", icon: FaConciergeBell },
+  { path: "/settings", label: "Settings", icon: FaConciergeBell },
 ];
 
 const Sidebar = () => {

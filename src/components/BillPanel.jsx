@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import '../thermal-print.css';
 
 const BillPanel = forwardRef(
-  ({ details, discount = 0, onDiscountChange, onPrint }, ref) => {
+  ({ details, settings, discount = 0, onDiscountChange, onPrint }, ref) => { // <-- ACCEPT settings prop
     if (!details) {
       return null;
     }
@@ -16,6 +16,11 @@ const BillPanel = forwardRef(
       tableName = 'N/A',
       staffName = 'N/A',
     } = details;
+    
+    // <-- USE DYNAMIC NAME WITH FALLBACK
+    const restaurantName = settings?.restaurantName || 'SyncServe Restaurant';
+    const restaurantAddress = settings?.address || '123 Culinary Lane, Edakkara, Kerala';
+    const upiId = settings?.upiId || 'shankp@fam';
 
     const normalizedItems = useMemo(() => {
       const items = Array.isArray(rawItems) ? rawItems : [];
@@ -62,17 +67,17 @@ const BillPanel = forwardRef(
     }, [order.createdAt, order.date]);
 
     const upiLink = useMemo(() => {
-      const payeeName = "SyncServe Restaurant".replace(/\s/g, '%20');
+      const payeeName = restaurantName.replace(/\s/g, '%20'); // <-- USE DYNAMIC NAME
       const transactionNote = `Bill%20for%20${tableName}`.replace(/\s/g, '%20');
-      return `upi://pay?pa=shankp@fam&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${transactionNote}`;
-    }, [grandTotal, tableName]);
+      return `upi://pay?pa=${upiId}&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${transactionNote}`;
+    }, [grandTotal, tableName, restaurantName, upiId]); // <-- ADD dependencies
     
     return (
       <div ref={ref} className="thermal-print" aria-label={`Bill for ${tableName}`}>
         <header className="header">
           <div className="logo-placeholder">[Your Logo Here]</div>
-          <h1 className="business-name">SyncServe Restaurant</h1>
-          <p className="business-details">123 Culinary Lane, Edakkara, Kerala</p>
+          <h1 className="business-name">{restaurantName}</h1> {/* <-- UPDATED */}
+          <p className="business-details">{restaurantAddress}</p> {/* <-- UPDATED */}
           <p className="invoice-title">--- INVOICE ---</p>
         </header>
 

@@ -10,9 +10,10 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  setDoc, // <-- IMPORT setDoc
 } from "firebase/firestore";
 
-// Firebase configuration
+// Firebase configuration... (rest of the config is the same)
 const firebaseConfig = {
   apiKey: "AIzaSyDqxaUutYqyGsYfny_PUdrArV1VcJ432MI",
   authDomain: "syncserve-7a27b.firebaseapp.com",
@@ -22,19 +23,56 @@ const firebaseConfig = {
   appId: "1:961632456350:web:372b3e4deec94dd740358f",
   measurementId: "G-TNYB3MM0ZV"
 };
-// Initialize Firebase & Firestore
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Collections
+// Collections... (rest of the collections are the same)
 const tablesCollection = collection(db, "tables");
 const menuItemsCollection = collection(db, "menuItems");
 const staffCollection = collection(db, "staff");
 const ordersCollection = collection(db, "orders");
+const settingsCollection = collection(db, "settings");
 
 /* ----------------------
-   Tables
+   Settings
    ---------------------- */
+export const getSettings = async () => {
+  try {
+    const settingsDocRef = doc(db, "settings", "appSettings");
+    const docSnap = await getDoc(settingsDocRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    } else {
+      console.warn("Settings document 'appSettings' not found.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    throw error;
+  }
+};
+
+/**
+ * Creates or updates the application settings document.
+ * @param {object} settingsData - The settings object to save.
+ * @returns {Promise<void>}
+ */
+export const updateSettings = async (settingsData) => {
+  try {
+    const settingsDocRef = doc(db, "settings", "appSettings");
+    await setDoc(settingsDocRef, settingsData, { merge: true });
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    throw error;
+  }
+};
+
+
+/* ----------------------
+   Tables, Menu Items, Staff, Orders...
+   (The rest of your firebase.js functions remain the same)
+   ---------------------- */
+// ... (all other functions like addTable, getTables, etc.)
 export const addTable = async (name) => {
   try {
     const docRef = await addDoc(tablesCollection, { name, status: "available" });
@@ -55,12 +93,6 @@ export const getTables = async () => {
   }
 };
 
-/**
- * Real-time listener for tables.
- * @param {function} callback - Receives the array of tables on update.
- * @param {function} onError - Optional error handler.
- * @returns {function} - The unsubscribe function.
- */
 export const onTablesRealtime = (callback, onError) => {
   return onSnapshot(
     tablesCollection,
@@ -98,9 +130,6 @@ export const deleteTable = async (tableId) => {
   }
 };
 
-/* ----------------------
-   Menu Items
-   ---------------------- */
 export const addMenuItem = async (item) => {
   try {
     if (!item || !item.name || item.price == null) {
@@ -173,9 +202,6 @@ export const onMenuItemsRealtime = (callback, onError) => {
   );
 };
 
-/* ----------------------
-   Staff
-   ---------------------- */
 export const addStaff = async (name) => {
   try {
     const docRef = await addDoc(staffCollection, { name });
@@ -190,15 +216,13 @@ export const getStaff = async () => {
   try {
     const snapshot = await getDocs(staffCollection);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-  } catch (error) {
+  } catch (error)
+    {
     console.error("Error fetching staff:", error);
     throw error;
   }
 };
 
-/* ----------------------
-   Orders
-   ---------------------- */
 export const addOrder = async (order) => {
   try {
     const docRef = await addDoc(ordersCollection, order);
