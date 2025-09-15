@@ -10,23 +10,26 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  setDoc, // <-- IMPORT setDoc
+  setDoc,
+  writeBatch, // <-- Added import for batch writes
 } from "firebase/firestore";
 
-// Firebase configuration... (rest of the config is the same)
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDqxaUutYqyGsYfny_PUdrArV1VcJ432MI",
-  authDomain: "syncserve-7a27b.firebaseapp.com",
-  projectId: "syncserve-7a27b",
-  storageBucket: "syncserve-7a27b.firebasestorage.app",
-  messagingSenderId: "961632456350",
-  appId: "1:961632456350:web:372b3e4deec94dd740358f",
-  measurementId: "G-TNYB3MM0ZV"
+  apiKey: "AIzaSyDXKdnkxtgKARc0fWiA1BD5ok3qc8AqCVc",
+  authDomain: "syncserve-dev.firebaseapp.com",
+  databaseURL: "https://syncserve-dev-default-rtdb.firebaseio.com",
+  projectId: "syncserve-dev",
+  storageBucket: "syncserve-dev.firebasestorage.app",
+  messagingSenderId: "1029186931798",
+  appId: "1:1029186931798:web:ec31db4513af2edc057ff7",
+  measurementId: "G-LX9Z2Y6SN9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Collections... (rest of the collections are the same)
+// Collection references
 const tablesCollection = collection(db, "tables");
 const menuItemsCollection = collection(db, "menuItems");
 const staffCollection = collection(db, "staff");
@@ -52,11 +55,6 @@ export const getSettings = async () => {
   }
 };
 
-/**
- * Creates or updates the application settings document.
- * @param {object} settingsData - The settings object to save.
- * @returns {Promise<void>}
- */
 export const updateSettings = async (settingsData) => {
   try {
     const settingsDocRef = doc(db, "settings", "appSettings");
@@ -67,12 +65,9 @@ export const updateSettings = async (settingsData) => {
   }
 };
 
-
 /* ----------------------
-   Tables, Menu Items, Staff, Orders...
-   (The rest of your firebase.js functions remain the same)
+   Tables
    ---------------------- */
-// ... (all other functions like addTable, getTables, etc.)
 export const addTable = async (name) => {
   try {
     const docRef = await addDoc(tablesCollection, { name, status: "available" });
@@ -130,6 +125,9 @@ export const deleteTable = async (tableId) => {
   }
 };
 
+/* ----------------------
+   Menu Items
+   ---------------------- */
 export const addMenuItem = async (item) => {
   try {
     if (!item || !item.name || item.price == null) {
@@ -202,6 +200,9 @@ export const onMenuItemsRealtime = (callback, onError) => {
   );
 };
 
+/* ----------------------
+   Staff
+   ---------------------- */
 export const addStaff = async (name) => {
   try {
     const docRef = await addDoc(staffCollection, { name });
@@ -216,13 +217,15 @@ export const getStaff = async () => {
   try {
     const snapshot = await getDocs(staffCollection);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-  } catch (error)
-    {
+  } catch (error) {
     console.error("Error fetching staff:", error);
     throw error;
   }
 };
 
+/* ----------------------
+   Orders
+   ---------------------- */
 export const addOrder = async (order) => {
   try {
     const docRef = await addDoc(ordersCollection, order);
@@ -266,6 +269,30 @@ export const onOrdersRealtime = (callback, onError) => {
       if (onError) onError(err);
     }
   );
+};
+
+/**
+ * Deletes all documents from the 'orders' collection.
+ * Uses a batch write for efficiency.
+ * @returns {Promise<void>}
+ */
+export const clearAllOrders = async () => {
+  try {
+    const ordersSnapshot = await getDocs(ordersCollection);
+    if (ordersSnapshot.empty) {
+      console.log("No orders to delete.");
+      return; // Nothing to do
+    }
+    const batch = writeBatch(db);
+    ordersSnapshot.docs.forEach((document) => {
+      batch.delete(document.ref);
+    });
+    await batch.commit();
+    console.log("All orders successfully deleted.");
+  } catch (error) {
+    console.error("Error clearing all orders:", error);
+    throw error; // Re-throw the error to be caught by the caller
+  }
 };
 
 export default db;
