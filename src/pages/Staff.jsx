@@ -20,18 +20,18 @@ const LocationIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
-// NEW: Spinner Icon for loading state
 const SpinnerIcon = () => (
     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>
 );
-// NEW: More appropriate icon for "Bulk Add"
+
+// UPDATED BulkAddIcon
 const BulkAddIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-5m-1.37-4.25L13.5 13.5m0 0L9.75 9.75M13.5 13.5L17.25 17.25M9 20H4v-5m1.37-4.25L9.5 13.5m0 0l3.75-3.75M9.5 13.5l-3.75 3.75M4 4h5v5m11 0h-5V4" />
-    </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0 M3 21v-2a4 4 0 0 1 4 -4h4c.96 0 1.84 .338 2.53 .901 M16 3.13a4 4 0 0 1 0 7.75 M16 19h6 M19 16v6" />
+  </svg>
 );
 
 
@@ -44,8 +44,6 @@ const Staff = () => {
   const [newStaff, setNewStaff] = useState(initialNewStaffState);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkStaff, setBulkStaff] = useState([initialBulkRow]);
-  
-  // NEW: State to handle loading feedback
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -71,17 +69,17 @@ const Staff = () => {
       return;
     }
 
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
     try {
       const addedStaff = await addStaff(newStaff);
       setStaff([...staff, addedStaff]);
-      setNewStaff(initialNewStaffState); // Clear form
+      setNewStaff(initialNewStaffState);
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error adding staff:', error);
       alert('Failed to add staff member.');
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
@@ -103,22 +101,21 @@ const Staff = () => {
       return;
     }
     
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
     try {
       await addStaffInBulk(validStaff);
-      const staffData = await getStaff(); // Refetch all staff
+      const staffData = await getStaff();
       setStaff(staffData);
-      setBulkStaff([initialBulkRow]); // Clear form
+      setBulkStaff([initialBulkRow]);
       setIsBulkModalOpen(false);
     } catch (error) {
       console.error('Error adding staff in bulk:', error);
       alert('Failed to add staff members in bulk.');
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
-  // ... (handleKeyDown function remains the same)
   const handleKeyDown = (e, rowIndex, colIndex) => {
     const { key, shiftKey } = e;
     const keyMap = { ArrowDown: { r: 1, c: 0 }, Enter: { r: 1, c: 0, cond: !shiftKey }, ArrowUp: { r: -1, c: 0 }, ArrowRight: { r: 0, c: 1 }, Tab: { r: 0, c: 1, cond: !shiftKey }, ArrowLeft: { r: 0, c: -1 }, };
@@ -150,24 +147,23 @@ const Staff = () => {
 
         {/* --- Main Grid --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {/* ... (Add Staff and Staff Member Cards remain the same) ... */}
-            <button onClick={() => setIsModalOpen(true)} className="group bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center h-64 text-center hover:border-indigo-500 hover:text-indigo-600 transition-all duration-300">
+            <button onClick={() => setIsModalOpen(true)} className="group bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center min-h-[16rem] text-center p-6 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="font-semibold mt-2">Add New Staff</span>
             </button>
             {staff.map((member) => (
-            <div key={member.id} className="bg-white rounded-xl shadow-md h-64 p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+            <div key={member.id} className="bg-white rounded-xl shadow-md min-h-[16rem] p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
               <div className="flex items-center">
                 <div className="flex-shrink-0 h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
                    <UserIcon />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-xl font-bold text-slate-800 truncate">{member.name}</h3>
+                  <h3 className="text-xl font-bold text-slate-800 break-words">{member.name}</h3>
                 </div>
               </div>
-              <div className="space-y-3 text-sm text-slate-600">
+              <div className="space-y-3 text-sm text-slate-600 mt-4">
                 {member.contact && (
                   <p className="flex items-center break-all"><PhoneIcon />{member.contact}</p>
                 )}
@@ -236,7 +232,7 @@ const Staff = () => {
             </div>
         </Modal>
 
-        {/* --- Floating Action Button for Bulk Add with CORRECTED icon --- */}
+        {/* --- Floating Action Button for Bulk Add --- */}
         <button onClick={() => setIsBulkModalOpen(true)} className="fixed bottom-8 right-8 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-110">
           <BulkAddIcon />
         </button>
