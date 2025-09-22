@@ -2,11 +2,28 @@
 import React, { useState, useEffect } from 'react';
 import { getSettings, updateSettings } from '../firebase/firebase';
 
+// A list of common currencies for the dropdown
+const currencies = [
+  { symbol: '₹', code: 'INR', name: 'Indian Rupee' },
+  { symbol: '$', code: 'USD', name: 'United States Dollar' },
+  { symbol: '€', code: 'EUR', name: 'Euro' },
+  { symbol: '£', code: 'GBP', name: 'British Pound Sterling' },
+  { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
+  { symbol: 'A$', code: 'AUD', name: 'Australian Dollar' },
+  { symbol: 'C$', code: 'CAD', name: 'Canadian Dollar' },
+  { symbol: 'CHF', code: 'CHF', name: 'Swiss Franc' },
+  { symbol: 'AED', code: 'AED', name: 'UAE Dirham' },
+  { symbol: 'SAR', code: 'SAR', name: 'Saudi Riyal' },
+  { symbol: 'SGD', code: 'SGD', name: 'Singapore Dollar' },
+];
+
 const Settings = () => {
   const [formData, setFormData] = useState({
     restaurantName: '',
     address: '',
     upiId: '',
+    currencySymbol: '₹', // <-- ADD currency symbol state
+    currencyCode: 'INR',   // <-- ADD currency code state
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -19,7 +36,11 @@ const Settings = () => {
         setLoading(true);
         const currentSettings = await getSettings();
         if (currentSettings) {
-          setFormData(currentSettings);
+          // Ensure defaults if currency settings don't exist yet
+          setFormData({
+            ...{ currencySymbol: '₹', currencyCode: 'INR' }, // Default values
+            ...currentSettings,
+          });
         }
       } catch (error) {
         console.error("Error fetching settings:", error);
@@ -35,10 +56,24 @@ const Settings = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    // Special handler for the currency dropdown
+    if (name === 'currency') {
+      try {
+        const { symbol, code } = JSON.parse(value);
+        setFormData((prev) => ({
+          ...prev,
+          currencySymbol: symbol,
+          currencyCode: code,
+        }));
+      } catch (error) {
+        console.error("Could not parse currency data", error);
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -71,6 +106,7 @@ const Settings = () => {
 
       <div className="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
         <form onSubmit={handleSubmit}>
+          {/* Restaurant Name Input */}
           <div className="mb-4">
             <label htmlFor="restaurantName" className="block text-sm font-medium text-gray-700 mb-1">
               Restaurant Name
@@ -87,6 +123,7 @@ const Settings = () => {
             />
           </div>
 
+          {/* Address Input */}
           <div className="mb-4">
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
               Address
@@ -102,7 +139,8 @@ const Settings = () => {
             />
           </div>
 
-          <div className="mb-6">
+          {/* UPI ID Input */}
+          <div className="mb-4">
             <label htmlFor="upiId" className="block text-sm font-medium text-gray-700 mb-1">
               UPI ID (for QR Code Payments)
             </label>
@@ -117,7 +155,28 @@ const Settings = () => {
               required
             />
           </div>
+          
+          {/* NEW: Currency Selection Dropdown */}
+          <div className="mb-6">
+            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
+              Currency
+            </label>
+            <select
+              id="currency"
+              name="currency"
+              value={JSON.stringify({ symbol: formData.currencySymbol, code: formData.currencyCode })}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {currencies.map(({symbol, code, name}) => (
+                <option key={code} value={JSON.stringify({ symbol, code })}>
+                  {name} ({symbol})
+                </option>
+              ))}
+            </select>
+          </div>
 
+          {/* Form Actions */}
           <div className="flex items-center justify-between">
             <button
               type="submit"

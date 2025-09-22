@@ -1,11 +1,10 @@
 // src/components/BillPanel.jsx
 import React, { forwardRef, useMemo } from 'react';
-// 1. IMPORT THE SVG VERSION
 import { QRCodeSVG } from 'qrcode.react'; 
 import '../thermal-print.css';
 
 const BillPanel = forwardRef(
-  ({ details, settings, discount = 0, onDiscountChange, onPrint }, ref) => { // <-- ACCEPT settings prop
+  ({ details, settings, discount = 0, onDiscountChange, onPrint }, ref) => {
     if (!details) {
       return null;
     }
@@ -17,10 +16,12 @@ const BillPanel = forwardRef(
       staffName = 'N/A',
     } = details;
     
-    // <-- USE DYNAMIC NAME WITH FALLBACK
+    // Use dynamic settings with fallbacks for all values
     const restaurantName = settings?.restaurantName || 'SyncServe Restaurant';
     const restaurantAddress = settings?.address || '123 Culinary Lane, Edakkara, Kerala';
-    const upiId = settings?.upiId || 'shankp@fam';
+    const upiId = settings?.upiId || 'your-upi@id';
+    const currencySymbol = settings?.currencySymbol || '₹';
+    const currencyCode = settings?.currencyCode || 'INR';
 
     const normalizedItems = useMemo(() => {
       const items = Array.isArray(rawItems) ? rawItems : [];
@@ -66,18 +67,19 @@ const BillPanel = forwardRef(
       }
     }, [order.createdAt, order.date]);
 
+    // UPDATED: upiLink now uses dynamic currencyCode
     const upiLink = useMemo(() => {
-      const payeeName = restaurantName.replace(/\s/g, '%20'); // <-- USE DYNAMIC NAME
+      const payeeName = restaurantName.replace(/\s/g, '%20');
       const transactionNote = `Bill%20for%20${tableName}`.replace(/\s/g, '%20');
-      return `upi://pay?pa=${upiId}&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${transactionNote}`;
-    }, [grandTotal, tableName, restaurantName, upiId]); // <-- ADD dependencies
+      return `upi://pay?pa=${upiId}&pn=${payeeName}&am=${grandTotal.toFixed(2)}&cu=${currencyCode}&tn=${transactionNote}`;
+    }, [grandTotal, tableName, restaurantName, upiId, currencyCode]); // Added currencyCode dependency
     
     return (
       <div ref={ref} className="thermal-print" aria-label={`Bill for ${tableName}`}>
         <header className="header">
           <div className="logo-placeholder">[Your Logo Here]</div>
-          <h1 className="business-name">{restaurantName}</h1> {/* <-- UPDATED */}
-          <p className="business-details">{restaurantAddress}</p> {/* <-- UPDATED */}
+          <h1 className="business-name">{restaurantName}</h1>
+          <p className="business-details">{restaurantAddress}</p>
           <p className="invoice-title">--- INVOICE ---</p>
         </header>
 
@@ -122,15 +124,16 @@ const BillPanel = forwardRef(
           </tbody>
         </table>
 
+        {/* UPDATED: Totals section now uses dynamic currencySymbol */}
         <section className="totals">
           <div className="total-row">
             <span>Sub Total</span>
-            <span>₹{subTotal.toFixed(2)}</span>
+            <span>{currencySymbol}{subTotal.toFixed(2)}</span>
           </div>
           <div className="total-row no-print">
             <span>Discount</span>
             <div className="discount-control">
-              <span>₹{Number(discount).toFixed(2)}</span>
+              <span>{currencySymbol}{Number(discount).toFixed(2)}</span>
               <input
                 type="number"
                 value={discount}
@@ -142,11 +145,11 @@ const BillPanel = forwardRef(
           </div>
           <div className="total-row print-only">
             <span>Discount</span>
-            <span>₹{Number(discount).toFixed(2)}</span>
+            <span>{currencySymbol}{Number(discount).toFixed(2)}</span>
           </div>
           <div className="total-row grand-total">
             <span>Grand Total</span>
-            <span>₹{grandTotal.toFixed(2)}</span>
+            <span>{currencySymbol}{grandTotal.toFixed(2)}</span>
           </div>
         </section>
 
@@ -158,8 +161,7 @@ const BillPanel = forwardRef(
 
         <footer className="footer">
           <div className="qr-code-container">
-            {grandTotal > 0 ? (
-              // 2. USE THE SVG COMPONENT
+            {grandTotal > 0 && upiId ? (
               <QRCodeSVG
                 value={upiLink}
                 size={110}
