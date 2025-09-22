@@ -11,7 +11,7 @@ import {
   updateDoc,
   deleteDoc,
   setDoc,
-  writeBatch, // <-- Added import for batch writes
+  writeBatch, // Import writeBatch for bulk operations
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -74,6 +74,28 @@ export const addTable = async (name) => {
     return { id: docRef.id, name, status: "available" };
   } catch (error) {
     console.error("Error adding table:", error);
+    throw error;
+  }
+};
+
+/**
+ * Adds multiple tables to Firestore in a single batch operation.
+ * @param {string[]} tableNames - An array of table names to create.
+ */
+export const addTablesInBulk = async (tableNames) => {
+  if (!tableNames || tableNames.length === 0) {
+    throw new Error("addTablesInBulk: tableNames array is required and cannot be empty.");
+  }
+
+  try {
+    const batch = writeBatch(db);
+    tableNames.forEach((name) => {
+      const tableRef = doc(collection(db, "tables")); // Creates a new doc with a unique ID
+      batch.set(tableRef, { name, status: "available" });
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error("Error adding tables in bulk:", error);
     throw error;
   }
 };
@@ -203,12 +225,47 @@ export const onMenuItemsRealtime = (callback, onError) => {
 /* ----------------------
    Staff
    ---------------------- */
-export const addStaff = async (name) => {
+/**
+ * Adds a single staff member.
+ * @param {object} staffData - Object containing name, contact, and address.
+ */
+export const addStaff = async (staffData) => {
   try {
-    const docRef = await addDoc(staffCollection, { name });
-    return { id: docRef.id, name };
+    if (!staffData || !staffData.name) {
+      throw new Error("addStaff: Staff data must include a name.");
+    }
+    const docRef = await addDoc(staffCollection, staffData);
+    return { id: docRef.id, ...staffData };
   } catch (error) {
     console.error("Error adding staff:", error);
+    throw error;
+  }
+};
+
+/**
+ * Adds multiple staff members to Firestore in a single batch operation.
+ * @param {Array<Object>} staffArray - An array of staff objects.
+ */
+export const addStaffInBulk = async (staffArray) => {
+  if (!staffArray || staffArray.length === 0) {
+    throw new Error("addStaffInBulk: staffArray is required and cannot be empty.");
+  }
+
+  try {
+    const batch = writeBatch(db);
+    staffArray.forEach((staffMember) => {
+      if (staffMember.name && staffMember.name.trim() !== "") {
+        const staffRef = doc(collection(db, "staff"));
+        batch.set(staffRef, {
+          name: staffMember.name || "",
+          contact: staffMember.contact || "",
+          address: staffMember.address || "",
+        });
+      }
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error("Error adding staff in bulk:", error);
     throw error;
   }
 };
