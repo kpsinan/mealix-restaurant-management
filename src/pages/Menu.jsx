@@ -1,3 +1,4 @@
+// src/pages/Menu.jsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   addMenuItem,
@@ -5,14 +6,14 @@ import {
   deleteMenuItemsInBulk,
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
-import MenuItemCard from "../components/MenuItemCard";
+import MenuItemCard from "../components/MenuItemCard"; // Ensure this path is correct
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isAddNewBulkModalOpen, setIsAddNewBulkModalOpen] = useState(false);
-  
+
   // State for selection and deletion flow
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -74,7 +75,7 @@ const Menu = () => {
   };
 
 
-  // --- Other handlers (unchanged) ---
+  // --- Handlers for adding items ---
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewItem((prev) => ({ ...prev, [name]: value }));
@@ -108,24 +109,27 @@ const Menu = () => {
       alert("Failed to add menu item.");
     }
   };
+  
   const handleOpenAddNewBulk = () => {
     setIsBulkModalOpen(false);
     setIsAddNewBulkModalOpen(true);
     cellRefs.current = [];
   };
+  
   const inputClasses = "w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow";
 
-  // --- Bulk Add Spreadsheet handlers (unchanged) ---
-  // ... (handleBulkChange, handleAddRow, etc. are omitted for brevity but remain in the component)
+  // --- Bulk Add Spreadsheet handlers ---
   const getCellRef = (row, col) => {
     if (!cellRefs.current[row]) cellRefs.current[row] = [];
     if (!cellRefs.current[row][col]) cellRefs.current[row][col] = React.createRef();
     return cellRefs.current[row][col];
   };
+  
   const removeCellRefsRow = (rowIndex) => {
     if (!cellRefs.current || !cellRefs.current.length) return;
     cellRefs.current.splice(rowIndex, 1);
   };
+  
   const handleCellKeyDown = (e, rowIndex, colIndex) => {
     const cols = 6;
     let targetRow = rowIndex; let targetCol = colIndex;
@@ -146,20 +150,25 @@ const Menu = () => {
       }
     }
   };
+  
   const handleBulkChange = (index, field, value) => {
     setBulkItems((prev) => {
       const copy = [...prev]; copy[index] = { ...copy[index], [field]: value }; return copy;
     });
   };
+  
   const handleAddRow = () => { setBulkItems((prev) => [...prev, { name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" }]); };
+  
   const handleDeleteRow = (index) => {
     setBulkItems((prev) => prev.filter((_, i) => i !== index));
     removeCellRefsRow(index);
   };
+  
   const handleClearRows = () => {
     setBulkItems([{ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" }]);
     cellRefs.current = [];
   };
+  
   const handleBulkAdd = async () => {
     const rowsToAdd = bulkItems
       .map((r) => ({ ...r, fullPriceParsed: parseFloat(r.fullPrice), halfPriceParsed: r.halfPrice ? parseFloat(r.halfPrice) : null, quarterPriceParsed: r.quarterPrice ? parseFloat(r.quarterPrice) : null }))
@@ -185,12 +194,12 @@ const Menu = () => {
       setIsBulkProcessing(false);
     }
   };
+  
   const isRowValid = (row) => row.name && row.fullPrice && !isNaN(parseFloat(row.fullPrice));
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 lg:px-8 py-8">
-        {/* --- Professional Dynamic Header --- */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
             {selectionMode ? (
@@ -205,7 +214,6 @@ const Menu = () => {
               </>
             )}
           </div>
-
           <div className="flex items-center gap-2 mt-4 sm:mt-0">
             {selectionMode ? (
               <>
@@ -246,7 +254,6 @@ const Menu = () => {
             <MenuItemCard
               key={item.id}
               item={item}
-              showControls={false}
               selectionMode={selectionMode}
               isSelected={selectedItems.includes(item.id)}
               onSelect={() => handleSelectItem(item.id)}
@@ -255,28 +262,21 @@ const Menu = () => {
         </main>
       </div>
       
-      {/* --- Confirmation Modal for Deletion --- */}
       <Modal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)}>
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Confirm Deletion</h2>
-        <p className="text-gray-600 mb-6">
-          Are you sure you want to permanently delete {selectedItems.length} item(s)? This action cannot be undone.
-        </p>
+        <p className="text-gray-600 mb-6">Are you sure you want to permanently delete {selectedItems.length} item(s)? This action cannot be undone.</p>
         <div className="flex justify-end gap-4">
-          <button onClick={() => setShowConfirmModal(false)} className="px-6 py-2 font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
-            Cancel
-          </button>
+          <button onClick={() => setShowConfirmModal(false)} className="px-6 py-2 font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
           <button onClick={confirmDeletion} disabled={isDeleting} className="px-6 py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-wait transition-colors">
             {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </Modal>
 
-      {/* --- Other Modals (Single Add, Bulk Add) --- */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        {/* ... Single add item form ... */}
+         {/* ... Your single add item form JSX goes here ... */}
       </Modal>
       
-      {/* Updated Bulk Actions Modal (Delete option removed) */}
       <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)}>
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Bulk Actions</h2>
         <p className="text-gray-600 mb-6">Add multiple new items using a spreadsheet-like interface.</p>
@@ -287,7 +287,7 @@ const Menu = () => {
       </Modal>
 
       <Modal isOpen={isAddNewBulkModalOpen} onClose={() => setIsAddNewBulkModalOpen(false)} size="5xl">
-         {/* ... Bulk add spreadsheet modal content ... */}
+         {/* ... Your bulk add spreadsheet modal JSX goes here ... */}
       </Modal>
     </div>
   );
