@@ -4,6 +4,8 @@ import {
   onOrdersRealtime,
   getTables,
   getMenuItems,
+  getStaff,       // 1. Import getStaff
+  getSettings,    // 2. Import getSettings for currency
   clearAllOrders,
 } from "../firebase/firebase";
 
@@ -75,6 +77,8 @@ const Kitchen = () => {
   const [orders, setOrders] = useState([]);
   const [tables, setTables] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [staff, setStaff] = useState([]); // 3. Add state for staff
+  const [settings, setSettings] = useState({ currencySymbol: '₹' }); // 4. Add state for settings
   const [notification, setNotification] = useState(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -120,12 +124,22 @@ const Kitchen = () => {
   useEffect(() => {
     const fetchStaticData = async () => {
       try {
-        const [tableData, menuData] = await Promise.all([getTables(), getMenuItems()]);
+        // 5. Fetch all static data (tables, menu, staff, settings) concurrently
+        const [tableData, menuData, staffData, currentSettings] = await Promise.all([
+          getTables(),
+          getMenuItems(),
+          getStaff(),
+          getSettings(),
+        ]);
         setTables(tableData || []);
         setMenuItems(menuData || []);
+        setStaff(staffData || []);
+        if (currentSettings) {
+          setSettings(currentSettings);
+        }
       } catch (err) {
-        console.error("Error fetching tables or menu items:", err);
-        setNotification({ type: 'error', message: 'Could not load menu or table data.' });
+        console.error("Error fetching static data:", err);
+        setNotification({ type: 'error', message: 'Could not load initial app data.' });
       }
     };
     fetchStaticData();
@@ -145,9 +159,10 @@ const Kitchen = () => {
     return () => unsubscribe();
   }, []);
 
-  // Helpers to get names from IDs
+  // 6. Add helper to get staff name from ID
   const getTableName = (tableId) => tables.find((t) => (t.id ?? t._id) === tableId)?.name || "Unknown";
   const getItemName = (itemId) => menuItems.find((i) => (i.id ?? i._id) === itemId)?.name || "Unknown";
+  const getStaffName = (staffId) => staff.find((s) => (s.id ?? s._id) === staffId)?.name || "N/A";
 
   // --- Reusable UI sub-components ---
   const NotificationBanner = () => {
@@ -232,8 +247,10 @@ const Kitchen = () => {
                   ))}
                 </ul>
                 <div className="mt-auto pt-2 border-t">
-                  <p className="text-gray-800 font-semibold">Total: ₹{order.total.toFixed(2)}</p>
-                  {order.staffId && (<p className="text-sm text-gray-500 mt-1">Staff ID: {order.staffId}</p>)}
+                  {/* 7. Use dynamic currency symbol */}
+                  <p className="text-gray-800 font-semibold">Total: {settings.currencySymbol}{order.total.toFixed(2)}</p>
+                  {/* 8. Use helper function to display staff name */}
+                  {order.staffId && (<p className="text-sm text-gray-500 mt-1">Staff: {getStaffName(order.staffId)}</p>)}
                 </div>
               </div>
             ))}

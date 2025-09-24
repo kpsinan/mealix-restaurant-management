@@ -7,9 +7,10 @@ import {
   getStaff,
   addOrder,
   updateTableStatus,
+  getSettings, // 1. Import getSettings function
 } from "../firebase/firebase";
-import Modal from "../components/Modal";
 import MenuItemCard from "../components/MenuItemCard";
+import Modal from "../components/Modal";
 
 const Order = () => {
   const [tables, setTables] = useState([]);
@@ -21,6 +22,9 @@ const Order = () => {
   const [orderItems, setOrderItems] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // 2. Add state to hold settings, with a default currency symbol
+  const [settings, setSettings] = useState({ currencySymbol: '₹' });
 
   const location = useLocation();
 
@@ -30,10 +34,12 @@ const Order = () => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [tableData, staffData, menuData] = await Promise.all([
+        // 3. Fetch settings along with other data
+        const [tableData, staffData, menuData, currentSettings] = await Promise.all([
           getTables(),
           getStaff(),
           getMenuItems(),
+          getSettings(),
         ]);
 
         if (!mounted) return;
@@ -41,6 +47,11 @@ const Order = () => {
         setTables(tableData || []);
         setStaff(staffData || []);
         setMenuItems(menuData || []);
+        
+        // Set settings, ensuring a fallback if they don't exist
+        if (currentSettings) {
+          setSettings(currentSettings);
+        }
 
         const params = new URLSearchParams(location.search);
         const tableId = params.get("tableId");
@@ -130,7 +141,7 @@ const Order = () => {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 px-4">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Place Order</h1>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
@@ -177,7 +188,7 @@ const Order = () => {
         </div>
       </Modal>
 
-      {loading && <div className="text-gray-500 mb-4">Loading menu & data...</div>}
+      {loading && <div className="text-gray-500 mb-4 text-center">Loading menu & data...</div>}
 
       {selectedTable ? (
         <div className="mb-4 p-4 bg-white rounded shadow flex items-center justify-between">
@@ -206,6 +217,7 @@ const Order = () => {
           <MenuItemCard
             key={item.id ?? item._id}
             item={item}
+            currencySymbol={settings.currencySymbol}
             quantity={orderItems[item.id] || 0}
             onQuantityChange={(qty) => handleQuantityChange(item.id ?? item._id, qty)}
           />
@@ -214,7 +226,8 @@ const Order = () => {
 
       <div className="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="text-xl font-semibold text-gray-800">
-          Total: ₹{totalAmount.toFixed(2)}
+          {/* 4. Use the dynamic currency symbol from state */}
+          Total: {settings.currencySymbol}{totalAmount.toFixed(2)}
         </div>
         <div className="flex items-center gap-3">
           <button

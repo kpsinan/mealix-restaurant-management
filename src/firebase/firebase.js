@@ -11,7 +11,7 @@ import {
   updateDoc,
   deleteDoc,
   setDoc,
-  writeBatch, // Import writeBatch for bulk operations
+  writeBatch,
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -39,6 +39,7 @@ const settingsCollection = collection(db, "settings");
 /* ----------------------
    Settings
    ---------------------- */
+// ... (Settings functions are unchanged)
 export const getSettings = async () => {
   try {
     const settingsDocRef = doc(db, "settings", "appSettings");
@@ -65,9 +66,11 @@ export const updateSettings = async (settingsData) => {
   }
 };
 
+
 /* ----------------------
    Tables
    ---------------------- */
+// ... (Table functions are unchanged)
 export const addTable = async (name) => {
   try {
     const docRef = await addDoc(tablesCollection, { name, status: "available" });
@@ -77,16 +80,10 @@ export const addTable = async (name) => {
     throw error;
   }
 };
-
-/**
- * Adds multiple tables to Firestore in a single batch operation.
- * @param {string[]} tableNames - An array of table names to create.
- */
 export const addTablesInBulk = async (tableNames) => {
   if (!tableNames || tableNames.length === 0) {
     throw new Error("addTablesInBulk: tableNames array is required and cannot be empty.");
   }
-
   try {
     const batch = writeBatch(db);
     tableNames.forEach((name) => {
@@ -99,7 +96,6 @@ export const addTablesInBulk = async (tableNames) => {
     throw error;
   }
 };
-
 export const getTables = async () => {
   try {
     const snapshot = await getDocs(tablesCollection);
@@ -109,7 +105,6 @@ export const getTables = async () => {
     throw error;
   }
 };
-
 export const onTablesRealtime = (callback, onError) => {
   return onSnapshot(
     tablesCollection,
@@ -123,7 +118,6 @@ export const onTablesRealtime = (callback, onError) => {
     }
   );
 };
-
 export const updateTableStatus = async (tableId, status) => {
   if (!tableId) throw new Error("updateTableStatus: tableId is required");
   try {
@@ -135,7 +129,6 @@ export const updateTableStatus = async (tableId, status) => {
     throw error;
   }
 };
-
 export const deleteTable = async (tableId) => {
   if (!tableId) throw new Error("deleteTable: tableId is required");
   try {
@@ -146,14 +139,33 @@ export const deleteTable = async (tableId) => {
     throw error;
   }
 };
+export const deleteTablesInBulk = async (tableIds) => {
+  if (!tableIds || tableIds.length === 0) {
+    throw new Error("deleteTablesInBulk: tableIds array is required and cannot be empty.");
+  }
+  try {
+    const batch = writeBatch(db);
+    tableIds.forEach((id) => {
+      const tableRef = doc(db, "tables", id);
+      batch.delete(tableRef);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting tables in bulk:", error);
+    throw error;
+  }
+};
+
 
 /* ----------------------
    Menu Items
    ---------------------- */
+// ... (Previous menu functions are unchanged)
 export const addMenuItem = async (item) => {
   try {
-    if (!item || !item.name || item.price == null) {
-      throw new Error("addMenuItem: item must have name and price");
+    // Updated validation to check for fullPrice instead of price
+    if (!item || !item.name || item.fullPrice == null) {
+      throw new Error("addMenuItem: item must have a name and a fullPrice.");
     }
     const docRef = await addDoc(menuItemsCollection, item);
     return { id: docRef.id, ...item };
@@ -162,7 +174,6 @@ export const addMenuItem = async (item) => {
     throw error;
   }
 };
-
 export const getMenuItems = async () => {
   try {
     const snapshot = await getDocs(menuItemsCollection);
@@ -172,7 +183,6 @@ export const getMenuItems = async () => {
     throw error;
   }
 };
-
 export const getMenuItemById = async (id) => {
   if (!id) throw new Error("getMenuItemById: id is required");
   try {
@@ -184,7 +194,6 @@ export const getMenuItemById = async (id) => {
     throw error;
   }
 };
-
 export const updateMenuItem = async (id, updates) => {
   if (!id) throw new Error("updateMenuItem: id is required");
   try {
@@ -196,7 +205,6 @@ export const updateMenuItem = async (id, updates) => {
     throw error;
   }
 };
-
 export const deleteMenuItem = async (id) => {
   if (!id) throw new Error("deleteMenuItem: id is required");
   try {
@@ -204,6 +212,51 @@ export const deleteMenuItem = async (id) => {
     return true;
   } catch (error) {
     console.error("Error deleting menu item:", error);
+    throw error;
+  }
+};
+export const deleteMenuItemsInBulk = async (itemIds) => {
+  if (!itemIds || itemIds.length === 0) {
+    throw new Error("deleteMenuItemsInBulk: itemIds array is required and cannot be empty.");
+  }
+
+  try {
+    const batch = writeBatch(db);
+    itemIds.forEach((id) => {
+      const itemRef = doc(db, "menuItems", id);
+      batch.delete(itemRef);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error("Error deleting menu items in bulk:", error);
+    throw error;
+  }
+};
+
+/**
+ * Updates multiple menu items in a single batch operation.
+ * @param {Array<Object>} itemsToUpdate - Array of objects, each must have an 'id' and the fields to update.
+ */
+export const updateMenuItemsInBulk = async (itemsToUpdate) => {
+  if (!itemsToUpdate || itemsToUpdate.length === 0) {
+    console.warn("updateMenuItemsInBulk: No items to update.");
+    return;
+  }
+
+  try {
+    const batch = writeBatch(db);
+    itemsToUpdate.forEach(item => {
+      const { id, ...data } = item;
+      if (!id) {
+        console.warn("Skipping item without ID in bulk update:", item);
+        return;
+      }
+      const itemRef = doc(db, "menuItems", id);
+      batch.update(itemRef, data);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error("Error updating menu items in bulk:", error);
     throw error;
   }
 };
@@ -222,13 +275,11 @@ export const onMenuItemsRealtime = (callback, onError) => {
   );
 };
 
+
 /* ----------------------
    Staff
    ---------------------- */
-/**
- * Adds a single staff member.
- * @param {object} staffData - Object containing name, contact, and address.
- */
+// ... (Staff functions are unchanged)
 export const addStaff = async (staffData) => {
   try {
     if (!staffData || !staffData.name) {
@@ -241,16 +292,10 @@ export const addStaff = async (staffData) => {
     throw error;
   }
 };
-
-/**
- * Adds multiple staff members to Firestore in a single batch operation.
- * @param {Array<Object>} staffArray - An array of staff objects.
- */
 export const addStaffInBulk = async (staffArray) => {
   if (!staffArray || staffArray.length === 0) {
     throw new Error("addStaffInBulk: staffArray is required and cannot be empty.");
   }
-
   try {
     const batch = writeBatch(db);
     staffArray.forEach((staffMember) => {
@@ -269,7 +314,6 @@ export const addStaffInBulk = async (staffArray) => {
     throw error;
   }
 };
-
 export const getStaff = async () => {
   try {
     const snapshot = await getDocs(staffCollection);
@@ -280,9 +324,11 @@ export const getStaff = async () => {
   }
 };
 
+
 /* ----------------------
    Orders
    ---------------------- */
+// ... (Order functions are unchanged)
 export const addOrder = async (order) => {
   try {
     const docRef = await addDoc(ordersCollection, order);
@@ -292,7 +338,6 @@ export const addOrder = async (order) => {
     throw error;
   }
 };
-
 export const getOrders = async () => {
   try {
     const snapshot = await getDocs(ordersCollection);
@@ -302,7 +347,6 @@ export const getOrders = async () => {
     throw error;
   }
 };
-
 export const deleteOrder = async (orderId) => {
   if (!orderId) throw new Error("deleteOrder: orderId is required");
   try {
@@ -313,7 +357,6 @@ export const deleteOrder = async (orderId) => {
     throw error;
   }
 };
-
 export const onOrdersRealtime = (callback, onError) => {
   return onSnapshot(
     ordersCollection,
@@ -327,12 +370,6 @@ export const onOrdersRealtime = (callback, onError) => {
     }
   );
 };
-
-/**
- * Deletes all documents from the 'orders' collection.
- * Uses a batch write for efficiency.
- * @returns {Promise<void>}
- */
 export const clearAllOrders = async () => {
   try {
     const ordersSnapshot = await getDocs(ordersCollection);
@@ -351,5 +388,6 @@ export const clearAllOrders = async () => {
     throw error; // Re-throw the error to be caught by the caller
   }
 };
+
 
 export default db;
