@@ -3,14 +3,13 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   getMenuItems,
   getStaff,
-  getSettings, // <-- IMPORT getSettings
+  getSettings,
   updateTableStatus,
   deleteOrder,
   onTablesRealtime,
   onOrdersRealtime,
 } from "../firebase/firebase";
 import BillPanel from "../components/BillPanel";
-// 1. IMPORT THE CSS AS A STRING
 import thermalPrintCss from "../thermal-print.css?inline";
 
 const Billing = () => {
@@ -18,7 +17,7 @@ const Billing = () => {
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [staff, setStaff] = useState([]);
-  const [settings, setSettings] = useState(null); // <-- ADD settings state
+  const [settings, setSettings] = useState(null);
   const [selectedTableId, setSelectedTableId] = useState("");
   const [billDetails, setBillDetails] = useState(null);
   const [discount, setDiscount] = useState(0);
@@ -28,7 +27,6 @@ const Billing = () => {
   const tableSelectRef = useRef(null);
   const billPanelRef = useRef(null);
 
-  // Initial fetch for menuItems, staff, and settings
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -36,11 +34,11 @@ const Billing = () => {
         const [menuItemsData, staffData, settingsData] = await Promise.all([
           getMenuItems(),
           getStaff(),
-          getSettings(), // <-- FETCH settings
+          getSettings(),
         ]);
         setMenuItems(menuItemsData || []);
         setStaff(staffData || []);
-        setSettings(settingsData || {}); // <-- SET settings state
+        setSettings(settingsData || {});
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
         setError("Could not load necessary data. Please refresh.");
@@ -52,7 +50,6 @@ const Billing = () => {
     tableSelectRef.current?.focus();
   }, []);
 
-  // Real-time listener for tables
   useEffect(() => {
     const unsubscribe = onTablesRealtime(
       (tablesData) => {
@@ -65,13 +62,9 @@ const Billing = () => {
         setLoading(false);
       }
     );
-
-    return () => {
-      try { unsubscribe(); } catch {}
-    };
+    return () => { try { unsubscribe(); } catch {} };
   }, []);
 
-  // Real-time listener for orders
   useEffect(() => {
     const unsubscribe = onOrdersRealtime(
       (ordersData) => {
@@ -84,13 +77,9 @@ const Billing = () => {
         setLoading(false);
       }
     );
-
-    return () => {
-      try { unsubscribe(); } catch {}
-    };
+    return () => { try { unsubscribe(); } catch {} };
   }, []);
 
-  // Update bill details when selected table changes
   useEffect(() => {
     if (!selectedTableId) {
       setBillDetails(null);
@@ -117,10 +106,8 @@ const Billing = () => {
       };
     });
 
-    const tableName =
-      tables.find((t) => t.id === latestOrder.tableId)?.name || "N/A";
-    const staffName =
-      staff.find((s) => s.id === latestOrder.staffId)?.name || "N/A";
+    const tableName = tables.find((t) => t.id === latestOrder.tableId)?.name || "N/A";
+    const staffName = staff.find((s) => s.id === latestOrder.staffId)?.name || "N/A";
 
     setBillDetails({
       order: latestOrder,
@@ -132,7 +119,6 @@ const Billing = () => {
     setError("");
   }, [selectedTableId, orders, menuItems, staff, tables]);
 
-  // Print using an iframe that links to the external thermal CSS
   const printUsingIframe = useCallback(() => {
     if (!billPanelRef.current) {
       alert("Nothing to print — make sure a table is selected and the bill is visible.");
@@ -140,8 +126,7 @@ const Billing = () => {
     }
 
     const billHTML = billPanelRef.current.innerHTML || billPanelRef.current.outerHTML || "";
-    
-    // 2. INJECT THE IMPORTED CSS STRING INTO A <STYLE> TAG
+
     const docHtml = `
       <!doctype html>
       <html>
@@ -200,7 +185,6 @@ const Billing = () => {
     }
   }, [billPanelRef]);
 
-  // Build ESC/POS raw payload bytes (Uint8Array)
   const buildEscPosPayload = (details, discountValue = 0) => {
     if (!details) return new Uint8Array();
     const ESC = 0x1b;
@@ -208,31 +192,27 @@ const Billing = () => {
     const chunks = [];
     const push = (arr) => chunks.push(new Uint8Array(arr));
     const pushText = (txt) => {
-      const enc = new TextEncoder(); // UTF-8; change to CP437 / server-side if needed
+      const enc = new TextEncoder();
       chunks.push(enc.encode(txt));
     };
-    
-    // <-- USE DYNAMIC RESTAURANT NAME
-    const restaurantName = settings?.restaurantName || "SyncServe"; 
 
-    // Init
-    push([ESC, 0x40]); // ESC @
+    const restaurantName = settings?.restaurantName || "SyncServe";
 
-    // Centered bold header
-    push([ESC, 0x61, 0x01]); // center
-    push([ESC, 0x45, 0x01]); // bold on
+    push([ESC, 0x40]); // Init
+    push([ESC, 0x61, 0x01]); // Center
+    push([ESC, 0x45, 0x01]); // Bold on
     pushText(`${details.tableName || "TABLE"}\n`);
-    pushText(`${restaurantName}\n`); // <-- UPDATED
-    push([ESC, 0x45, 0x00]); // bold off
+    pushText(`${restaurantName}\n`);
+    push([ESC, 0x45, 0x00]); // Bold off
     pushText(`Served by: ${details.staffName || "N/A"}\n`);
     pushText(`Order: ${details.order?.id || ""}\n`);
-
     pushText('\n');
-    push([ESC, 0x61, 0x00]); // left align for the rest
+
+    push([ESC, 0x61, 0x00]); // Left align
     pushText('No  ITEM                     QTY   RATE     AMT\n');
-    push([ESC, 0x2d, 0x01]); // underline on
+    push([ESC, 0x2d, 0x01]);
     pushText('---------------------------------------------\n');
-    push([ESC, 0x2d, 0x00]); // underline off
+    push([ESC, 0x2d, 0x00]);
 
     (details.items || []).forEach((it, i) => {
       const name = (it.name || 'Item').toString().slice(0, 20).padEnd(20, ' ');
@@ -244,22 +224,27 @@ const Billing = () => {
 
     pushText('\n');
     const subtotal = (details.items || []).reduce((s, it) => s + (Number(it.price ?? 0) * Number(it.quantity ?? it.qty ?? 1)), 0);
-    const disc = Number(discountValue || 0);
+
+    const isAdditive = typeof discountValue === "string" && discountValue.trim().startsWith("+");
+    const parsedDiscount = parseFloat(discountValue) || 0;
+    const disc = isAdditive ? -parsedDiscount : parsedDiscount;
+
     const total = subtotal - disc;
 
     pushText(`Sub Total:${String(subtotal.toFixed(2)).padStart(12, ' ')}\n`);
-    if (disc > 0) pushText(`Discount:${String(disc.toFixed(2)).padStart(12, ' ')}\n`);
+    if (disc !== 0) {
+      pushText(`Discount:${String(disc.toFixed(2)).padStart(12, ' ')}\n`);
+    }
 
-    push([GS, 0x21, 0x11]); // double size
+    push([GS, 0x21, 0x11]);
     pushText(`TOTAL:${String(total.toFixed(2)).padStart(14, ' ')}\n`);
-    push([GS, 0x21, 0x00]); // reset
+    push([GS, 0x21, 0x00]);
 
     pushText('\n');
-    push([ESC, 0x61, 0x01]); // center
+    push([ESC, 0x61, 0x01]);
     pushText('Thank you for dining with us!\n');
-    push([ESC, 0x61, 0x00]); // left
+    push([ESC, 0x61, 0x00]);
 
-    // Feed and cut (many printers support)
     push([GS, 0x56, 0x00]);
 
     const totalLen = chunks.reduce((p, c) => p + c.length, 0);
@@ -282,7 +267,7 @@ const Billing = () => {
       a.href = url;
       a.download = `receipt_${String(billDetails.order?.id || "receipt")}.bin`;
       document.body.appendChild(a);
-a.click();
+      a.click();
       a.remove();
       URL.revokeObjectURL(url);
       alert("ESC/POS payload downloaded. Send this raw .bin to your printer service.");
@@ -298,13 +283,11 @@ a.click();
       return;
     }
 
-    // Browser print preview and print
     printUsingIframe();
 
     try {
       await updateTableStatus(selectedTableId, "available");
       await deleteOrder(billDetails.order.id);
-      console.log(`Finalized bill for table ${selectedTableId}. Table set to available, order deleted.`);
       alert(`Bill for table ${billDetails.tableName} has been processed.`);
       setBillDetails(null);
       setSelectedTableId("");
@@ -347,9 +330,9 @@ a.click();
           <BillPanel
             ref={billPanelRef}
             details={billDetails}
-            settings={settings} // <-- PASS settings as a prop
+            settings={settings}
             discount={discount}
-            onDiscountChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+            onDiscountChange={(e) => setDiscount(e.target.value)}
             onPrint={handleFinalizeAndPrint}
           />
 
