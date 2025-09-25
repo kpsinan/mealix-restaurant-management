@@ -4,6 +4,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { FaFilePdf, FaCalendarAlt, FaInbox, FaPlay } from "react-icons/fa";
 
+// Note: Font imports are removed as they are not needed if no symbol is shown.
+
 const SalesReport = () => {
   // Modal and Date Management State
   const [isModalOpen, setIsModalOpen] = useState(true);
@@ -36,11 +38,9 @@ const SalesReport = () => {
   // --- Data Fetching ---
   useEffect(() => {
     const loadInitialData = async () => {
-      // Fetch settings only once
       const settingsData = await getSettings();
       setSettings(settingsData || {});
 
-      // Fetch sales data if dates are available (after modal submission)
       if (startDate && endDate) {
         setLoading(true);
         try {
@@ -62,7 +62,7 @@ const SalesReport = () => {
     };
     
     loadInitialData();
-  }, [startDate, endDate]); // This effect runs when dates are set
+  }, [startDate, endDate]);
 
   // --- Calculations & Global Variables ---
   const totalSum = sales.reduce(
@@ -75,18 +75,18 @@ const SalesReport = () => {
     { total: 0, discount: 0, grandTotal: 0 }
   );
   
-  const currency = settings?.currencySymbol || "₹";
+  // ✅ This line ensures no currency symbol is ever shown.
+  const currency = "";
 
   // --- Modal Submission & Enter Key Logic ---
   const handleDateSubmit = () => {
-    // Basic validation
     if (!startDateRef.current.value || !endDateRef.current.value) {
       alert("Please select both a start and end date.");
       return;
     }
     setStartDate(startDateRef.current.value);
     setEndDate(endDateRef.current.value);
-    setIsModalOpen(false); // Close modal and trigger report rendering
+    setIsModalOpen(false);
   };
 
   const handleStartDateKeydown = (e) => {
@@ -103,133 +103,125 @@ const SalesReport = () => {
     }
   };
 
- // --- PDF Export ---
-const exportPDF = () => {
-  if (sales.length === 0) {
-    alert("No data available to export.");
-    return;
-  }
-  const doc = new jsPDF();
-  const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
-  
-  // 1. Professional Header
-  const restaurantName = settings?.restaurantName || "SyncServe Restaurant";
-  const generatedTime = new Date().toLocaleString("en-IN", {
-      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
+  // --- PDF Export ---
+  const exportPDF = () => {
+    if (sales.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+    
+    // 1. Professional Header
+    const restaurantName = settings?.restaurantName || "SyncServe Restaurant";
+    const generatedTime = new Date().toLocaleString("en-IN", {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
 
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text(restaurantName, pageWidth / 2, 20, { align: "center" });
-  
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.text("Sales Report", pageWidth / 2, 28, { align: "center" });
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text(restaurantName, pageWidth / 2, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Sales Report", pageWidth / 2, 28, { align: "center" });
 
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 40);
-  doc.text(`Generated on: ${generatedTime}`, pageWidth - 14, 40, { align: "right" });
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 40);
+    doc.text(`Generated on: ${generatedTime}`, pageWidth - 14, 40, { align: "right" });
 
-  // 2. High-Level Summary Block
-  const totalTransactions = sales.length;
-  const avgSale = totalTransactions > 0 ? totalSum.grandTotal / totalTransactions : 0;
-  
-  doc.setFontSize(10);
-  doc.text("Report Summary", 14, 52);
-  doc.setDrawColor(220, 220, 220);
-  doc.line(14, 53, pageWidth - 14, 53);
+    // 2. High-Level Summary Block
+    const totalTransactions = sales.length;
+    const avgSale = totalTransactions > 0 ? totalSum.grandTotal / totalTransactions : 0;
+    
+    doc.setFontSize(10);
+    doc.text("Report Summary", 14, 52);
+    doc.setDrawColor(220, 220, 220);
+    doc.line(14, 53, pageWidth - 14, 53);
 
-  let summaryTextY = 62;
-  doc.setFontSize(12);
-  doc.setTextColor(0);
-  doc.text(`Total Gross Sales:`, 14, summaryTextY);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${currency}${totalSum.grandTotal.toFixed(2)}`, 60, summaryTextY);
+    let summaryTextY = 62;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(`Total Gross Sales:`, 14, summaryTextY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${currency}${totalSum.grandTotal.toFixed(2)}`, 60, summaryTextY);
 
-  doc.setFont("helvetica", "normal");
-  doc.text(`Total Transactions:`, 14, summaryTextY + 8);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${totalTransactions}`, 60, summaryTextY + 8);
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Total Discounts:`, pageWidth / 2, summaryTextY);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${currency}${totalSum.discount.toFixed(2)}`, (pageWidth / 2) + 40, summaryTextY);
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Average Sale Value:`, pageWidth / 2, summaryTextY + 8);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${currency}${avgSale.toFixed(2)}`, (pageWidth / 2) + 40, summaryTextY + 8);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Transactions:`, 14, summaryTextY + 8);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${totalTransactions}`, 60, summaryTextY + 8);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Discounts:`, pageWidth / 2, summaryTextY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${currency}${totalSum.discount.toFixed(2)}`, (pageWidth / 2) + 40, summaryTextY);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text(`Average Sale Value:`, pageWidth / 2, summaryTextY + 8);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${currency}${avgSale.toFixed(2)}`, (pageWidth / 2) + 40, summaryTextY + 8);
 
-  // 3. Clean Table
-  const tableColumns = ["#", "Date & Time", "Table", "Served By", "Total", "Discount", "Grand Total"];
-  const tableRows = sales.map((sale, idx) => [
-    idx + 1,
-    `${formatDate(sale.finalizedAt)}\n${formatTime(sale.finalizedAt)}`,
-    sale.table,
-    sale.servedBy,
-    `${currency}${sale.total.toFixed(2)}`,
-    `${currency}${sale.discount.toFixed(2)}`,
-    `${currency}${sale.grandTotal.toFixed(2)}`,
-  ]);
+    // 3. Clean Table
+    const tableColumns = ["#", "Date & Time", "Table", "Served By", "Total", "Discount", "Grand Total"];
+    const tableRows = sales.map((sale, idx) => [
+      idx + 1,
+      `${formatDate(sale.finalizedAt)}\n${formatTime(sale.finalizedAt)}`,
+      sale.table,
+      sale.servedBy,
+      `${currency}${sale.total.toFixed(2)}`,
+      `${currency}${sale.discount.toFixed(2)}`,
+      `${currency}${sale.grandTotal.toFixed(2)}`,
+    ]);
 
-  const totalsRow = [
-      { content: '' },
-      { content: '' },
-      { content: '' },
-      { content: 'TOTALS', styles: { fontStyle: 'bold' } },
-      { content: `${currency}${totalSum.total.toFixed(2)}`, styles: { fontStyle: 'bold' } },
-      { content: `${currency}${totalSum.discount.toFixed(2)}`, styles: { fontStyle: 'bold' } },
-      { content: `${currency}${totalSum.grandTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
-  ];
+    const totalsRow = [
+        { content: '' }, { content: '' }, { content: '' },
+        { content: 'TOTALS', styles: { fontStyle: 'bold' } },
+        { content: `${currency}${totalSum.total.toFixed(2)}`, styles: { fontStyle: 'bold' } },
+        { content: `${currency}${totalSum.discount.toFixed(2)}`, styles: { fontStyle: 'bold' } },
+        { content: `${currency}${totalSum.grandTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
+    ];
 
-  autoTable(doc, {
-  startY: summaryTextY + 20,
-  head: [tableColumns],
-  body: tableRows,
-  foot: [totalsRow],
-  theme: "grid", // ✅ Keep grid so header/footer colors stay
-  styles: {
-    cellPadding: 3,
-    halign: 'center',
-    valign: 'middle',
-  },
-  headStyles: { 
-    fillColor: [44, 62, 80], // Dark blue header
-    textColor: 255,
-    fontStyle: 'bold',
-    halign: 'center',
-    valign: 'middle',
-  },
-  bodyStyles: {
-    lineWidth: 0, // ✅ Remove borders for data section only
-  },
-  footStyles: { 
-    fillColor: [236, 240, 241], // Light gray footer
-    textColor: [44, 62, 80],
-    fontStyle: 'bold',
-    halign: 'center',
-    valign: 'middle',
-    lineWidth: 0, // ✅ Clean footer (but background stays)
-  },
-  columnStyles: {
-    0: { halign: 'center', cellWidth: 10 },
-    1: { halign: 'center', cellWidth: 30 },
-  },
-  didDrawPage: function (data) {
-    const pageCount = doc.internal.getNumberOfPages();
-    doc.setFontSize(9);
-    doc.setTextColor(150);
-    doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  },
-});
+    autoTable(doc, {
+      startY: summaryTextY + 20,
+      head: [tableColumns],
+      body: tableRows,
+      foot: [totalsRow],
+      theme: "grid",
+      styles: {
+        cellPadding: 3,
+        halign: 'center',
+        valign: 'middle',
+      },
+      headStyles: { 
+        fillColor: [44, 62, 80],
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        lineWidth: 0,
+      },
+      footStyles: { 
+        fillColor: [236, 240, 241],
+        textColor: [44, 62, 80],
+        fontStyle: 'bold',
+        lineWidth: 0,
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 30 },
+      },
+      didDrawPage: function (data) {
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      },
+    });
 
-
-  doc.save(`SalesReport_${restaurantName.replace(/\s+/g, '')}_${startDate}_to_${endDate}.pdf`);
-};
-
+    doc.save(`SalesReport_${restaurantName.replace(/\s+/g, '')}_${startDate}_to_${endDate}.pdf`);
+  };
 
   // --- Conditional Rendering ---
   if (isModalOpen) {
@@ -272,7 +264,6 @@ const exportPDF = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
             <h1 className="text-3xl font-bold text-slate-800">Sales Report</h1>
@@ -287,7 +278,6 @@ const exportPDF = () => {
         </button>
       </div>
 
-      {/* Table Card */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-lg">
         {loading ? (
           <div className="flex justify-center items-center py-20">
