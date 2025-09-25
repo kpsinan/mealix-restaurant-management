@@ -104,6 +104,12 @@ const Settings = () => {
     <div className="container mx-auto py-6 px-4">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Application Settings</h1>
 
+      {/* START: ADDED QUOTE */}
+      <p className="text-center text-red-700 font-semibold text-lg mb-8 italic">
+        "Palestine is the anvil of our consciousness." - Edward Said
+      </p>
+      {/* END: ADDED QUOTE */}
+
       <div className="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
         <form onSubmit={handleSubmit}>
           {/* Restaurant Name Input */}

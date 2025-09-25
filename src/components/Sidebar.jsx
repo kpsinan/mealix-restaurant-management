@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FaHome,
@@ -13,22 +13,42 @@ import {
   FaCog,
   FaSignOutAlt,
   FaUserCircle,
+  FaChartBar, // <-- 1. IMPORT THE NEW ICON
 } from "react-icons/fa";
 
-// Config-driven nav items
+// Custom hook to detect clicks outside a component
+const useOutsideClick = (ref, callback) => {
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
+        callback();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [ref, callback]);
+};
+
+
+// Config-driven nav items remain the same
 const navItems = [
   { path: "/", label: "Home", icon: FaHome },
   { path: "/menu", label: "Menu", icon: FaUtensils },
   { path: "/billing", label: "Billing", icon: FaFileInvoiceDollar },
+  { path: "/reports", label: "Reports", icon: FaChartBar }, // <-- 2. ADD THE NEW NAV ITEM
   { path: "/staff", label: "Staff", icon: FaUsers },
   { path: "/order", label: "Order", icon: FaClipboardList },
   { path: "/kitchen", label: "Kitchen", icon: FaConciergeBell },
-  { path: "/settings", label: "Settings", icon: FaCog },
 ];
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  useOutsideClick(profileRef, () => setProfileOpen(false));
 
   // Load sidebar state from localStorage
   useEffect(() => {
@@ -38,67 +58,56 @@ const Sidebar = () => {
     }
   }, []);
 
-  // Save sidebar state
+  // Save sidebar state to localStorage
   useEffect(() => {
     localStorage.setItem("sidebarOpen", JSON.stringify(isOpen));
   }, [isOpen]);
 
   return (
-    <aside
-      className={`${
-        isOpen ? "w-64" : "w-20"
-      } bg-gradient-to-b from-gray-900 to-gray-800 text-gray-200 h-screen p-4 flex flex-col justify-between shadow-xl transition-all duration-300`}
-    >
+    // MODIFIED: Changed `relative` to `sticky top-0` to make the sidebar stick to the top during scroll.
+    <aside className={`sticky top-0 h-screen bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 ease-in-out ${isOpen ? "w-64" : "w-20"}`}>
+      
+      {/* Collapse/Expand Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+        className="absolute -right-3 top-8 z-10 p-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-amber-500 hover:text-slate-900 transition-colors"
+      >
+        {isOpen ? <FaChevronLeft size={14} /> : <FaBars size={14} />}
+      </button>
+
       {/* Top Section: Logo + Nav */}
-      <div>
+      <div className={`flex-1 flex flex-col ${isOpen ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}`}>
         {/* Brand */}
-        <div className="flex items-center mb-8">
-          <span className="text-yellow-400 text-2xl">🍴</span>
+        <div className="flex items-center h-20 px-6 shrink-0">
+          <span className="text-amber-400 text-3xl">🍴</span>
           {isOpen && (
-            <span className="ml-3 text-2xl font-extrabold tracking-wide text-yellow-400">
-              RestroGrid
+            <span className="ml-4 text-2xl font-bold tracking-wider text-amber-400">
+              MealIX
             </span>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="space-y-2">
+        <nav className="px-4 space-y-2">
           {navItems.map(({ path, label, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
               className={({ isActive }) =>
-                `relative flex items-center rounded-lg font-medium py-3 px-4 transition-all duration-300 group
-                ${
-                  isActive
-                    ? "bg-yellow-500 text-gray-900 shadow-md"
-                    : "hover:bg-gray-700 hover:text-yellow-400"
+                `relative flex items-center rounded-lg font-medium py-3 px-4 transition-colors group
+                ${isActive
+                    ? "bg-amber-500 text-slate-900 shadow-lg"
+                    : "hover:bg-slate-800 hover:text-amber-400"
                 }`
               }
             >
-              {/* Active indicator */}
-              {({ isActive }) =>
-                isActive && (
-                  <span className="absolute left-0 top-0 h-full w-1 bg-yellow-400 rounded-r" />
-                )
-              }
-
-              {/* Icon */}
-              <span className="w-6 flex justify-center text-xl">
-                <Icon aria-hidden="true" />
-              </span>
-
-              {/* Label */}
-              {isOpen && (
-                <span className="ml-4 flex-1 whitespace-nowrap">{label}</span>
-              )}
-
-              {/* Tooltip (collapsed only) */}
+              <Icon className="w-6 h-6 shrink-0" aria-hidden="true" />
+              {isOpen && <span className="ml-4 flex-1 whitespace-nowrap">{label}</span>}
+              
+              {/* Tooltip for collapsed state */}
               {!isOpen && (
-                <span
-                  className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-gray-900 text-yellow-400 text-sm rounded opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg"
-                  role="tooltip"
-                >
+                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5 bg-slate-800 text-amber-400 text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg transition-opacity pointer-events-none z-20">
                   {label}
                 </span>
               )}
@@ -107,52 +116,64 @@ const Sidebar = () => {
         </nav>
       </div>
 
-      {/* Bottom Section: Profile + Toggle */}
-      <div className="relative">
-        {/* Profile */}
-        <div
-          className={`border-t border-gray-700 pt-4 flex items-center cursor-pointer transition-all duration-300 ${
-            !isOpen ? "justify-center" : "gap-3"
-          }`}
-          onClick={() => setProfileOpen((prev) => !prev)}
+      {/* Bottom Section: Settings, Profile */}
+      <div className="px-4 py-4 border-t border-slate-700/50">
+        {/* Settings Link */}
+        <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+            `relative flex items-center rounded-lg font-medium py-3 px-4 transition-colors group
+            ${isActive
+                ? "bg-amber-500 text-slate-900 shadow-lg"
+                : "hover:bg-slate-800 hover:text-amber-400"
+            }`
+          }
         >
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="profile"
-            className="w-10 h-10 rounded-full border-2 border-yellow-400"
-          />
-          {isOpen && (
-            <div>
-              <p className="font-semibold">Manager</p>
-              <p className="text-sm text-gray-400">Admin</p>
-            </div>
+          <FaCog className="w-6 h-6 shrink-0" aria-hidden="true" />
+          {isOpen && <span className="ml-4">Settings</span>}
+          {!isOpen && (
+             <span className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5 bg-slate-800 text-amber-400 text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg transition-opacity pointer-events-none z-20">
+                  Settings
+             </span>
           )}
+        </NavLink>
+
+        {/* Profile Section */}
+        <div ref={profileRef} className="relative mt-2">
+            {/* Profile Popover Menu */}
+            {profileOpen && (
+                <div className={`absolute bottom-full mb-2 w-56 ${isOpen ? 'left-0' : 'left-4'} bg-slate-800 rounded-lg shadow-lg py-2 transition-all duration-300 ease-in-out transform origin-bottom ${profileOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+                    <div className="px-4 py-3 border-b border-slate-700">
+                        <p className="font-semibold text-slate-200">Manager</p>
+                        <p className="text-sm text-slate-400 truncate">manager@restrogrid.com</p>
+                    </div>
+                    <button className="flex w-full items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-amber-400">
+                        <FaUserCircle className="mr-3" /> Profile
+                    </button>
+                    <button className="flex w-full items-center px-4 py-2 text-sm text-red-400 hover:bg-slate-700">
+                        <FaSignOutAlt className="mr-3" /> Logout
+                    </button>
+                </div>
+            )}
+            
+            {/* Profile Trigger */}
+            <div
+                className={`mt-2 p-2 flex items-center cursor-pointer rounded-lg hover:bg-slate-800 transition-colors ${!isOpen && "justify-center"}`}
+                onClick={() => setProfileOpen((prev) => !prev)}
+            >
+                <img
+                    src="https://i.pravatar.cc/48"
+                    alt="profile"
+                    className="w-10 h-10 rounded-full border-2 border-amber-400"
+                />
+                {isOpen && (
+                    <div className="ml-3">
+                    <p className="font-semibold text-slate-200">Manager</p>
+                    <p className="text-xs text-slate-400">Admin</p>
+                    </div>
+                )}
+            </div>
         </div>
-
-        {/* Profile Dropdown */}
-        {profileOpen && isOpen && (
-          <div className="absolute bottom-16 left-0 w-full bg-gray-800 rounded-lg shadow-lg py-2">
-            <button className="flex w-full items-center px-4 py-2 text-sm hover:bg-gray-700">
-              <FaUserCircle className="mr-3" /> Profile
-            </button>
-            <button className="flex w-full items-center px-4 py-2 text-sm hover:bg-gray-700">
-              <FaCog className="mr-3" /> Settings
-            </button>
-            <button className="flex w-full items-center px-4 py-2 text-sm text-red-400 hover:bg-gray-700">
-              <FaSignOutAlt className="mr-3" /> Logout
-            </button>
-          </div>
-        )}
-
-        {/* Collapse/Expand Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-          aria-expanded={isOpen}
-          className="mt-4 w-full flex items-center justify-center py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-yellow-400 transition-colors"
-        >
-          {isOpen ? <FaChevronLeft size={18} /> : <FaBars size={18} />}
-        </button>
       </div>
     </aside>
   );

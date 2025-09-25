@@ -8,6 +8,7 @@ import {
   deleteOrder,
   onTablesRealtime,
   onOrdersRealtime,
+  addSaleRecord, // <-- 1. IMPORT addSaleRecord
 } from "../firebase/firebase";
 import BillPanel from "../components/BillPanel";
 import thermalPrintCss from "../thermal-print.css?inline";
@@ -285,10 +286,37 @@ const Billing = () => {
 
     printUsingIframe();
 
+    // --- 2. UPDATED LOGIC FOR SALES REPORTING ---
     try {
+      // Step 1: Create the sales record object from the bill details.
+      const subTotal = billDetails.items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+      const discountValue = Number(discount) || 0;
+      const grandTotal = subTotal - discountValue;
+
+      const saleData = {
+        tableName: billDetails.tableName,
+        staffName: billDetails.staffName,
+        subTotal: subTotal,
+        discount: discountValue,
+        grandTotal: grandTotal,
+        items: billDetails.items,
+        originalOrderId: billDetails.order.id,
+      };
+
+      // Step 2: Save the sale record to Firestore.
+      await addSaleRecord(saleData);
+
+      // Step 3: Update table status and delete the original active order.
       await updateTableStatus(selectedTableId, "available");
       await deleteOrder(billDetails.order.id);
-      alert(`Bill for table ${billDetails.tableName} has been processed.`);
+
+      // Step 4: Reset the UI.
+      alert(
+        `Bill for table ${billDetails.tableName} has been processed and recorded.`
+      );
       setBillDetails(null);
       setSelectedTableId("");
       setDiscount(0);

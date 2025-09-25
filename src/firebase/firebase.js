@@ -12,6 +12,9 @@ import {
   deleteDoc,
   setDoc,
   writeBatch,
+  query, // <-- ADDED for sales reports
+  where, // <-- ADDED for sales reports
+  Timestamp, // <-- ADDED for sales reports
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -35,11 +38,11 @@ const menuItemsCollection = collection(db, "menuItems");
 const staffCollection = collection(db, "staff");
 const ordersCollection = collection(db, "orders");
 const settingsCollection = collection(db, "settings");
+const salesCollection = collection(db, "salesRecords"); // <-- ADDED
 
 /* ----------------------
    Settings
    ---------------------- */
-// ... (Settings functions are unchanged)
 export const getSettings = async () => {
   try {
     const settingsDocRef = doc(db, "settings", "appSettings");
@@ -70,7 +73,6 @@ export const updateSettings = async (settingsData) => {
 /* ----------------------
    Tables
    ---------------------- */
-// ... (Table functions are unchanged)
 export const addTable = async (name) => {
   try {
     const docRef = await addDoc(tablesCollection, { name, status: "available" });
@@ -160,10 +162,8 @@ export const deleteTablesInBulk = async (tableIds) => {
 /* ----------------------
    Menu Items
    ---------------------- */
-// ... (Previous menu functions are unchanged)
 export const addMenuItem = async (item) => {
   try {
-    // Updated validation to check for fullPrice instead of price
     if (!item || !item.name || item.fullPrice == null) {
       throw new Error("addMenuItem: item must have a name and a fullPrice.");
     }
@@ -232,11 +232,6 @@ export const deleteMenuItemsInBulk = async (itemIds) => {
     throw error;
   }
 };
-
-/**
- * Updates multiple menu items in a single batch operation.
- * @param {Array<Object>} itemsToUpdate - Array of objects, each must have an 'id' and the fields to update.
- */
 export const updateMenuItemsInBulk = async (itemsToUpdate) => {
   if (!itemsToUpdate || itemsToUpdate.length === 0) {
     console.warn("updateMenuItemsInBulk: No items to update.");
@@ -260,7 +255,6 @@ export const updateMenuItemsInBulk = async (itemsToUpdate) => {
     throw error;
   }
 };
-
 export const onMenuItemsRealtime = (callback, onError) => {
   return onSnapshot(
     menuItemsCollection,
@@ -279,7 +273,6 @@ export const onMenuItemsRealtime = (callback, onError) => {
 /* ----------------------
    Staff
    ---------------------- */
-// ... (Staff functions are unchanged)
 export const addStaff = async (staffData) => {
   try {
     if (!staffData || !staffData.name) {
@@ -328,7 +321,6 @@ export const getStaff = async () => {
 /* ----------------------
    Orders
    ---------------------- */
-// ... (Order functions are unchanged)
 export const addOrder = async (order) => {
   try {
     const docRef = await addDoc(ordersCollection, order);
@@ -354,6 +346,20 @@ export const deleteOrder = async (orderId) => {
     return true;
   } catch (error) {
     console.error("Error deleting order:", error);
+    throw error;
+  }
+};
+export const updateOrderStatus = async (orderId, newStatus) => {
+  if (!orderId || !newStatus) {
+    throw new Error("updateOrderStatus: orderId and newStatus are required.");
+  }
+  try {
+    const orderRef = doc(db, "orders", orderId);
+    await updateDoc(orderRef, {
+      status: newStatus,
+    });
+  } catch (error) {
+    console.error(`Error updating order status for order ${orderId}:`, error);
     throw error;
   }
 };
@@ -386,6 +392,61 @@ export const clearAllOrders = async () => {
   } catch (error) {
     console.error("Error clearing all orders:", error);
     throw error; // Re-throw the error to be caught by the caller
+  }
+};
+
+/* ----------------------
+   Sales Records (NEW SECTION for Reports)
+   ---------------------- */
+/**
+ * Adds a finalized sale record to the 'salesRecords' collection.
+ * This should be called after a bill is paid and before the active order is deleted.
+ * @param {object} saleData - The details of the sale to be recorded.
+ */
+export const addSaleRecord = async (saleData) => {
+  try {
+    // Add a server-side timestamp for accurate record-keeping
+    const record = {
+      ...saleData,
+      finalizedAt: Timestamp.now(), // Use Firestore's server timestamp
+    };
+    await addDoc(salesCollection, record);
+  } catch (error) {
+    console.error("Error adding sale record:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches sales records within a specified date range.
+ * @param {Date} startDate - The start of the date range.
+ * @param {Date} endDate - The end of the date range.
+ */
+export const getSalesByDateRange = async (startDate, endDate) => {
+  try {
+    // Firestore queries require the end date to be exclusive, so we adjust it.
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const q = query(
+      salesCollection,
+      where("finalizedAt", ">=", Timestamp.fromDate(startDate)),
+      where("finalizedAt", "<=", Timestamp.fromDate(endOfDay))
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        // Convert Firestore Timestamp back to JS Date object for easier use
+        finalizedAt: data.finalizedAt.toDate(),
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching sales by date range:", error);
+    throw error;
   }
 };
 

@@ -8,7 +8,9 @@ import Menu from './pages/Menu';
 import Staff from './pages/Staff';
 import Kitchen from './pages/Kitchen';
 import Billing from './pages/Billing';
-import Settings from './pages/Settings'; // <-- IMPORT the new Settings page
+import Settings from './pages/Settings';
+import Reports from './pages/Reports';
+import SalesReport from './pages/SalesReport'; // <-- 1. IMPORT SalesReport
 
 const App = () => {
   return (
@@ -22,7 +24,9 @@ const App = () => {
           <Route path="/staff" element={<Staff />} />
           <Route path="/kitchen" element={<Kitchen />} />
           <Route path="/billing" element={<Billing />} />
-          <Route path="/settings" element={<Settings />} /> {/* <-- ADD the new route */}
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/reports/sales" element={<SalesReport />} /> {/* <-- 2. ADD new route */}
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
     </div>

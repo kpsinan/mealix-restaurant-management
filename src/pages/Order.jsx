@@ -48,7 +48,21 @@ const Order = () => {
           getTables(), getStaff(), getMenuItems(), getSettings(),
         ]);
         if (!mounted) return;
-        setTables(tableData || []);
+
+        if (tableData) {
+          // First, filter for tables that are "available"
+          const availableTables = tableData.filter(table => table.status === 'available');
+    
+          // Then, sort the filtered list naturally
+          const sortedTables = [...availableTables].sort((a, b) => 
+            a.name.localeCompare(b.name, undefined, { numeric: true })
+          );
+          
+          setTables(sortedTables);
+        } else {
+          setTables([]);
+        }
+
         setStaff(staffData || []);
         setMenuItems(menuData || []);
         if (currentSettings) setSettings(currentSettings);
