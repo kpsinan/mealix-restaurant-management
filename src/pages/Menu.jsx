@@ -273,8 +273,67 @@ const Menu = () => {
         </div>
       </Modal>
 
+      {/* CORRECTED: Removed the extra outer Modal tag */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-         {/* ... Your single add item form JSX goes here ... */}
+        <h2 className="text-2xl font-bold mb-5 text-gray-900">Add New Menu Item</h2>
+        <div className="space-y-4">
+            <input
+            type="text"
+            name="name"
+            value={newItem.name}
+            onChange={handleInputChange}
+            placeholder="Item Name"
+            className={inputClasses}
+            />
+            <input
+            type="text"
+            name="fullPrice"
+            value={newItem.fullPrice}
+            onChange={handleInputChange}
+            placeholder="Full Portion Price"
+            className={inputClasses}
+            />
+            <input
+            type="text"
+            name="halfPrice"
+            value={newItem.halfPrice}
+            onChange={handleInputChange}
+            placeholder="Half Portion Price"
+            className={inputClasses}
+            />
+            <input
+            type="text"
+            name="quarterPrice"
+            value={newItem.quarterPrice}
+            onChange={handleInputChange}
+            placeholder="Quarter Portion Price"
+            className={inputClasses}
+            />
+            <input
+            type="text"
+            name="ingredients"
+            value={newItem.ingredients}
+            onChange={handleInputChange}
+            placeholder="Ingredients (comma-separated)"
+            className={inputClasses}
+            />
+            <textarea
+            name="specialNote"
+            value={newItem.specialNote}
+            onChange={handleInputChange}
+            placeholder="Special Note (optional)"
+            rows={3}
+            className={inputClasses}
+            />
+        </div>
+        <div className="flex justify-end mt-6">
+            <button
+            onClick={handleAddItem}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+            Done
+            </button>
+        </div>
       </Modal>
       
       <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)}>
@@ -286,8 +345,156 @@ const Menu = () => {
         </div>
       </Modal>
 
+      {/* CORRECTED: Removed the extra outer Modal tag */}
       <Modal isOpen={isAddNewBulkModalOpen} onClose={() => setIsAddNewBulkModalOpen(false)} size="5xl">
-         {/* ... Your bulk add spreadsheet modal JSX goes here ... */}
+        <div className="flex flex-col h-full">
+            <div className="mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Bulk Add New Items</h2>
+            <p className="text-gray-600 mt-1">
+                Use arrow keys to navigate. Rows missing a name or valid price for the full portion will be skipped.
+            </p>
+            </div>
+
+            <div className="flex-grow overflow-hidden rounded-lg border border-gray-200">
+            <div className="max-h-[55vh] overflow-y-auto">
+                <table className="w-full text-sm text-left text-gray-500">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0">
+                    <tr>
+                    <th className="px-4 py-3 w-1/12 text-center">Status</th>
+                    <th className="px-4 py-3 w-2/12">Item Name*</th>
+                    <th className="px-4 py-3 w-1/12">Full Portion Price*</th>
+                    <th className="px-4 py-3 w-1/12">Half Portion Price</th>
+                    <th className="px-4 py-3 w-1/12">Quarter Portion Price</th>
+                    <th className="px-4 py-3 w-2/12">Ingredients</th>
+                    <th className="px-4 py-3 w-2/12">Special Note</th>
+                    <th className="px-4 py-3 w-1/12 text-center"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {bulkItems.map((row, idx) => {
+                    const valid = isRowValid(row);
+                    const fullPriceInvalid = row.fullPrice && isNaN(parseFloat(row.fullPrice));
+                    const status = !row.name && !row.fullPrice ? "empty" : valid ? "ok" : "invalid";
+                    return (
+                        <tr key={idx} className="group bg-white border-b hover:bg-gray-50">
+                        <td className="px-4 py-1 text-center">
+                            {status === "ok" && <span title="Valid row" className="inline-block h-2.5 w-2.5 rounded-full bg-green-500"></span>}
+                            {status === "invalid" && <span title="Invalid row" className="inline-block h-2.5 w-2.5 rounded-full bg-red-500"></span>}
+                            {status === "empty" && <span title="Empty row" className="inline-block h-2.5 w-2.5 rounded-full bg-gray-300"></span>}
+                        </td>
+                        <td>
+                            <input
+                            ref={getCellRef(idx, 0)}
+                            type="text"
+                            placeholder="e.g., Veg Biryani"
+                            value={row.name}
+                            onChange={(e) => handleBulkChange(idx, "name", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, 0)}
+                            className="w-full bg-transparent p-2 border-0 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                            />
+                        </td>
+                        <td>
+                            <input
+                            ref={getCellRef(idx, 1)}
+                            type="text"
+                            placeholder="e.g., 150.00"
+                            value={row.fullPrice}
+                            onChange={(e) => handleBulkChange(idx, "fullPrice", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, 1)}
+                            className={`w-full bg-transparent p-2 border-0 focus:outline-none focus:ring-2 ${
+                                fullPriceInvalid ? "ring-red-400" : "focus:ring-blue-300"
+                            } rounded`}
+                            />
+                        </td>
+                        <td>
+                            <input
+                            ref={getCellRef(idx, 2)}
+                            type="text"
+                            placeholder="e.g., 80.00"
+                            value={row.halfPrice}
+                            onChange={(e) => handleBulkChange(idx, "halfPrice", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, 2)}
+                            className="w-full bg-transparent p-2 border-0 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                            />
+                        </td>
+                        <td>
+                            <input
+                            ref={getCellRef(idx, 3)}
+                            type="text"
+                            placeholder="e.g., 45.00"
+                            value={row.quarterPrice}
+                            onChange={(e) => handleBulkChange(idx, "quarterPrice", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, 3)}
+                            className="w-full bg-transparent p-2 border-0 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                            />
+                        </td>
+                        <td>
+                            <input
+                            ref={getCellRef(idx, 4)}
+                            type="text"
+                            placeholder="e.g., rice, carrot, beans"
+                            value={row.ingredients}
+                            onChange={(e) => handleBulkChange(idx, "ingredients", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, 4)}
+                            className="w-full bg-transparent p-2 border-0 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                            />
+                        </td>
+                        <td>
+                            <input
+                            ref={getCellRef(idx, 5)}
+                            type="text"
+                            placeholder="Optional note"
+                            value={row.specialNote}
+                            onChange={(e) => handleBulkChange(idx, "specialNote", e.target.value)}
+                            onKeyDown={(e) => handleCellKeyDown(e, idx, 5)}
+                            className="w-full bg-transparent p-2 border-0 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                            />
+                        </td>
+                        <td className="px-4 py-1 text-center">
+                            <button
+                            title="Delete row"
+                            onClick={() => handleDeleteRow(idx)}
+                            className="px-2 py-1 text-gray-400 rounded-full hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                            ✕
+                            </button>
+                        </td>
+                        </tr>
+                    );
+                    })}
+                </tbody>
+                </table>
+            </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-6">
+            <div className="flex items-center gap-2">
+                <button
+                onClick={handleAddRow}
+                className="bg-green-100 text-green-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-200 transition-colors"
+                >
+                + Add Row
+                </button>
+                <button
+                onClick={handleClearRows}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                Clear All
+                </button>
+            </div>
+            <div className="mt-4 sm:mt-0">
+                <button
+                onClick={handleBulkAdd}
+                disabled={isBulkProcessing}
+                className={`px-6 py-2.5 rounded-lg text-white font-semibold transition-colors w-32 ${
+                    isBulkProcessing ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+                >
+                {isBulkProcessing ? "Adding..." : "Add Items"}
+                </button>
+            </div>
+            </div>
+        </div>
       </Modal>
     </div>
   );
