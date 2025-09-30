@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// MODIFIED: Corrected the import path for firebase functions to be more explicit.
+// MODIFIED: Corrected the import path for firebase functions.
 import { getSalesByDateRange, getSettings } from "../firebase/firebase"; 
 
 // --- SVG Icons ---
@@ -25,10 +25,8 @@ const TableWiseSalesReport = () => {
 
   // New Features State
   const [chartType, setChartType] = useState('bar');
-  const [isLiveMode, setIsLiveMode] = useState(false);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
-  const liveModeIntervalRef = useRef(null);
 
   // Refs for Enter key navigation
   const startDateRef = useRef(null);
@@ -95,11 +93,11 @@ const TableWiseSalesReport = () => {
     }));
   };
   
-  // Data Fetching and Realtime Listener
+  // Data Fetching
   useEffect(() => {
-    const fetchData = async (showLoading = true) => {
+    const fetchData = async () => {
         if (startDate && endDate) {
-            if(showLoading) setLoading(true);
+            setLoading(true);
             try {
                 const settingsData = await getSettings();
                 setSettings(settingsData || {});
@@ -108,25 +106,12 @@ const TableWiseSalesReport = () => {
             } catch (err) {
                 console.error("Error processing table sales report:", err);
             }
-            if(showLoading) setLoading(false);
+            setLoading(false);
         }
     };
     
     fetchData();
-
-    if (isLiveMode) {
-      liveModeIntervalRef.current = setInterval(() => {
-        console.log("Live mode: refreshing data...");
-        fetchData(false); // Fetch without showing loading spinner
-      }, 10000); // Refresh every 10 seconds
-    }
-
-    return () => {
-      if (liveModeIntervalRef.current) {
-        clearInterval(liveModeIntervalRef.current);
-      }
-    };
-  }, [startDate, endDate, isLiveMode]);
+  }, [startDate, endDate]);
 
   // --- Chart Drawing ---
   useEffect(() => {
@@ -294,13 +279,6 @@ const TableWiseSalesReport = () => {
           <p className="text-sm text-slate-500 mt-1">Results for: <span className="font-semibold">{startDate}</span> to <span className="font-semibold">{endDate}</span></p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-2 text-sm bg-white px-3 py-2 rounded-lg shadow-sm">
-                <span className="font-medium text-slate-600">Live Mode:</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={isLiveMode} onChange={() => setIsLiveMode(!isLiveMode)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                </label>
-            </div>
             <button onClick={exportXLSX} disabled={reportData.length === 0} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400">
                 <FaFileExcel /> Excel
             </button>
