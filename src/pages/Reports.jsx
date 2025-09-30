@@ -13,7 +13,7 @@ import {
 const reportCategories = [
   {
     isLink: true, // Flag to identify the link card
-    to: '/reports/sales', // The route it links to
+    to: '/reports/sales-and-revenue', // MODIFIED: Changed link from '/reports/sales'
     title: 'Sales & Revenue Reports',
     description: 'Track daily, weekly, and monthly sales performance and revenue streams.',
     icon: <ChartBarSquareIcon className="h-8 w-8 text-blue-500" />,
