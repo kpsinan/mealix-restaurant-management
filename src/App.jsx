@@ -11,10 +11,10 @@ import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import SalesReport from './pages/SalesReport';
-// --- Add new imports below ---
 import SalesAndRevenue from './pages/SalesAndRevenue';
 import ItemWiseSalesReport from './pages/ItemWiseSalesReport';
 import TableWiseSalesReport from './pages/TableWiseSalesReport';
+import PaymentModeReport from './pages/PaymentModeReport'; // <-- 1. IMPORT the new report component
 
 const App = () => {
   return (
@@ -30,10 +30,10 @@ const App = () => {
           <Route path="/billing" element={<Billing />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/sales" element={<SalesReport />} />
-          {/* --- Add new routes below --- */}
           <Route path="/reports/sales-and-revenue" element={<SalesAndRevenue />} />
           <Route path="/reports/item-wise-sales" element={<ItemWiseSalesReport />} />
           <Route path="/reports/table-wise-sales" element={<TableWiseSalesReport />} />
+          <Route path="/reports/payment-mode" element={<PaymentModeReport />} /> {/* <-- 2. ADD the new route */}
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>

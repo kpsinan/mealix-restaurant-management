@@ -9,10 +9,9 @@ import {
   updateTableStatus,
   getSettings,
 } from "../firebase/firebase";
-import MenuItemCard from "../components/MenuItemCard";
 import Modal from "../components/Modal";
 
-// A reusable component for quantity control inside the new modal
+// A reusable component for quantity control
 const QuantityControl = ({ quantity, onDecrease, onIncrease }) => (
   <div className="flex items-center justify-center gap-2">
     <button onClick={onDecrease} className="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold text-lg hover:bg-gray-300 transition-colors disabled:opacity-50" disabled={quantity <= 0}>-</button>
@@ -22,6 +21,12 @@ const QuantityControl = ({ quantity, onDecrease, onIncrease }) => (
 );
 
 const Order = () => {
+  // --- IMPORTANT ---
+  // Replace this placeholder with your actual sidebar state.
+  // This might come from a React Context (e.g., const { isSidebarOpen } = useSidebar();)
+  // or be passed down as a prop from your main layout component.
+  const isSidebarOpen = true; // <-- TODO: Replace with your app's state
+
   const [tables, setTables] = useState([]);
   const [staff, setStaff] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
@@ -32,10 +37,9 @@ const Order = () => {
   const [submitting, setSubmitting] = useState(false);
   const [settings, setSettings] = useState({ currencySymbol: '₹' });
 
-  // State for portion selection
-  const [orderItems, setOrderItems] = useState({}); // New structure: { itemId: { full: qty, half: qty, quarter: qty } }
-  const [isPortionModalOpen, setIsPortionModalOpen] = useState(false);
-  const [selectedItemForPortion, setSelectedItemForPortion] = useState(null);
+  // State for accordion-style item expansion
+  const [expandedItemId, setExpandedItemId] = useState(null);
+  const [orderItems, setOrderItems] = useState({}); // Structure: { itemId: { full: qty, half: qty, quarter: qty } }
 
   const location = useLocation();
 
@@ -50,14 +54,10 @@ const Order = () => {
         if (!mounted) return;
 
         if (tableData) {
-          // First, filter for tables that are "available"
           const availableTables = tableData.filter(table => table.status === 'available');
-    
-          // Then, sort the filtered list naturally
           const sortedTables = [...availableTables].sort((a, b) => 
             a.name.localeCompare(b.name, undefined, { numeric: true })
           );
-          
           setTables(sortedTables);
         } else {
           setTables([]);
@@ -87,10 +87,9 @@ const Order = () => {
     return () => { mounted = false; };
   }, [location.search]);
 
-  // Handler to open the portion modal
-  const handleCardClick = (item) => {
-    setSelectedItemForPortion(item);
-    setIsPortionModalOpen(true);
+  // Handler to toggle the expanded item
+  const handleItemClick = (itemId) => {
+    setExpandedItemId(prevId => (prevId === itemId ? null : itemId));
   };
 
   // Handler to manage quantities for each portion
@@ -107,7 +106,6 @@ const Order = () => {
     });
   };
 
-  // Updated total amount calculation
   const totalAmount = Object.keys(orderItems).reduce((acc, itemId) => {
     const portions = orderItems[itemId];
     const menuItem = menuItems.find(item => (item.id ?? item._id) === itemId);
@@ -126,7 +124,6 @@ const Order = () => {
     return (portions.full || 0) + (portions.half || 0) + (portions.quarter || 0);
   };
 
-  // Updated order submission logic
   const handleSubmitOrder = async () => {
     if (!selectedTable) {
       alert("Please select a table before submitting the order.");
@@ -162,6 +159,7 @@ const Order = () => {
       window.dispatchEvent(new CustomEvent("tablesUpdated"));
       alert("Order submitted successfully!");
       setOrderItems({});
+      setExpandedItemId(null); // Collapse all items after order
     } catch (err) {
       console.error("Error submitting order:", err);
       alert("Failed to submit order. Try again.");
@@ -169,8 +167,6 @@ const Order = () => {
       setSubmitting(false);
     }
   };
-
-  const itemPortions = selectedItemForPortion ? orderItems[selectedItemForPortion.id ?? selectedItemForPortion._id] : null;
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -193,35 +189,6 @@ const Order = () => {
         </div>
       </Modal>
 
-      {/* Portion Selection Modal */}
-      {selectedItemForPortion && (
-        <Modal isOpen={isPortionModalOpen} onClose={() => setIsPortionModalOpen(false)}>
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">{selectedItemForPortion.name}</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-              <div>
-                <p className="font-semibold text-lg">Full</p>
-                <p className="text-gray-600">{settings.currencySymbol}{(selectedItemForPortion.fullPrice ?? selectedItemForPortion.price).toFixed(2)}</p>
-              </div>
-              <QuantityControl quantity={itemPortions?.full || 0} onDecrease={() => handlePortionQuantityChange(selectedItemForPortion.id ?? selectedItemForPortion._id, 'full', -1)} onIncrease={() => handlePortionQuantityChange(selectedItemForPortion.id ?? selectedItemForPortion._id, 'full', 1)} />
-            </div>
-            {selectedItemForPortion.halfPrice != null && (
-              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                <div><p className="font-semibold text-lg">Half</p><p className="text-gray-600">{settings.currencySymbol}{selectedItemForPortion.halfPrice.toFixed(2)}</p></div>
-                <QuantityControl quantity={itemPortions?.half || 0} onDecrease={() => handlePortionQuantityChange(selectedItemForPortion.id ?? selectedItemForPortion._id, 'half', -1)} onIncrease={() => handlePortionQuantityChange(selectedItemForPortion.id ?? selectedItemForPortion._id, 'half', 1)} />
-              </div>
-            )}
-            {selectedItemForPortion.quarterPrice != null && (
-              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                <div><p className="font-semibold text-lg">Quarter</p><p className="text-gray-600">{settings.currencySymbol}{selectedItemForPortion.quarterPrice.toFixed(2)}</p></div>
-                <QuantityControl quantity={itemPortions?.quarter || 0} onDecrease={() => handlePortionQuantityChange(selectedItemForPortion.id ?? selectedItemForPortion._id, 'quarter', -1)} onIncrease={() => handlePortionQuantityChange(selectedItemForPortion.id ?? selectedItemForPortion._id, 'quarter', 1)} />
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end mt-6"><button onClick={() => setIsPortionModalOpen(false)} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">Done</button></div>
-        </Modal>
-      )}
-
       {loading && <div className="text-gray-500 mb-4 text-center">Loading menu & data...</div>}
 
       {selectedTable && (
@@ -234,19 +201,73 @@ const Order = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 mb-6">
-        {menuItems.map((item) => (
-          <MenuItemCard
-            key={item.id ?? item._id}
-            item={item}
-            currencySymbol={settings.currencySymbol}
-            quantity={getTotalQuantityForItem(item.id ?? item._id)}
-            onCardClick={handleCardClick}
-          />
-        ))}
+      {/* Accordion List for Menu Items */}
+      <div className="space-y-2 mb-24">
+        {menuItems.map((item) => {
+          const itemId = item.id ?? item._id;
+          const isExpanded = expandedItemId === itemId;
+          const itemPortions = orderItems[itemId];
+          const totalQuantity = getTotalQuantityForItem(itemId);
+
+          return (
+            <div key={itemId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-shadow duration-300 hover:shadow-md">
+              {/* Clickable Header/Line */}
+              <div
+                className="flex justify-between items-center p-4 cursor-pointer"
+                onClick={() => handleItemClick(itemId)}
+              >
+                <span className="font-semibold text-gray-800">{item.name}</span>
+                <div className="flex items-center gap-4">
+                  {totalQuantity > 0 && (
+                    <span className="bg-blue-600 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full">
+                      {totalQuantity}
+                    </span>
+                  )}
+                  <svg className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+
+              {/* Expandable Content */}
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-96' : 'max-h-0'}`}>
+                <div className="p-4 border-t border-gray-200 bg-gray-50/50 space-y-3">
+                  {/* Full Portion */}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">Full</p>
+                      <p className="text-sm text-gray-600">{settings.currencySymbol}{(item.fullPrice ?? item.price).toFixed(2)}</p>
+                    </div>
+                    <QuantityControl quantity={itemPortions?.full || 0} onDecrease={() => handlePortionQuantityChange(itemId, 'full', -1)} onIncrease={() => handlePortionQuantityChange(itemId, 'full', 1)} />
+                  </div>
+                  {/* Half Portion */}
+                  {item.halfPrice != null && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Half</p>
+                        <p className="text-sm text-gray-600">{settings.currencySymbol}{item.halfPrice.toFixed(2)}</p>
+                      </div>
+                      <QuantityControl quantity={itemPortions?.half || 0} onDecrease={() => handlePortionQuantityChange(itemId, 'half', -1)} onIncrease={() => handlePortionQuantityChange(itemId, 'half', 1)} />
+                    </div>
+                  )}
+                  {/* Quarter Portion */}
+                  {item.quarterPrice != null && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">Quarter</p>
+                        <p className="text-sm text-gray-600">{settings.currencySymbol}{item.quarterPrice.toFixed(2)}</p>
+                      </div>
+                      <QuantityControl quantity={itemPortions?.quarter || 0} onDecrease={() => handlePortionQuantityChange(itemId, 'quarter', -1)} onIncrease={() => handlePortionQuantityChange(itemId, 'quarter', 1)} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="sticky bottom-0 bg-white shadow-lg rounded-t-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t">
+      {/* UPDATED: Fully responsive sticky bottom bar */}
+      <div className={`fixed bottom-0 right-0 bg-white shadow-lg rounded-t-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t z-10 transition-all duration-300 ease-in-out 
+        ${isSidebarOpen ? 'left-0 md:left-64' : 'left-0 md:left-20'}`}>
         <div className="text-xl font-semibold text-gray-800">Total: {settings.currencySymbol}{totalAmount.toFixed(2)}</div>
         <div className="flex items-center gap-3">
           <button onClick={() => setIsModalOpen(true)} className="px-3 py-2 rounded border hover:bg-gray-50 text-sm font-medium">Table/Staff</button>

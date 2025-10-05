@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ChartBarSquareIcon,
+  ArrowTrendingUpIcon, // Replaced ChartBarSquareIcon
   BanknotesIcon,
   UsersIcon,
   UserGroupIcon,
@@ -13,10 +13,10 @@ import {
 const reportCategories = [
   {
     isLink: true, // Flag to identify the link card
-    to: '/reports/sales-and-revenue', // MODIFIED: Changed link from '/reports/sales'
+    to: '/reports/sales-and-revenue',
     title: 'Sales & Revenue Reports',
     description: 'Track daily, weekly, and monthly sales performance and revenue streams.',
-    icon: <ChartBarSquareIcon className="h-8 w-8 text-blue-500" />,
+    icon: <ArrowTrendingUpIcon className="h-8 w-8 text-blue-500" />,
     color: 'blue'
   },
   {
