@@ -52,7 +52,12 @@ const ItemWiseSalesReport = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'totalRevenue', direction: 'descending' });
     const [currentPage, setCurrentPage] = useState(1);
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            return true;
+        }
+        return false;
+    });
     const itemsPerPage = 10;
 
     const chartRef = useRef(null);
@@ -128,8 +133,13 @@ const ItemWiseSalesReport = () => {
 
     // --- Dark Mode ---
     useEffect(() => {
-        if (isDarkMode) document.documentElement.classList.add('dark');
-        else document.documentElement.classList.remove('dark');
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
     }, [isDarkMode]);
 
     // --- Memoized Data for Performance ---
@@ -453,5 +463,3 @@ const ItemWiseSalesReport = () => {
 };
 
 export default ItemWiseSalesReport;
-
-//This is new 
