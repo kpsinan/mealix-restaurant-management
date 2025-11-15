@@ -52,7 +52,7 @@ const ItemWiseSalesReport = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'totalRevenue', direction: 'descending' });
     const [currentPage, setCurrentPage] = useState(1);
-    const [isDarkMode, setIsDarkMode] = useState(false); // This sets the default to light mode
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const itemsPerPage = 10;
 
     const chartRef = useRef(null);
