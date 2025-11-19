@@ -1,5 +1,5 @@
 // src/pages/Order.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import {
   getMenuItems,
@@ -11,271 +11,291 @@ import {
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
 
-// A reusable component for quantity control
-const QuantityControl = ({ quantity, onDecrease, onIncrease }) => (
-  <div className="flex items-center justify-center gap-2">
-    <button onClick={onDecrease} className="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold text-lg hover:bg-gray-300 transition-colors disabled:opacity-50" disabled={quantity <= 0}>-</button>
-    <span className="text-lg font-semibold w-10 text-center">{quantity}</span>
-    <button onClick={onIncrease} className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors">+</button>
+// --- Icons System ---
+const Icons = {
+  Chevron: ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>,
+  Minus: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 12H4" /></svg>,
+  Plus: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>,
+  Table: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
+  User: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+  Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>,
+  Alert: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+};
+
+// --- Sub-Components ---
+
+const Toast = ({ notification }) => {
+  if (!notification) return null;
+  const styles = {
+    success: "bg-green-50 text-green-800 border-green-200",
+    error: "bg-red-50 text-red-800 border-red-200",
+    warning: "bg-yellow-50 text-yellow-800 border-yellow-200",
+  };
+  const Icon = notification.type === 'success' ? Icons.Check : Icons.Alert;
+
+  return (
+    <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg animate-fade-in-down ${styles[notification.type]}`}>
+      <Icon />
+      <span className="font-medium text-sm">{notification.message}</span>
+    </div>
+  );
+};
+
+const SkeletonLoader = () => (
+  <div className="space-y-3 animate-pulse">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="h-20 bg-gray-100 rounded-xl w-full border border-gray-200" />
+    ))}
   </div>
 );
 
+const QuantityControl = React.memo(({ quantity, onDecrease, onIncrease }) => (
+  <div className="flex items-center bg-gray-100 rounded-full p-1 shadow-inner shrink-0">
+    <button onClick={(e) => { e.stopPropagation(); onDecrease(); }} disabled={quantity <= 0} 
+      className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-700 shadow-sm hover:bg-red-50 hover:text-red-600 disabled:opacity-50 transition-all touch-manipulation">
+      <Icons.Minus />
+    </button>
+    <span className="w-8 text-center font-bold text-gray-800 text-sm leading-none">{quantity}</span>
+    <button onClick={(e) => { e.stopPropagation(); onIncrease(); }} 
+      className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-md hover:bg-blue-700 active:scale-95 transition-all touch-manipulation">
+      <Icons.Plus />
+    </button>
+  </div>
+));
+
 const Order = () => {
-  // --- IMPORTANT ---
-  // Replace this placeholder with your actual sidebar state.
-  // This might come from a React Context (e.g., const { isSidebarOpen } = useSidebar();)
-  // or be passed down as a prop from your main layout component.
-  const isSidebarOpen = true; // <-- TODO: Replace with your app's state
-
-  const [tables, setTables] = useState([]);
-  const [staff, setStaff] = useState([]);
-  const [menuItems, setMenuItems] = useState([]);
-  const [selectedTable, setSelectedTable] = useState("");
-  const [selectedStaff, setSelectedStaff] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [settings, setSettings] = useState({ currencySymbol: '₹' });
-
-  // State for accordion-style item expansion
-  const [expandedItemId, setExpandedItemId] = useState(null);
-  const [orderItems, setOrderItems] = useState({}); // Structure: { itemId: { full: qty, half: qty, quarter: qty } }
-
+  const isSidebarOpen = true; // TODO: Context integration
   const location = useLocation();
 
+  // State
+  const [data, setData] = useState({ tables: [], staff: [], menu: [], settings: { currencySymbol: '₹' } });
+  const [session, setSession] = useState({ tableId: "", staffId: "" });
+  const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false });
+  const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
+
+  // Helpers
+  const showNotification = useCallback((message, type = 'success') => {
+    setUiState(prev => ({ ...prev, notification: { message, type } }));
+    setTimeout(() => setUiState(prev => ({ ...prev, notification: null })), 3000);
+  }, []);
+
+  // Fetch Data
   useEffect(() => {
     let mounted = true;
-    const fetchAll = async () => {
-      setLoading(true);
+    const init = async () => {
+      setOrderState(prev => ({ ...prev, loading: true }));
       try {
-        const [tableData, staffData, menuData, currentSettings] = await Promise.all([
-          getTables(), getStaff(), getMenuItems(), getSettings(),
+        const [tables, staff, menu, settings] = await Promise.all([
+          getTables(), getStaff(), getMenuItems(), getSettings()
         ]);
-        if (!mounted) return;
+        
+        if (mounted) {
+          const availableTables = (tables || []).filter(t => t.status === 'available')
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+          
+          setData({ tables: availableTables, staff: staff || [], menu: menu || [], settings: settings || { currencySymbol: '₹' } });
 
-        if (tableData) {
-          const availableTables = tableData.filter(table => table.status === 'available');
-          const sortedTables = [...availableTables].sort((a, b) => 
-            a.name.localeCompare(b.name, undefined, { numeric: true })
-          );
-          setTables(sortedTables);
-        } else {
-          setTables([]);
-        }
-
-        setStaff(staffData || []);
-        setMenuItems(menuData || []);
-        if (currentSettings) setSettings(currentSettings);
-
-        const params = new URLSearchParams(location.search);
-        const tableId = params.get("tableId");
-        if (tableId) {
-          setSelectedTable(tableId);
-          setIsModalOpen(true);
-        }
-        if (staffData && staffData.length > 0 && !selectedStaff) {
-          setSelectedStaff(staffData[0].id ?? staffData[0]._id ?? "");
+          const params = new URLSearchParams(location.search);
+          if (params.get("tableId")) {
+            setSession(prev => ({ ...prev, tableId: params.get("tableId") }));
+            setUiState(prev => ({ ...prev, isModalOpen: true }));
+          }
+          if (staff?.length > 0) {
+            setSession(prev => ({ ...prev, staffId: staff[0].id ?? staff[0]._id }));
+          }
         }
       } catch (err) {
-        console.error("Error fetching order data:", err);
-        alert("Failed to load order data. Please try again.");
+        showNotification("Failed to load menu data", "error");
       } finally {
-        setLoading(false);
+        if (mounted) setOrderState(prev => ({ ...prev, loading: false }));
       }
     };
-    fetchAll();
+    init();
     return () => { mounted = false; };
-  }, [location.search]);
+  }, [location.search, showNotification]);
 
-  // Handler to toggle the expanded item
-  const handleItemClick = (itemId) => {
-    setExpandedItemId(prevId => (prevId === itemId ? null : itemId));
-  };
-
-  // Handler to manage quantities for each portion
-  const handlePortionQuantityChange = (itemId, portion, change) => {
-    setOrderItems((prev) => {
-      const copy = { ...prev };
-      if (!copy[itemId]) copy[itemId] = { full: 0, half: 0, quarter: 0 };
-      const currentQty = copy[itemId][portion] || 0;
-      copy[itemId][portion] = Math.max(0, currentQty + change);
-      if (copy[itemId].full === 0 && copy[itemId].half === 0 && copy[itemId].quarter === 0) {
-        delete copy[itemId];
-      }
-      return copy;
+  // Handlers
+  const handlePortionChange = useCallback((itemId, portion, change) => {
+    setOrderState(prev => {
+      const items = { ...prev.items };
+      if (!items[itemId]) items[itemId] = { full: 0, half: 0, quarter: 0 };
+      items[itemId][portion] = Math.max(0, (items[itemId][portion] || 0) + change);
+      if (!items[itemId].full && !items[itemId].half && !items[itemId].quarter) delete items[itemId];
+      return { ...prev, items };
     });
-  };
+  }, []);
 
-  const totalAmount = Object.keys(orderItems).reduce((acc, itemId) => {
-    const portions = orderItems[itemId];
-    const menuItem = menuItems.find(item => (item.id ?? item._id) === itemId);
-    if (!menuItem) return acc;
-    let itemTotal = 0;
-    const fullPrice = menuItem.fullPrice ?? menuItem.price ?? 0;
-    if (portions.full > 0) itemTotal += fullPrice * portions.full;
-    if (portions.half > 0 && menuItem.halfPrice) itemTotal += menuItem.halfPrice * portions.half;
-    if (portions.quarter > 0 && menuItem.quarterPrice) itemTotal += menuItem.quarterPrice * portions.quarter;
-    return acc + itemTotal;
-  }, 0);
-  
-  const getTotalQuantityForItem = (itemId) => {
-    const portions = orderItems[itemId];
-    if (!portions) return 0;
-    return (portions.full || 0) + (portions.half || 0) + (portions.quarter || 0);
-  };
+  const totalAmount = useMemo(() => {
+    return Object.entries(orderState.items).reduce((acc, [itemId, portions]) => {
+      const item = data.menu.find(i => (i.id ?? i._id) === itemId);
+      if (!item) return acc;
+      return acc + 
+        (portions.full * (item.fullPrice ?? item.price ?? 0)) +
+        (portions.half * (item.halfPrice ?? 0)) +
+        (portions.quarter * (item.quarterPrice ?? 0));
+    }, 0);
+  }, [orderState.items, data.menu]);
 
-  const handleSubmitOrder = async () => {
-    if (!selectedTable) {
-      alert("Please select a table before submitting the order.");
-      setIsModalOpen(true);
-      return;
-    }
+  const handleSubmit = async () => {
+    if (!session.tableId) return setUiState(prev => ({ ...prev, isModalOpen: true }));
 
-    const items = Object.entries(orderItems).flatMap(([itemId, portions]) => {
-      const menuItem = menuItems.find(item => (item.id ?? item._id) === itemId);
-      if (!menuItem) return [];
-      const portionEntries = [];
-      const fullPrice = menuItem.fullPrice ?? menuItem.price ?? 0;
-      if (portions.full > 0) portionEntries.push({ itemId, quantity: portions.full, portion: 'full', price: fullPrice });
-      if (portions.half > 0 && menuItem.halfPrice) portionEntries.push({ itemId, quantity: portions.half, portion: 'half', price: menuItem.halfPrice });
-      if (portions.quarter > 0 && menuItem.quarterPrice) portionEntries.push({ itemId, quantity: portions.quarter, portion: 'quarter', price: menuItem.quarterPrice });
-      return portionEntries;
+    const orderPayload = [];
+    Object.entries(orderState.items).forEach(([itemId, portions]) => {
+      const item = data.menu.find(i => (i.id ?? i._id) === itemId);
+      if (!item) return;
+      
+      if (portions.full > 0) orderPayload.push({ itemId, quantity: portions.full, portion: 'full', price: item.fullPrice ?? item.price });
+      if (portions.half > 0) orderPayload.push({ itemId, quantity: portions.half, portion: 'half', price: item.halfPrice });
+      if (portions.quarter > 0) orderPayload.push({ itemId, quantity: portions.quarter, portion: 'quarter', price: item.quarterPrice });
     });
 
-    if (items.length === 0) {
-      if (!confirm("You have no items in the order. Submit empty order?")) return;
-    }
+    if (orderPayload.length === 0) return showNotification("Please add items first", "warning");
 
-    setSubmitting(true);
+    setOrderState(prev => ({ ...prev, submitting: true }));
     try {
       await addOrder({
-        tableId: selectedTable,
-        staffId: selectedStaff || null,
-        items,
+        tableId: session.tableId,
+        staffId: session.staffId || null,
+        items: orderPayload,
         total: totalAmount,
         createdAt: new Date().toISOString(),
       });
-      await updateTableStatus(selectedTable, "occupied");
+      await updateTableStatus(session.tableId, "occupied");
       window.dispatchEvent(new CustomEvent("tablesUpdated"));
-      alert("Order submitted successfully!");
-      setOrderItems({});
-      setExpandedItemId(null); // Collapse all items after order
+      showNotification("Order submitted successfully!", "success");
+      setOrderState(prev => ({ ...prev, items: {}, expandedId: null }));
     } catch (err) {
-      console.error("Error submitting order:", err);
-      alert("Failed to submit order. Try again.");
+      showNotification("Failed to submit order", "error");
     } finally {
-      setSubmitting(false);
+      setOrderState(prev => ({ ...prev, submitting: false }));
     }
   };
 
   return (
-    // UPDATED: Added pt-24 for top app bar space
-    <div className="container mx-auto pt-24 pb-6 px-4">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Place Order</h1>
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      <Toast notification={uiState.notification} />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <h2 className="text-xl font-bold mb-4 text-gray-800">Select Table and Staff</h2>
-        <label className="block text-sm font-medium mb-1">Table</label>
-        <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} className="w-full p-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Select Table</option>
-          {tables.map((t) => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name}</option>)}
-        </select>
-        <label className="block text-sm font-medium mb-1">Staff (optional)</label>
-        <select value={selectedStaff} onChange={(e) => setSelectedStaff(e.target.value)} className="w-full p-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Select Staff (Optional)</option>
-          {staff.map((s) => <option key={s.id ?? s._id} value={s.id ?? s._id}>{s.name}</option>)}
-        </select>
-        <div className="flex justify-end">
-          <button onClick={() => setIsModalOpen(false)} disabled={!selectedTable} className={`px-4 py-2 rounded-lg transition-colors ${!selectedTable ? "bg-gray-300 text-gray-600" : "bg-blue-600 text-white hover:bg-blue-700"}`}>Done</button>
-        </div>
-      </Modal>
-
-      {loading && <div className="text-gray-500 mb-4 text-center">Loading menu & data...</div>}
-
-      {selectedTable && (
-        <div className="mb-4 p-4 bg-white rounded-lg shadow flex items-center justify-between">
+      {/* Main Layout - Responsive Padding & App Bar Spacing */}
+      <div className="container mx-auto px-4 md:px-6 pt-24 pb-40 max-w-3xl">
+        
+        {/* Header */}
+        <div className="flex justify-between items-end mb-6">
           <div>
-            <div className="text-lg font-medium text-gray-800">{tables.find((t) => (t.id ?? t._id) === selectedTable)?.name || "Selected Table"}</div>
-            <div className="text-sm text-gray-500">Staff: {staff.find((s) => (s.id ?? s._id) === selectedStaff)?.name || "Not assigned"}</div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">New Order</h1>
+            <p className="text-gray-500 text-xs mt-0.5">Select items from menu</p>
           </div>
-          <div><button onClick={() => setIsModalOpen(true)} className="px-3 py-2 bg-gray-100 rounded border hover:bg-gray-200">Change</button></div>
-        </div>
-      )}
-
-      {/* Accordion List for Menu Items */}
-      {/* UPDATED: Increased margin-bottom to mb-48 to prevent content hiding behind raised bottom bar */}
-      <div className="space-y-2 mb-48">
-        {menuItems.map((item) => {
-          const itemId = item.id ?? item._id;
-          const isExpanded = expandedItemId === itemId;
-          const itemPortions = orderItems[itemId];
-          const totalQuantity = getTotalQuantityForItem(itemId);
-
-          return (
-            <div key={itemId} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-shadow duration-300 hover:shadow-md">
-              {/* Clickable Header/Line */}
-              <div
-                className="flex justify-between items-center p-4 cursor-pointer"
-                onClick={() => handleItemClick(itemId)}
-              >
-                <span className="font-semibold text-gray-800">{item.name}</span>
-                <div className="flex items-center gap-4">
-                  {totalQuantity > 0 && (
-                    <span className="bg-blue-600 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full">
-                      {totalQuantity}
-                    </span>
-                  )}
-                  <svg className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
+          
+          {/* Session Badge */}
+          {session.tableId && (
+            <div onClick={() => setUiState(prev => ({ ...prev, isModalOpen: true }))}
+              className="flex flex-col items-end cursor-pointer bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm active:bg-gray-50 transition-colors touch-manipulation">
+              <div className="flex items-center gap-1.5 text-blue-600 font-bold text-sm">
+                <Icons.Table />
+                <span className="truncate max-w-[100px]">{data.tables.find(t => (t.id ?? t._id) === session.tableId)?.name || "Table ?"}</span>
               </div>
-
-              {/* Expandable Content */}
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-96' : 'max-h-0'}`}>
-                <div className="p-4 border-t border-gray-200 bg-gray-50/50 space-y-3">
-                  {/* Full Portion */}
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Full</p>
-                      <p className="text-sm text-gray-600">{settings.currencySymbol}{(item.fullPrice ?? item.price).toFixed(2)}</p>
-                    </div>
-                    <QuantityControl quantity={itemPortions?.full || 0} onDecrease={() => handlePortionQuantityChange(itemId, 'full', -1)} onIncrease={() => handlePortionQuantityChange(itemId, 'full', 1)} />
-                  </div>
-                  {/* Half Portion */}
-                  {item.halfPrice != null && (
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Half</p>
-                        <p className="text-sm text-gray-600">{settings.currencySymbol}{item.halfPrice.toFixed(2)}</p>
-                      </div>
-                      <QuantityControl quantity={itemPortions?.half || 0} onDecrease={() => handlePortionQuantityChange(itemId, 'half', -1)} onIncrease={() => handlePortionQuantityChange(itemId, 'half', 1)} />
-                    </div>
-                  )}
-                  {/* Quarter Portion */}
-                  {item.quarterPrice != null && (
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">Quarter</p>
-                        <p className="text-sm text-gray-600">{settings.currencySymbol}{item.quarterPrice.toFixed(2)}</p>
-                      </div>
-                      <QuantityControl quantity={itemPortions?.quarter || 0} onDecrease={() => handlePortionQuantityChange(itemId, 'quarter', -1)} onIncrease={() => handlePortionQuantityChange(itemId, 'quarter', 1)} />
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-1 text-gray-400 text-[10px] font-medium uppercase tracking-wide">
+                <Icons.User />
+                <span className="truncate max-w-[80px]">{data.staff.find(s => (s.id ?? s._id) === session.staffId)?.name || "No Staff"}</span>
               </div>
             </div>
-          );
-        })}
+          )}
+        </div>
+
+        {/* Session Modal - Added max-height and scroll for small screens */}
+        <Modal isOpen={uiState.isModalOpen} onClose={() => setUiState(prev => ({ ...prev, isModalOpen: false }))}>
+          <div className="max-h-[70vh] overflow-y-auto px-1 py-1 scrollbar-hide">
+            <h2 className="text-xl font-bold mb-6 text-gray-800 sticky top-0 bg-white pb-2">Start Session</h2>
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Table</label>
+                <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value })} 
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
+                  <option value="">Select Table</option>
+                  {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Staff</label>
+                <select value={session.staffId} onChange={(e) => setSession({ ...session, staffId: e.target.value })} 
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
+                  <option value="">Select Staff</option>
+                  {data.staff.map(s => <option key={s.id ?? s._id} value={s.id ?? s._id}>{s.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} disabled={!session.tableId} 
+              className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation ${!session.tableId ? "bg-gray-200 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}>
+              Start Order
+            </button>
+          </div>
+        </Modal>
+
+        {/* Loading State */}
+        {orderState.loading ? <SkeletonLoader /> : (
+          /* Menu List */
+          <div className="space-y-3">
+            {data.menu.map((item) => {
+              const itemId = item.id ?? item._id;
+              const isExpanded = orderState.expandedId === itemId;
+              const qty = orderState.items[itemId];
+              const totalQty = (qty?.full || 0) + (qty?.half || 0) + (qty?.quarter || 0);
+
+              return (
+                <div key={itemId} className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden ${isExpanded ? 'ring-1 ring-blue-500 border-blue-500 shadow-md' : 'border-gray-100 shadow-sm'}`}>
+                  <div onClick={() => setOrderState(prev => ({ ...prev, expandedId: prev.expandedId === itemId ? null : itemId }))}
+                    className="p-4 flex justify-between items-center cursor-pointer active:bg-gray-50 touch-manipulation select-none">
+                    <div className="min-w-0 flex-1 mr-4">
+                      <h3 className="font-bold text-gray-800 text-base truncate">{item.name}</h3>
+                      <span className="text-xs text-gray-500 font-medium">
+                        {data.settings.currencySymbol}{(item.fullPrice ?? item.price).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {totalQty > 0 && <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-md">{totalQty}</span>}
+                      <Icons.Chevron className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-blue-600' : ''}`} />
+                    </div>
+                  </div>
+
+                  {/* Expanded Section with Smooth Animation & Higher Max-Height */}
+                  <div className={`transition-[max-height] duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[600px]' : 'max-h-0'}`}>
+                    <div className="px-4 pb-4 pt-1 bg-gray-50 space-y-2 border-t border-gray-100">
+                      {[
+                        { label: "Full", price: item.fullPrice ?? item.price, key: 'full' },
+                        item.halfPrice && { label: "Half", price: item.halfPrice, key: 'half' },
+                        item.quarterPrice && { label: "Quarter", price: item.quarterPrice, key: 'quarter' }
+                      ].filter(Boolean).map(opt => (
+                        <div key={opt.key} className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                          <div>
+                            <div className="text-xs font-semibold text-gray-600">{opt.label}</div>
+                            <div className="text-xs font-bold text-blue-600">{data.settings.currencySymbol}{opt.price.toFixed(2)}</div>
+                          </div>
+                          <QuantityControl quantity={qty?.[opt.key] || 0} 
+                            onDecrease={() => handlePortionChange(itemId, opt.key, -1)} 
+                            onIncrease={() => handlePortionChange(itemId, opt.key, 1)} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* UPDATED: Fixed bottom bar raised to bottom-20 to clear App Navigation space */}
-      <div className={`fixed bottom-20 right-0 bg-white shadow-lg rounded-t-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t z-10 transition-all duration-300 ease-in-out 
-        ${isSidebarOpen ? 'left-0 md:left-64' : 'left-0 md:left-20'}`}>
-        <div className="text-xl font-semibold text-gray-800">Total: {settings.currencySymbol}{totalAmount.toFixed(2)}</div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsModalOpen(true)} className="px-3 py-2 rounded border hover:bg-gray-50 text-sm font-medium">Table/Staff</button>
-          <button onClick={handleSubmitOrder} disabled={submitting || !selectedTable} className={`px-6 py-2 rounded-lg transition-colors font-semibold ${!selectedTable ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`}>
-            {submitting ? "Submitting..." : "Submit Order"}
-          </button>
+      {/* Sticky Action Bar with Safe Area Handling */}
+      <div className={`fixed bottom-20 right-0 w-full z-40 transition-all duration-300 ${isSidebarOpen ? 'md:pl-64' : 'md:pl-20'}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="mx-4 max-w-3xl md:mx-auto">
+          <div className="bg-gray-900/95 backdrop-blur-md shadow-2xl rounded-xl p-3 flex items-center justify-between border border-gray-800">
+            <div className="pl-2">
+              <div className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Total</div>
+              <div className="text-xl font-bold text-white font-mono leading-none">{data.settings.currencySymbol}{totalAmount.toFixed(2)}</div>
+            </div>
+            <button onClick={handleSubmit} disabled={orderState.submitting} 
+              className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow transition-transform active:scale-95 flex items-center gap-2 touch-manipulation ${!session.tableId ? "bg-gray-700 text-gray-500" : "bg-white text-gray-900 hover:bg-gray-100"}`}>
+              {orderState.submitting ? <span className="animate-pulse">Sending...</span> : <span>Place Order</span>}
+            </button>
+          </div>
         </div>
       </div>
     </div>
