@@ -169,7 +169,8 @@ const Order = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4">
+    // UPDATED: Added pt-24 for top app bar space
+    <div className="container mx-auto pt-24 pb-6 px-4">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Place Order</h1>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
@@ -202,7 +203,8 @@ const Order = () => {
       )}
 
       {/* Accordion List for Menu Items */}
-      <div className="space-y-2 mb-24">
+      {/* UPDATED: Increased margin-bottom to mb-48 to prevent content hiding behind raised bottom bar */}
+      <div className="space-y-2 mb-48">
         {menuItems.map((item) => {
           const itemId = item.id ?? item._id;
           const isExpanded = expandedItemId === itemId;
@@ -265,8 +267,8 @@ const Order = () => {
         })}
       </div>
 
-      {/* UPDATED: Fully responsive sticky bottom bar */}
-      <div className={`fixed bottom-0 right-0 bg-white shadow-lg rounded-t-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t z-10 transition-all duration-300 ease-in-out 
+      {/* UPDATED: Fixed bottom bar raised to bottom-20 to clear App Navigation space */}
+      <div className={`fixed bottom-20 right-0 bg-white shadow-lg rounded-t-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t z-10 transition-all duration-300 ease-in-out 
         ${isSidebarOpen ? 'left-0 md:left-64' : 'left-0 md:left-20'}`}>
         <div className="text-xl font-semibold text-gray-800">Total: {settings.currencySymbol}{totalAmount.toFixed(2)}</div>
         <div className="flex items-center gap-3">
