@@ -28,8 +28,22 @@ jobs:
       run: |
         npm install @capacitor/core @capacitor/cli
         npx cap init app com.your.app --web-dir build --no-interactive
-        npx cap add android
+        npx cap add android || echo "Capacitor Android FAILED"
         npx cap copy
+
+    - name: DEBUG — List folders
+      run: |
+        echo "Listing repository root:"
+        ls -R .
+
+    - name: DEBUG — Check Gradle file
+      run: |
+        if [ ! -f "./android/gradlew" ]; then
+          echo "gradlew NOT FOUND"
+          exit 1
+        else
+          echo "gradlew FOUND"
+        fi
 
     - name: Build APK
       run: |
