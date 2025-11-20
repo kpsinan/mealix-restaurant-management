@@ -89,7 +89,7 @@ const Sidebar = () => {
           {isOpen && (
             <div className="ml-4 flex flex-col">
               <span className="text-2xl font-bold tracking-wider text-amber-400 leading-tight">
-                MealIX
+                MealiX
               </span>
               {/* --- MODIFICATION START --- */}
               <span className="text-xs text-slate-500 tracking-wider mt-0.5">

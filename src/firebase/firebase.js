@@ -12,9 +12,9 @@ import {
   deleteDoc,
   setDoc,
   writeBatch,
-  query, // <-- ADDED for sales reports
-  where, // <-- ADDED for sales reports
-  Timestamp, // <-- ADDED for sales reports
+  query,
+  where,
+  Timestamp,
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -38,7 +38,7 @@ const menuItemsCollection = collection(db, "menuItems");
 const staffCollection = collection(db, "staff");
 const ordersCollection = collection(db, "orders");
 const settingsCollection = collection(db, "settings");
-const salesCollection = collection(db, "salesRecords"); // <-- ADDED
+const salesCollection = collection(db, "salesRecords");
 
 /* ----------------------
    Settings
@@ -50,7 +50,7 @@ export const getSettings = async () => {
     if (docSnap.exists()) {
       return docSnap.data();
     } else {
-      console.warn("Settings document 'appSettings' not found.");
+      console.warn("Settings document 'appSettings' not found. Using defaults.");
       return null;
     }
   } catch (error) {
@@ -398,11 +398,6 @@ export const clearAllOrders = async () => {
 /* ----------------------
    Sales Records (NEW SECTION for Reports)
    ---------------------- */
-/**
- * Adds a finalized sale record to the 'salesRecords' collection.
- * This should be called after a bill is paid and before the active order is deleted.
- * @param {object} saleData - The details of the sale to be recorded.
- */
 export const addSaleRecord = async (saleData) => {
   try {
     // Add a server-side timestamp for accurate record-keeping
@@ -417,11 +412,6 @@ export const addSaleRecord = async (saleData) => {
   }
 };
 
-/**
- * Fetches sales records within a specified date range.
- * @param {Date} startDate - The start of the date range.
- * @param {Date} endDate - The end of the date range.
- */
 export const getSalesByDateRange = async (startDate, endDate) => {
   try {
     // Firestore queries require the end date to be exclusive, so we adjust it.
@@ -449,6 +439,5 @@ export const getSalesByDateRange = async (startDate, endDate) => {
     throw error;
   }
 };
-
 
 export default db;
