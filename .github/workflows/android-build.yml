@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Build React App
+      run: npm run build
+
+    - name: Install Capacitor + Android
+      run: |
+        npm install @capacitor/core @capacitor/cli
+        npx cap init app com.your.app --web-dir build --no-interactive
+        npx cap add android || echo "Capacitor Android FAILED"
+        npx cap copy
+
+    - name: DEBUG — List folders
+      run: |
+        echo "Listing repository root:"
+        ls -R .
+
+    - name: DEBUG — Check Gradle file
+      run: |
+        if [ ! -f "./android/gradlew" ]; then
+          echo "gradlew NOT FOUND"
+          exit 1
+        else
+          echo "gradlew FOUND"
+        fi
+
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
