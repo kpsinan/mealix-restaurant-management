@@ -12,7 +12,9 @@ export default defineConfig({
       // This ensures the app works offline by caching the basics
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // Increase limit to 5MB for large chunks
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit for large chunks
+        // Force these routes to be served by the index.html (SPA fallback)
+        navigateFallback: '/index.html',
       },
       manifest: {
         name: 'MealiX POS',
@@ -25,12 +27,12 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png', // Ensure you have these icons in /public folder
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png', // Ensure you have these icons in /public folder
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           }
