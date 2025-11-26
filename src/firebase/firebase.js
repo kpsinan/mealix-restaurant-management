@@ -1,3 +1,4 @@
+// firebase.js
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -14,9 +15,6 @@ import {
   query,
   where,
   Timestamp,
-  enableIndexedDbPersistence,
-  disableNetwork, // New Import
-  enableNetwork,  // New Import
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -33,20 +31,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-// --- ENABLE OFFLINE PERSISTENCE ---
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-      if (err.code == 'failed-precondition') {
-          console.warn("Offline persistence failed: Multiple tabs open.");
-      } else if (err.code == 'unimplemented') {
-          console.warn("Offline persistence failed: Browser not supported.");
-      }
-  });
-
-// --- EXPORT NETWORK CONTROL FUNCTIONS ---
-export const setNetworkOffline = () => disableNetwork(db);
-export const setNetworkOnline = () => enableNetwork(db);
 
 // Collection references
 const tablesCollection = collection(db, "tables");

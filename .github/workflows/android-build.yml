@@ -2,56 +2,43 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches:
+      - main  # Or 'master', depending on your default branch name
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v3
 
-    - name: Install Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-    - name: Install Dependencies
-      run: npm install
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Build React App
-      run: npm run build
+      - name: Install Dependencies
+        run: npm install
 
-    - name: Install Capacitor + Android
-      run: |
-        npm install @capacitor/core @capacitor/cli
-        npx cap init app com.your.app --web-dir build --no-interactive
-        npx cap add android || echo "Capacitor Android FAILED"
-        npx cap copy
+      - name: Build Web Assets
+        run: npm run build
 
-    - name: DEBUG — List folders
-      run: |
-        echo "Listing repository root:"
-        ls -R .
+      - name: Sync Capacitor
+        run: npx cap sync
 
-    - name: DEBUG — Check Gradle file
-      run: |
-        if [ ! -f "./android/gradlew" ]; then
-          echo "gradlew NOT FOUND"
-          exit 1
-        else
-          echo "gradlew FOUND"
-        fi
+      - name: Build Android APK (Debug)
+        working-directory: ./android
+        run: ./gradlew assembleDebug
 
-    - name: Build APK
-      run: |
-        cd android
-        ./gradlew assembleDebug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-debug-apk
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
