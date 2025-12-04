@@ -2,7 +2,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import NetworkHandler from './components/NetworkHandler'; // Imported NetworkHandler
+import NetworkHandler from './components/NetworkHandler';
 
 import Home from './pages/Home';
 import Order from './pages/Order';
@@ -17,11 +17,11 @@ import SalesAndRevenue from './pages/SalesAndRevenue';
 import ItemWiseSalesReport from './pages/ItemWiseSalesReport';
 import TableWiseSalesReport from './pages/TableWiseSalesReport';
 import PaymentModeReport from './pages/PaymentModeReport';
+import SmartAssigner from './pages/SmartAssigner'; // NEW IMPORT
 
 const App = () => {
   return (
     <>
-      {/* NetworkHandler placed outside the layout so it covers everything */}
       <NetworkHandler />
       
       <div className="flex min-h-screen">
@@ -29,6 +29,7 @@ const App = () => {
         <main className="flex-1 p-4 bg-gray-100 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/smart-assign" element={<SmartAssigner />} /> {/* NEW ROUTE */}
             <Route path="/order" element={<Order />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/staff" element={<Staff />} />

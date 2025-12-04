@@ -1,4 +1,3 @@
-// firebase.js
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -73,15 +72,17 @@ export const updateSettings = async (settingsData) => {
 /* ----------------------
    Tables
    ---------------------- */
-export const addTable = async (name) => {
+// UPDATED: Added capacity parameter (defaulting to 4 for backward compatibility)
+export const addTable = async (name, capacity = 4) => {
   try {
-    const docRef = await addDoc(tablesCollection, { name, status: "available" });
-    return { id: docRef.id, name, status: "available" };
+    const docRef = await addDoc(tablesCollection, { name, capacity: Number(capacity), status: "available" });
+    return { id: docRef.id, name, capacity: Number(capacity), status: "available" };
   } catch (error) {
     console.error("Error adding table:", error);
     throw error;
   }
 };
+
 export const addTablesInBulk = async (tableNames) => {
   if (!tableNames || tableNames.length === 0) {
     throw new Error("addTablesInBulk: tableNames array is required and cannot be empty.");
@@ -89,8 +90,9 @@ export const addTablesInBulk = async (tableNames) => {
   try {
     const batch = writeBatch(db);
     tableNames.forEach((name) => {
-      const tableRef = doc(collection(db, "tables")); // Creates a new doc with a unique ID
-      batch.set(tableRef, { name, status: "available" });
+      const tableRef = doc(collection(db, "tables"));
+      // Default bulk add to capacity 4 if not specified
+      batch.set(tableRef, { name, capacity: 4, status: "available" });
     });
     await batch.commit();
   } catch (error) {
@@ -98,6 +100,7 @@ export const addTablesInBulk = async (tableNames) => {
     throw error;
   }
 };
+
 export const getTables = async () => {
   try {
     const snapshot = await getDocs(tablesCollection);
@@ -107,6 +110,7 @@ export const getTables = async () => {
     throw error;
   }
 };
+
 export const onTablesRealtime = (callback, onError) => {
   return onSnapshot(
     tablesCollection,
@@ -120,6 +124,7 @@ export const onTablesRealtime = (callback, onError) => {
     }
   );
 };
+
 export const updateTableStatus = async (tableId, status) => {
   if (!tableId) throw new Error("updateTableStatus: tableId is required");
   try {
@@ -131,6 +136,23 @@ export const updateTableStatus = async (tableId, status) => {
     throw error;
   }
 };
+
+// NEW: Helper to update multiple tables at once (Atomically)
+export const updateMultipleTablesStatus = async (tableIds, status) => {
+  if (!tableIds || tableIds.length === 0) return;
+  try {
+    const batch = writeBatch(db);
+    tableIds.forEach(id => {
+      const ref = doc(db, "tables", id);
+      batch.update(ref, { status });
+    });
+    await batch.commit();
+  } catch (error) {
+    console.error("Error bulk updating table status:", error);
+    throw error;
+  }
+};
+
 export const deleteTable = async (tableId) => {
   if (!tableId) throw new Error("deleteTable: tableId is required");
   try {
@@ -141,6 +163,7 @@ export const deleteTable = async (tableId) => {
     throw error;
   }
 };
+
 export const deleteTablesInBulk = async (tableIds) => {
   if (!tableIds || tableIds.length === 0) {
     throw new Error("deleteTablesInBulk: tableIds array is required and cannot be empty.");
@@ -174,6 +197,7 @@ export const addMenuItem = async (item) => {
     throw error;
   }
 };
+
 export const getMenuItems = async () => {
   try {
     const snapshot = await getDocs(menuItemsCollection);
@@ -183,6 +207,7 @@ export const getMenuItems = async () => {
     throw error;
   }
 };
+
 export const getMenuItemById = async (id) => {
   if (!id) throw new Error("getMenuItemById: id is required");
   try {
@@ -194,6 +219,7 @@ export const getMenuItemById = async (id) => {
     throw error;
   }
 };
+
 export const updateMenuItem = async (id, updates) => {
   if (!id) throw new Error("updateMenuItem: id is required");
   try {
@@ -205,6 +231,7 @@ export const updateMenuItem = async (id, updates) => {
     throw error;
   }
 };
+
 export const deleteMenuItem = async (id) => {
   if (!id) throw new Error("deleteMenuItem: id is required");
   try {
@@ -215,11 +242,11 @@ export const deleteMenuItem = async (id) => {
     throw error;
   }
 };
+
 export const deleteMenuItemsInBulk = async (itemIds) => {
   if (!itemIds || itemIds.length === 0) {
     throw new Error("deleteMenuItemsInBulk: itemIds array is required and cannot be empty.");
   }
-
   try {
     const batch = writeBatch(db);
     itemIds.forEach((id) => {
@@ -232,20 +259,17 @@ export const deleteMenuItemsInBulk = async (itemIds) => {
     throw error;
   }
 };
+
 export const updateMenuItemsInBulk = async (itemsToUpdate) => {
   if (!itemsToUpdate || itemsToUpdate.length === 0) {
     console.warn("updateMenuItemsInBulk: No items to update.");
     return;
   }
-
   try {
     const batch = writeBatch(db);
     itemsToUpdate.forEach(item => {
       const { id, ...data } = item;
-      if (!id) {
-        console.warn("Skipping item without ID in bulk update:", item);
-        return;
-      }
+      if (!id) return;
       const itemRef = doc(db, "menuItems", id);
       batch.update(itemRef, data);
     });
@@ -255,6 +279,7 @@ export const updateMenuItemsInBulk = async (itemsToUpdate) => {
     throw error;
   }
 };
+
 export const onMenuItemsRealtime = (callback, onError) => {
   return onSnapshot(
     menuItemsCollection,
@@ -285,6 +310,7 @@ export const addStaff = async (staffData) => {
     throw error;
   }
 };
+
 export const addStaffInBulk = async (staffArray) => {
   if (!staffArray || staffArray.length === 0) {
     throw new Error("addStaffInBulk: staffArray is required and cannot be empty.");
@@ -307,6 +333,7 @@ export const addStaffInBulk = async (staffArray) => {
     throw error;
   }
 };
+
 export const getStaff = async () => {
   try {
     const snapshot = await getDocs(staffCollection);
@@ -330,6 +357,7 @@ export const addOrder = async (order) => {
     throw error;
   }
 };
+
 export const getOrders = async () => {
   try {
     const snapshot = await getDocs(ordersCollection);
@@ -339,6 +367,7 @@ export const getOrders = async () => {
     throw error;
   }
 };
+
 export const deleteOrder = async (orderId) => {
   if (!orderId) throw new Error("deleteOrder: orderId is required");
   try {
@@ -349,6 +378,7 @@ export const deleteOrder = async (orderId) => {
     throw error;
   }
 };
+
 export const updateOrderStatus = async (orderId, newStatus) => {
   if (!orderId || !newStatus) {
     throw new Error("updateOrderStatus: orderId and newStatus are required.");
@@ -363,6 +393,7 @@ export const updateOrderStatus = async (orderId, newStatus) => {
     throw error;
   }
 };
+
 export const onOrdersRealtime = (callback, onError) => {
   return onSnapshot(
     ordersCollection,
@@ -376,34 +407,33 @@ export const onOrdersRealtime = (callback, onError) => {
     }
   );
 };
+
 export const clearAllOrders = async () => {
   try {
     const ordersSnapshot = await getDocs(ordersCollection);
     if (ordersSnapshot.empty) {
       console.log("No orders to delete.");
-      return; // Nothing to do
+      return; 
     }
     const batch = writeBatch(db);
     ordersSnapshot.docs.forEach((document) => {
       batch.delete(document.ref);
     });
     await batch.commit();
-    console.log("All orders successfully deleted.");
   } catch (error) {
     console.error("Error clearing all orders:", error);
-    throw error; // Re-throw the error to be caught by the caller
+    throw error;
   }
 };
 
 /* ----------------------
-   Sales Records (NEW SECTION for Reports)
+   Sales Records
    ---------------------- */
 export const addSaleRecord = async (saleData) => {
   try {
-    // Add a server-side timestamp for accurate record-keeping
     const record = {
       ...saleData,
-      finalizedAt: Timestamp.now(), // Use Firestore's server timestamp
+      finalizedAt: Timestamp.now(), 
     };
     await addDoc(salesCollection, record);
   } catch (error) {
@@ -414,7 +444,6 @@ export const addSaleRecord = async (saleData) => {
 
 export const getSalesByDateRange = async (startDate, endDate) => {
   try {
-    // Firestore queries require the end date to be exclusive, so we adjust it.
     const endOfDay = new Date(endDate);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -430,7 +459,6 @@ export const getSalesByDateRange = async (startDate, endDate) => {
       return {
         id: d.id,
         ...data,
-        // Convert Firestore Timestamp back to JS Date object for easier use
         finalizedAt: data.finalizedAt.toDate(),
       };
     });

@@ -6,7 +6,7 @@ import {
   getTables,
   getStaff,
   addOrder,
-  updateTableStatus,
+  updateMultipleTablesStatus, // Use bulk update
   getSettings,
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
@@ -23,7 +23,6 @@ const Icons = {
 };
 
 // --- Sub-Components ---
-
 const Toast = ({ notification }) => {
   if (!notification) return null;
   const styles = {
@@ -64,12 +63,12 @@ const QuantityControl = React.memo(({ quantity, onDecrease, onIncrease }) => (
 ));
 
 const Order = () => {
-  const isSidebarOpen = true; // TODO: Context integration
+  const isSidebarOpen = true; 
   const location = useLocation();
 
   // State
   const [data, setData] = useState({ tables: [], staff: [], menu: [], settings: { currencySymbol: '₹' } });
-  const [session, setSession] = useState({ tableId: "", staffId: "" });
+  const [session, setSession] = useState({ tableId: "", staffId: "", linkedTableIds: [] });
   const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false });
   const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
 
@@ -79,7 +78,7 @@ const Order = () => {
     setTimeout(() => setUiState(prev => ({ ...prev, notification: null })), 3000);
   }, []);
 
-  // Fetch Data
+  // Fetch Data & Parse URL
   useEffect(() => {
     let mounted = true;
     const init = async () => {
@@ -90,18 +89,25 @@ const Order = () => {
         ]);
         
         if (mounted) {
-          const availableTables = (tables || []).filter(t => t.status === 'available')
-            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-          
-          setData({ tables: availableTables, staff: staff || [], menu: menu || [], settings: settings || { currencySymbol: '₹' } });
+          setData({ tables: tables || [], staff: staff || [], menu: menu || [], settings: settings || { currencySymbol: '₹' } });
 
           const params = new URLSearchParams(location.search);
-          if (params.get("tableId")) {
-            setSession(prev => ({ ...prev, tableId: params.get("tableId") }));
+          const tId = params.get("tableId");
+          const linked = params.get("linked");
+
+          if (tId) {
+            // Auto-select Table ONLY
+            setSession(prev => ({ 
+              ...prev, 
+              tableId: tId, 
+              linkedTableIds: linked ? linked.split(',') : [] 
+            }));
+            
+            // NOTE: REMOVED AUTO-SELECT STAFF LOGIC HERE
+            // Modal stays open to force Staff selection
             setUiState(prev => ({ ...prev, isModalOpen: true }));
-          }
-          if (staff?.length > 0) {
-            setSession(prev => ({ ...prev, staffId: staff[0].id ?? staff[0]._id }));
+          } else {
+             setUiState(prev => ({ ...prev, isModalOpen: true }));
           }
         }
       } catch (err) {
@@ -114,7 +120,22 @@ const Order = () => {
     return () => { mounted = false; };
   }, [location.search, showNotification]);
 
-  // Handlers
+  // Derived: Display Name for Tables (Handling Merge)
+  const sessionTableName = useMemo(() => {
+    if (!session.tableId || data.tables.length === 0) return "Table ?";
+    const mainTable = data.tables.find(t => t.id === session.tableId);
+    let name = mainTable?.name || "Unknown";
+    
+    if (session.linkedTableIds.length > 0) {
+      const linkedNames = session.linkedTableIds.map(id => {
+        const t = data.tables.find(tbl => tbl.id === id);
+        return t ? t.name : "";
+      }).filter(Boolean);
+      if (linkedNames.length > 0) name += ` + ${linkedNames.join(" + ")}`;
+    }
+    return name;
+  }, [session.tableId, session.linkedTableIds, data.tables]);
+
   const handlePortionChange = useCallback((itemId, portion, change) => {
     setOrderState(prev => {
       const items = { ...prev.items };
@@ -139,6 +160,12 @@ const Order = () => {
   const handleSubmit = async () => {
     if (!session.tableId) return setUiState(prev => ({ ...prev, isModalOpen: true }));
 
+    // Validation: Staff is strictly required now
+    if (!session.staffId) {
+      setUiState(prev => ({ ...prev, isModalOpen: true }));
+      return showNotification("Please select a staff member", "warning");
+    }
+
     const orderPayload = [];
     Object.entries(orderState.items).forEach(([itemId, portions]) => {
       const item = data.menu.find(i => (i.id ?? i._id) === itemId);
@@ -153,18 +180,25 @@ const Order = () => {
 
     setOrderState(prev => ({ ...prev, submitting: true }));
     try {
+      // Create Order
       await addOrder({
         tableId: session.tableId,
-        staffId: session.staffId || null,
+        linkedTableIds: session.linkedTableIds, 
+        staffId: session.staffId, // Now strictly required
         items: orderPayload,
         total: totalAmount,
         createdAt: new Date().toISOString(),
       });
-      await updateTableStatus(session.tableId, "occupied");
+      
+      // Update ALL tables to occupied NOW (Logic moved from SmartAssigner to here)
+      const allTableIds = [session.tableId, ...session.linkedTableIds];
+      await updateMultipleTablesStatus(allTableIds, "occupied");
+      
       window.dispatchEvent(new CustomEvent("tablesUpdated"));
       showNotification("Order submitted successfully!", "success");
       setOrderState(prev => ({ ...prev, items: {}, expandedId: null }));
     } catch (err) {
+      console.error(err);
       showNotification("Failed to submit order", "error");
     } finally {
       setOrderState(prev => ({ ...prev, submitting: false }));
@@ -175,7 +209,7 @@ const Order = () => {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       <Toast notification={uiState.notification} />
 
-      {/* Main Layout - Responsive Padding & App Bar Spacing */}
+      {/* Main Layout */}
       <div className="container mx-auto px-4 md:px-6 pt-24 pb-40 max-w-3xl">
         
         {/* Header */}
@@ -191,7 +225,8 @@ const Order = () => {
               className="flex flex-col items-end cursor-pointer bg-white px-3 py-2 rounded-xl border border-gray-200 shadow-sm active:bg-gray-50 transition-colors touch-manipulation">
               <div className="flex items-center gap-1.5 text-blue-600 font-bold text-sm">
                 <Icons.Table />
-                <span className="truncate max-w-[100px]">{data.tables.find(t => (t.id ?? t._id) === session.tableId)?.name || "Table ?"}</span>
+                {/* Updated to show Merged Name */}
+                <span className="truncate max-w-[150px]">{sessionTableName}</span>
               </div>
               <div className="flex items-center gap-1 text-gray-400 text-[10px] font-medium uppercase tracking-wide">
                 <Icons.User />
@@ -201,17 +236,18 @@ const Order = () => {
           )}
         </div>
 
-        {/* Session Modal - Added max-height and scroll for small screens */}
+        {/* Session Modal */}
         <Modal isOpen={uiState.isModalOpen} onClose={() => setUiState(prev => ({ ...prev, isModalOpen: false }))}>
           <div className="max-h-[70vh] overflow-y-auto px-1 py-1 scrollbar-hide">
             <h2 className="text-xl font-bold mb-6 text-gray-800 sticky top-0 bg-white pb-2">Start Session</h2>
             <div className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Table</label>
-                <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value })} 
+                <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value, linkedTableIds: [] })} 
                   className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
                   <option value="">Select Table</option>
-                  {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name}</option>)}
+                  {/* Show all tables, but normally filtered in a real app */}
+                  {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name} (Cap: {t.capacity || 0})</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
@@ -223,8 +259,9 @@ const Order = () => {
                 </select>
               </div>
             </div>
-            <button onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} disabled={!session.tableId} 
-              className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation ${!session.tableId ? "bg-gray-200 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}>
+            {/* Button disabled if either table OR staff is missing */}
+            <button onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} disabled={!session.tableId || !session.staffId} 
+              className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation ${(!session.tableId || !session.staffId) ? "bg-gray-200 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}>
               Start Order
             </button>
           </div>
@@ -256,7 +293,7 @@ const Order = () => {
                     </div>
                   </div>
 
-                  {/* Expanded Section with Smooth Animation & Higher Max-Height */}
+                  {/* Expanded Section */}
                   <div className={`transition-[max-height] duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[600px]' : 'max-h-0'}`}>
                     <div className="px-4 pb-4 pt-1 bg-gray-50 space-y-2 border-t border-gray-100">
                       {[
@@ -283,7 +320,7 @@ const Order = () => {
         )}
       </div>
 
-      {/* Sticky Action Bar with Safe Area Handling */}
+      {/* Sticky Action Bar */}
       <div className={`fixed bottom-20 right-0 w-full z-40 transition-all duration-300 ${isSidebarOpen ? 'md:pl-64' : 'md:pl-20'}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="mx-4 max-w-3xl md:mx-auto">
           <div className="bg-gray-900/95 backdrop-blur-md shadow-2xl rounded-xl p-3 flex items-center justify-between border border-gray-800">
@@ -292,7 +329,7 @@ const Order = () => {
               <div className="text-xl font-bold text-white font-mono leading-none">{data.settings.currencySymbol}{totalAmount.toFixed(2)}</div>
             </div>
             <button onClick={handleSubmit} disabled={orderState.submitting} 
-              className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow transition-transform active:scale-95 flex items-center gap-2 touch-manipulation ${!session.tableId ? "bg-gray-700 text-gray-500" : "bg-white text-gray-900 hover:bg-gray-100"}`}>
+              className={`px-6 py-2.5 rounded-lg font-bold text-sm shadow transition-transform active:scale-95 flex items-center gap-2 touch-manipulation ${(!session.tableId || !session.staffId) ? "bg-gray-700 text-gray-500" : "bg-white text-gray-900 hover:bg-gray-100"}`}>
               {orderState.submitting ? <span className="animate-pulse">Sending...</span> : <span>Place Order</span>}
             </button>
           </div>

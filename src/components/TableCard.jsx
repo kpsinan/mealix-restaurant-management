@@ -4,17 +4,6 @@ import { motion } from "framer-motion";
 
 const DOUBLE_TAP_MS = 300; // double-tap detection window
 
-/**
- * Props:
- * - table: object (optional) - { id, name, status, ... }
- * - isSelected: boolean - whether the card is currently selected
- * - isSelectionMode: boolean - whether the parent is in selection mode
- * - isAddButton: boolean - renders the "Add Table" button
- * - onClick: function - single click handler (for selection)
- * - onDoubleClick: function - desktop double-click OR touch double-tap (for navigation)
- * - onEnterSelectionMode: function - called when 'Select' is clicked from the menu
- * - onDelete: function - called when delete is clicked from the menu
- */
 const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onEnterSelectionMode, onDelete, isSelectionMode }) => {
   const elRef = useRef(null);
   const lastTapRef = useRef(0);
@@ -56,9 +45,9 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
     };
   }, [onDoubleClick]);
 
-  // Event handlers for menu, select, and delete
+  // Event handlers
   const handleMenuToggle = (e) => {
-    e.stopPropagation(); // Prevent card click events from firing
+    e.stopPropagation();
     setMenuOpen((prev) => !prev);
   };
 
@@ -69,7 +58,7 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
   };
 
   const handleDelete = (e) => {
-    e.stopPropagation(); // Prevent card click events
+    e.stopPropagation();
     onDelete?.();
     setMenuOpen(false);
   };
@@ -90,6 +79,7 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
   }
 
   const occupied = table?.status === "occupied";
+  const hasCapacity = table?.capacity && table.capacity > 0;
 
   return (
     <motion.div
@@ -119,6 +109,15 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
+        </div>
+      )}
+
+      {/* Warning if Missing Capacity */}
+      {!hasCapacity && !isSelected && (
+        <div className="absolute top-2 right-8 z-10" title="Smart Assign Disabled: No Capacity Set">
+           <div className="bg-amber-100 text-amber-600 rounded-full w-6 h-6 flex items-center justify-center font-bold border border-amber-200 text-xs animate-pulse">
+             !
+           </div>
         </div>
       )}
 
@@ -180,7 +179,24 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
       )}
 
       <span className="text-xl font-semibold">{table?.name ?? "Table"}</span>
-      {table?.status && <span className="text-sm mt-1 capitalize">{table.status}</span>}
+      
+      {/* Capacity & Status Row */}
+      <div className="flex items-center gap-2 mt-2">
+         {table?.status && <span className="text-xs font-medium uppercase text-gray-400 tracking-wider">{table.status}</span>}
+         {hasCapacity && (
+            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-md text-gray-600 font-medium flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+              {table.capacity}
+            </span>
+         )}
+      </div>
+      
+      {/* Warning Text */}
+      {!hasCapacity && !isAddButton && (
+        <div className="mt-2 text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 font-medium">
+          Set Capacity for Smart Assign
+        </div>
+      )}
     </motion.div>
   );
 };

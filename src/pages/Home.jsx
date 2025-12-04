@@ -25,6 +25,7 @@ const Home = () => {
   // State for the modal inputs
   const [addMode, setAddMode] = useState("single");
   const [tableName, setTableName] = useState("");
+  const [tableCapacity, setTableCapacity] = useState(""); // New State for Capacity
   const [bulkTableInput, setBulkTableInput] = useState("");
   const [tablePrefix, setTablePrefix] = useState("T");
 
@@ -44,7 +45,6 @@ const Home = () => {
   }, []);
 
   const openOrderFor = (tableId) => {
-    // Prevent navigation if in selection mode or no ID is provided
     if (isSelectionMode || !tableId) return;
     navigate(`/order?tableId=${encodeURIComponent(tableId)}`);
   };
@@ -53,6 +53,7 @@ const Home = () => {
     setIsModalOpen(false);
     setAddMode("single");
     setTableName("");
+    setTableCapacity(""); // Reset capacity
     setBulkTableInput("");
     setTablePrefix("T");
   };
@@ -63,9 +64,7 @@ const Home = () => {
   };
 
   const handleTableClick = (tableId) => {
-    // Only handle clicks for selection if in selection mode
     if (!isSelectionMode) return;
-
     setSelectedTables((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(tableId)) {
@@ -73,7 +72,6 @@ const Home = () => {
       } else {
         newSet.add(tableId);
       }
-      // If the last selected item is removed, exit selection mode
       if (newSet.size === 0) {
         setIsSelectionMode(false);
       }
@@ -88,15 +86,13 @@ const Home = () => {
   
   const handleDeleteSelected = async () => {
     if (selectedTables.size === 0) return;
-
     const isConfirmed = window.confirm(
       `Are you sure you want to delete ${selectedTables.size} selected table(s)? This action cannot be undone.`
     );
-
     if (isConfirmed) {
       try {
         await deleteTablesInBulk(Array.from(selectedTables));
-        clearSelection(); // Clear selection and exit mode on success
+        clearSelection();
       } catch (error) {
         console.error("Error deleting selected tables:", error);
         alert("Failed to delete the selected tables. Please try again.");
@@ -111,9 +107,14 @@ const Home = () => {
       alert(`A table with the name "${name}" already exists.`);
       return;
     }
+    
+    // Parse Capacity
+    let capacity = parseInt(tableCapacity);
+    if (isNaN(capacity)) capacity = 0; // Default to 0 (Missing) if empty
+
     setIsSubmitting(true);
     try {
-      await addTable(name);
+      await addTable(name, capacity);
       closeModal();
     } catch (err) {
       console.error("Error adding table:", err);
@@ -126,6 +127,10 @@ const Home = () => {
   const handleBulkAddTables = async () => {
     const trimmedInput = bulkTableInput.trim();
     if (!trimmedInput) return;
+    
+    // Use the same capacity for all bulk tables if provided
+    let capacity = parseInt(tableCapacity);
+    if (isNaN(capacity)) capacity = 0;
 
     let initialNamesToCreate = [];
     const rangeMatch = trimmedInput.match(/^(\d+)-(\d+)$/);
@@ -135,7 +140,7 @@ const Home = () => {
       const end = parseInt(rangeMatch[2], 10);
 
       if (isNaN(start) || isNaN(end) || start > end) {
-        alert("Invalid range. The start number must be less than or equal to the end number.");
+        alert("Invalid range.");
         return;
       }
       for (let i = start; i <= end; i++) {
@@ -147,39 +152,32 @@ const Home = () => {
     }
 
     if (initialNamesToCreate.length === 0) {
-      alert("No valid table names found. Please check your input.");
+      alert("No valid table names found.");
       return;
     }
 
     const existingNames = new Set(tables.map((table) => table.name.toLowerCase()));
     const uniqueNewNames = [];
-    const duplicateNames = [];
 
     initialNamesToCreate.forEach((name) => {
-      if (existingNames.has(name.toLowerCase()) || uniqueNewNames.some(un => un.toLowerCase() === name.toLowerCase())) {
-        duplicateNames.push(name);
-      } else {
+      if (!existingNames.has(name.toLowerCase())) {
         uniqueNewNames.push(name);
       }
     });
 
     if (uniqueNewNames.length === 0) {
-      alert(`All proposed tables already exist or were duplicates in your input: ${duplicateNames.join(", ")}.`);
+      alert("All proposed tables already exist.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await addTablesInBulk(uniqueNewNames);
-      let resultMessage = `Successfully added ${uniqueNewNames.length} new table(s).`;
-      if (duplicateNames.length > 0) {
-        resultMessage += `\n${duplicateNames.length} duplicate(s) were ignored: ${duplicateNames.join(", ")}.`;
-      }
-      alert(resultMessage);
+      // Pass capacity to bulk add function
+      await addTablesInBulk(uniqueNewNames, capacity);
       closeModal();
     } catch (err) {
       console.error("Error adding tables in bulk:", err);
-      alert("Failed to add tables in bulk. Please try again.");
+      alert("Failed to add tables in bulk.");
     } finally {
       setIsSubmitting(false);
     }
@@ -189,14 +187,11 @@ const Home = () => {
     if (!tableId) return;
     const isConfirmed = window.confirm("Are you sure you want to delete this table? This action cannot be undone.");
     if (isConfirmed) {
-      // If the deleted table was part of a selection, remove it from the set.
       if (selectedTables.has(tableId)) {
         setSelectedTables((prev) => {
           const newSet = new Set(prev);
           newSet.delete(tableId);
-          if (newSet.size === 0) {
-            setIsSelectionMode(false);
-          }
+          if (newSet.size === 0) setIsSelectionMode(false);
           return newSet;
         });
       }
@@ -204,7 +199,7 @@ const Home = () => {
         await deleteTable(tableId);
       } catch (error) {
         console.error("Error deleting table:", error);
-        alert("Failed to delete table. Please try again.");
+        alert("Failed to delete table.");
       }
     }
   };
@@ -227,7 +222,7 @@ const Home = () => {
               const numA = parseInt(a.name.replace(/\D/g, ""), 10) || Infinity;
               const numB = parseInt(b.name.replace(/\D/g, ""), 10) || Infinity;
               if (numA !== numB) return numA - numB;
-              return a.name.localeCompare(b.name); // Fallback for non-numeric names
+              return a.name.localeCompare(b.name);
             })
             .map((table) => {
               const id = table.id ?? table.name;
@@ -248,7 +243,6 @@ const Home = () => {
         </div>
       </div>
       
-      {/* Selection Mode Action Bar */}
       {isSelectionMode && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white p-3 rounded-2xl shadow-lg border animate-fade-in-up">
           <button
@@ -261,11 +255,7 @@ const Home = () => {
             </svg>
             Delete
           </button>
-          <button
-            onClick={clearSelection}
-            className="p-2 rounded-full text-gray-600 hover:bg-gray-200 transition"
-            aria-label="Cancel selection"
-          >
+          <button onClick={clearSelection} className="p-2 rounded-full text-gray-600 hover:bg-gray-200 transition">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -276,6 +266,8 @@ const Home = () => {
       <Modal isOpen={isModalOpen} onClose={closeModal}>
         <div className="p-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Add Table(s)</h2>
+          
+          {/* Mode Switcher */}
           <div className="flex border-b mb-4">
             <button onClick={() => setAddMode("single")} className={`px-4 py-2 text-sm font-medium ${addMode === "single" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}>
               Single
@@ -284,20 +276,36 @@ const Home = () => {
               Bulk
             </button>
           </div>
-          {addMode === "single" ? (
-            <div>
-              <input type="text" value={tableName} onChange={(e) => setTableName(e.target.value)} placeholder="Enter table name (e.g. T1)" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" onKeyDown={(e) => e.key === "Enter" && handleAddTable()} />
-            </div>
-          ) : (
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Use a range (e.g., <code className="bg-gray-200 px-1 rounded">1-10</code>) or comma-separated names (e.g., <code className="bg-gray-200 px-1 rounded">A1, B2, C3</code>).</p>
-              <div className="flex gap-2 mb-4">
-                <input type="text" value={tablePrefix} onChange={(e) => setTablePrefix(e.target.value)} placeholder="Prefix" className="w-1/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" title="Prefix for range-based creation" />
-                <input type="text" value={bulkTableInput} onChange={(e) => setBulkTableInput(e.target.value)} placeholder="e.g. 1-10 or T1, B2, C3" className="w-3/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onKeyDown={(e) => e.key === "Enter" && handleBulkAddTables()} />
+
+          <div className="space-y-4">
+            {addMode === "single" ? (
+              <input type="text" value={tableName} onChange={(e) => setTableName(e.target.value)} placeholder="Enter table name (e.g. T1)" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onKeyDown={(e) => e.key === "Enter" && handleAddTable()} />
+            ) : (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Range (e.g. <code className="bg-gray-200 px-1 rounded">1-10</code>) or List (e.g. <code className="bg-gray-200 px-1 rounded">A1, B2</code>).</p>
+                <div className="flex gap-2">
+                  <input type="text" value={tablePrefix} onChange={(e) => setTablePrefix(e.target.value)} placeholder="Prefix" className="w-1/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="text" value={bulkTableInput} onChange={(e) => setBulkTableInput(e.target.value)} placeholder="e.g. 1-10 or T1, B2" className="w-3/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onKeyDown={(e) => e.key === "Enter" && handleBulkAddTables()} />
+                </div>
               </div>
+            )}
+            
+            {/* Capacity Field - Available for both modes */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Seating Capacity (Optional)</label>
+              <input 
+                type="number" 
+                min="0"
+                value={tableCapacity} 
+                onChange={(e) => setTableCapacity(e.target.value)} 
+                placeholder="Ex: 4" 
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              />
+              <p className="text-[10px] text-gray-400 mt-1">If left empty, Smart Assign will skip this table.</p>
             </div>
-          )}
-          <div className="flex justify-end gap-2">
+          </div>
+
+          <div className="flex justify-end gap-2 mt-6">
             <button onClick={closeModal} className="px-4 py-2 rounded-lg border disabled:opacity-50" disabled={isSubmitting}>
               Cancel
             </button>

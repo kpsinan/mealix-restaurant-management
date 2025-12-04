@@ -14,6 +14,7 @@ import {
   FaSignOutAlt,
   FaUserCircle,
   FaChartBar,
+  FaMagic, // Imported for Smart Assign
 } from "react-icons/fa";
 
 // Custom hook to detect clicks outside a component
@@ -34,11 +35,12 @@ const useOutsideClick = (ref, callback) => {
 // Config-driven nav items
 const navItems = [
   { path: "/", label: "Home", icon: FaHome },
+  { path: "/smart-assign", label: "Smart Assign", icon: FaMagic }, // NEW BUTTON
+  { path: "/order", label: "Order", icon: FaClipboardList },
   { path: "/menu", label: "Menu", icon: FaUtensils },
   { path: "/billing", label: "Billing", icon: FaFileInvoiceDollar },
   { path: "/reports", label: "Reports", icon: FaChartBar },
   { path: "/staff", label: "Staff", icon: FaUsers },
-  { path: "/order", label: "Order", icon: FaClipboardList },
   { path: "/kitchen", label: "Kitchen", icon: FaConciergeBell },
 ];
 
@@ -91,11 +93,9 @@ const Sidebar = () => {
               <span className="text-2xl font-bold tracking-wider text-amber-400 leading-tight">
                 MealiX
               </span>
-              {/* --- MODIFICATION START --- */}
               <span className="text-xs text-slate-500 tracking-wider mt-0.5">
                 Developed by Sinan KP
               </span>
-              {/* --- MODIFICATION END --- */}
             </div>
           )}
         </div>
