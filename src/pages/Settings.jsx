@@ -363,8 +363,8 @@ const Settings = () => {
                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl shadow-xl flex items-center justify-center mb-6 transform rotate-3">
                   <Monitor className="w-12 h-12" />
                </div>
-               <h2 className="text-3xl font-extrabold text-gray-900">Restaurant POS</h2>
-               <span className="inline-block px-3 py-1 mt-3 text-xs font-bold text-blue-800 bg-blue-100 rounded-full">Version 2.5.0 (Pro)</span>
+               <h2 className="text-3xl font-extrabold text-gray-900">MealiX POS</h2>
+               <span className="inline-block px-3 py-1 mt-3 text-xs font-bold text-blue-800 bg-blue-100 rounded-full">Version 3.6.0</span>
                
                <p className="text-gray-500 mt-6 max-w-md text-center leading-relaxed">
                   Designed to simplify restaurant management. From billing to settings, everything you need is right here.
