@@ -15,6 +15,7 @@ import {
   FaUserCircle,
   FaChartBar,
   FaMagic,
+  FaTachometerAlt, // Added for Dashboard
 } from "react-icons/fa";
 
 // Custom hook to detect clicks outside a component
@@ -34,7 +35,8 @@ const useOutsideClick = (ref, callback) => {
 
 // Sidebar navigation items
 const navItems = [
-  { path: "/", label: "Home", icon: FaHome },
+  { path: "/dashboard", label: "Dashboard", icon: FaTachometerAlt }, // New Dashboard Link
+  { path: "/", label: "Floor Plan", icon: FaHome }, // Renamed Home to Floor Plan for clarity
   { path: "/smart-assign", label: "Smart Assign", icon: FaMagic },
   { path: "/order", label: "Order", icon: FaClipboardList },
   { path: "/menu", label: "Menu", icon: FaUtensils },

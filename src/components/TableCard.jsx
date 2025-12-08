@@ -23,7 +23,7 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
     };
   }, []);
 
-  // Attach native touchend listener to detect double-tap and prevent double-tap zoom
+  // Attach native touchend listener to detect double-tap
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
@@ -63,14 +63,14 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
     setMenuOpen(false);
   };
   
-  // Render Add Button variant
+  // Render Add Button variant (Emerald Theme)
   if (isAddButton) {
     return (
       <motion.button
         onClick={onClick}
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.97 }}
-        className="h-40 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center transition hover:border-blue-500 hover:text-blue-600 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="h-40 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center transition hover:border-[#10B981] hover:text-[#10B981] bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#10B981]"
         aria-label="Add Table"
       >
         <span className="text-gray-500 font-medium text-lg">+ Add Table</span>
@@ -96,16 +96,16 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
       className={`relative h-40 rounded-2xl shadow-md hover:shadow-lg transition cursor-pointer flex flex-col items-center justify-center border p-4
         ${
           isSelected
-            ? "border-blue-600 border-2 ring-2 ring-blue-300 bg-blue-50"
+            ? "border-[#10B981] border-2 ring-2 ring-[#10B981] bg-[#ECFDF5]"
             : occupied
-            ? "bg-green-100 border-green-400 text-green-900"
+            ? "bg-red-50 border-red-200 text-red-900"
             : "bg-white border-gray-200 text-gray-800"
         }`}
       aria-pressed={isSelected || occupied}
     >
-      {/* Selected State Checkmark */}
+      {/* Selected State Checkmark (Emerald Theme) */}
       {isSelected && (
-        <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full h-6 w-6 flex items-center justify-center z-20">
+        <div className="absolute top-2 right-2 bg-[#10B981] text-white rounded-full h-6 w-6 flex items-center justify-center z-20">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
@@ -169,7 +169,7 @@ const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onE
         <div
           className={`absolute top-2 left-2 h-3 w-3 rounded-full ${
             table.status === "available"
-              ? "bg-green-500"
+              ? "bg-[#10B981]"
               : table.status === "occupied"
               ? "bg-red-500"
               : "bg-yellow-400"

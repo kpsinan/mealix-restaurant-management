@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-// MODIFIED: Corrected the import path for firebase functions.
+import { useNavigate } from "react-router-dom"; // Added for Back Button
 import { getSalesByDateRange, getSettings } from "../firebase/firebase"; 
 
 // --- SVG Icons ---
+const FaArrowLeft = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M257.5 445.1l-22.2 22.2c-9.4 9.4-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L201.4 44.7c9.4-9.4 24.6-9.4 33.9 0l22.2 22.2c9.5 9.5 9.3 25-.4 34.3L136.6 216H424c13.3 0 24 10.7 24 24v32c0 13.3-10.7 24-24 24H136.6l120.5 114.8c9.8 9.3 10 24.8.4 34.3z"></path></svg>;
+const FaCalendarAlt = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M0 464c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V192H0v272zm320-196c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zm0 128c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zM192 268c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zm0 128c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12h-40c-6.6 0-12-5.4-12-12v-40zM64 268c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12H76c-6.6 0-12-5.4-12-12v-40zm0 128c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12H76c-6.6 0-12-5.4-12-12v-40zM400 64h-48V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v48H160V16c0-8.8-7.2-16-16-16h-32c-8.8 0-16 7.2-16 16v48H48C21.5 64 0 85.5 0 112v48h448v-48c0-26.5-21.5-48-48-48z"></path></svg>;
 const FaFilePdf = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M416 224V64c0-8.8-7.2-16-16-16H112c-8.8 0-16 7.2-16 16v160h320zM96 256H32v176c0 13.3 10.7 24 24 24h32v-80c0-26.5 21.5-48 48-48h160c26.5 0 48 21.5 48 48v80h32c13.3 0 24-10.7 24-24V256H96zM480 96h-32v128h32c8.8 0 16-7.2 16-16V112c0-8.8-7.2-16-16-16zM288 352h-64c-8.8 0-16 7.2-16 16v64c0 8.8 7.2 16 16 16h64c8.8 0 16-7.2 16-16v-64c0-8.8-7.2-16-16-16z"></path></svg>;
 const FaFileExcel = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 384 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M369.9 97.9L286 14C277 5 264.8-.1 252.1-.1H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48V131.9c0-12.7-5.1-25-14.1-34zM332.1 128H256V51.9l76.1 76.1zM48 464V48h160v104c0 13.3 10.7 24 24 24h104v288H48zm212-240h-28.8c-4.4 0-8.4 2.4-10.5 6.3-18 33.1-22.2 42.4-28.6 57.7-13.9-29.1-6.9-17.3-28.6-57.7-2.1-3.9-6.2-6.3-10.6-6.3H124c-9.8 0-15.6 10-10.8 18.3l48 85.3c-22.3 20.4-44.5 44.9-66.2 73.3-4.5 5.9-2.2 14.3 4.9 16.3h28.3c4.5 0 8.5-2.5 10.6-6.3 22.4-40 44.8-80 67.2-120 10.1 18.6 20.8 38.2 32 59.2 2.9 5.5 8.7 9.1 14.8 9.1h28.3c7.1-1.9 9.4-10.3 4.9-16.3-21.2-27.6-43-55.5-65.3-84.8l48-85.3c4.9-8.3-.9-18.3-10.8-18.3z"></path></svg>;
 const FaInbox = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M528 224H48.8c-10.7 0-20.8 5.1-26.9 13.2L0 273.4V464c0 26.5 21.5 48 48 48h480c26.5 0 48-21.5 48-48V273.4l-21.9-36.2c-6-8.1-16.1-13.2-26.9-13.2zM48 352h160v64H48v-64zm192 0h160v64H240v-64zm336-48.4l19.2 31.8-19.2 31.8V303.6zM48 0h480c26.5 0 48 21.5 48 48v80H0V48C0 21.5 21.5 0 48 0z"></path></svg>;
@@ -13,6 +15,7 @@ const FaChartPie = () => <svg stroke="currentColor" fill="currentColor" strokeWi
 
 
 const TableWiseSalesReport = () => {
+  const navigate = useNavigate();
   // Modal and Date Management State
   const [isModalOpen, setIsModalOpen] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -36,6 +39,10 @@ const TableWiseSalesReport = () => {
   // --- Data Processing ---
   const processSalesData = (sales) => {
     const tableData = sales.reduce((acc, sale) => {
+      // ADAPTATION FOR MERGED TABLES:
+      // Merged tables often come as "Table 1 + Table 2".
+      // We keep this as the key to show the performance of that specific combo.
+      // The CSS in the render section ensures this long text wraps correctly.
       const tableName = sale.tableName || "Unknown Table";
       if (!acc[tableName]) {
         acc[tableName] = {
@@ -266,6 +273,11 @@ const TableWiseSalesReport = () => {
           <button ref={submitButtonRef} onClick={handleDateSubmit} className="w-full mt-8 flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-md hover:bg-indigo-700">
             <FaPlay /> Generate Report
           </button>
+          {startDate && endDate && (
+            <button onClick={() => setIsModalOpen(false)} className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700 underline">
+               Cancel
+            </button>
+          )}
         </div>
       </div>
     );
@@ -273,20 +285,45 @@ const TableWiseSalesReport = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Advanced Table-wise Report</h1>
-          <p className="text-sm text-slate-500 mt-1">Results for: <span className="font-semibold">{startDate}</span> to <span className="font-semibold">{endDate}</span></p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={exportXLSX} disabled={reportData.length === 0} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400">
-                <FaFileExcel /> Excel
-            </button>
-            <button onClick={exportPDF} disabled={reportData.length === 0} className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-rose-700 disabled:bg-gray-400">
-                <FaFilePdf /> PDF
-            </button>
-        </div>
-      </header>
+      {/* ADDED: Header with Back Button and Date Range Controls */}
+      <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center gap-3">
+              <button 
+                onClick={() => navigate(-1)} 
+                className="p-2 bg-white rounded-full shadow hover:bg-gray-100 text-slate-600 transition"
+                title="Go Back"
+              >
+                  <FaArrowLeft />
+              </button>
+              <h1 className="text-3xl font-bold text-slate-800">Advanced Table-wise Report</h1>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+             <div>
+                <p className="text-sm text-slate-500">Currently showing results for:</p>
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-lg text-slate-700">{startDate}</span>
+                    <span className="text-slate-400">to</span>
+                    <span className="font-bold text-lg text-slate-700">{endDate}</span>
+                </div>
+             </div>
+             
+             <div className="flex flex-wrap gap-2">
+                 <button 
+                    onClick={() => setIsModalOpen(true)}
+                    className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 border border-indigo-200 font-medium transition"
+                 >
+                    <FaCalendarAlt /> Change Date
+                 </button>
+                 <button onClick={exportXLSX} disabled={reportData.length === 0} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 transition">
+                    <FaFileExcel /> Excel
+                </button>
+                <button onClick={exportPDF} disabled={reportData.length === 0} className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-rose-700 disabled:bg-gray-400 transition">
+                    <FaFilePdf /> PDF
+                </button>
+             </div>
+          </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white p-5 rounded-lg shadow"><p className="text-sm text-slate-500">Total Revenue</p><p className="text-2xl font-bold text-slate-800">{currency}{totals.grandTotal.toFixed(2)}</p></div>
@@ -323,7 +360,8 @@ const TableWiseSalesReport = () => {
               {reportData.length > 0 ? (
                 reportData.map((row) => (
                   <tr key={row.name} className={`${row.isBest ? 'bg-green-50' : ''} ${row.isWorst ? 'bg-red-50' : ''} hover:bg-indigo-50`}>
-                    <td className="px-6 py-4 font-medium text-gray-800">
+                    <td className="px-6 py-4 font-medium text-gray-800 whitespace-normal break-words max-w-xs">
+                        {/* ADAPTATION: whitespace-normal and break-words ensures Merged Table names don't break layout */}
                         {row.name}
                         {row.isBest && <span className="ml-2 text-xs text-green-600 font-bold flex items-center gap-1"><FaTrophy/> Best</span>}
                         {row.isWorst && <span className="ml-2 text-xs text-red-600 font-bold">Lowest</span>}
@@ -354,4 +392,3 @@ const TableWiseSalesReport = () => {
 };
 
 export default TableWiseSalesReport;
-

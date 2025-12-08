@@ -14,6 +14,7 @@ import {
   query,
   where,
   Timestamp,
+  getCountFromServer, // Added for Dashboard optimization
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -350,8 +351,13 @@ export const getStaff = async () => {
    ---------------------- */
 export const addOrder = async (order) => {
   try {
-    const docRef = await addDoc(ordersCollection, order);
-    return { id: docRef.id, ...order };
+    // FIX: Explicitly set status to 'Pending' so Dashboard queries work
+    const newOrder = {
+      ...order,
+      status: "Pending", 
+    };
+    const docRef = await addDoc(ordersCollection, newOrder);
+    return { id: docRef.id, ...newOrder };
   } catch (error) {
     console.error("Error adding order:", error);
     throw error;

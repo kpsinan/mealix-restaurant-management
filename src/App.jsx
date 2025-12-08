@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import NetworkHandler from './components/NetworkHandler';
 
 import Home from './pages/Home';
+import Dashboard from './pages/Dashboard'; // NEW IMPORT
 import Order from './pages/Order';
 import Menu from './pages/Menu';
 import Staff from './pages/Staff';
@@ -17,7 +18,7 @@ import SalesAndRevenue from './pages/SalesAndRevenue';
 import ItemWiseSalesReport from './pages/ItemWiseSalesReport';
 import TableWiseSalesReport from './pages/TableWiseSalesReport';
 import PaymentModeReport from './pages/PaymentModeReport';
-import SmartAssigner from './pages/SmartAssigner'; // NEW IMPORT
+import SmartAssigner from './pages/SmartAssigner';
 
 const App = () => {
   return (
@@ -29,7 +30,8 @@ const App = () => {
         <main className="flex-1 p-4 bg-gray-100 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/smart-assign" element={<SmartAssigner />} /> {/* NEW ROUTE */}
+            <Route path="/dashboard" element={<Dashboard />} /> {/* NEW ROUTE */}
+            <Route path="/smart-assign" element={<SmartAssigner />} />
             <Route path="/order" element={<Order />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/staff" element={<Staff />} />

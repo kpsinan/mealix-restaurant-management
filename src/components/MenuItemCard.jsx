@@ -31,24 +31,24 @@ const MenuItemCard = ({
     "bg-white rounded-xl shadow-md p-4 flex flex-col justify-between transition-all duration-200 relative border",
     // Make the card clickable in either mode
     (onCardClick || selectionMode) ? "cursor-pointer" : "",
-    // Apply selection styling
-    isSelected ? "ring-2 ring-blue-600 border-blue-500 shadow-lg" : "border-gray-200 hover:shadow-lg",
+    // Apply selection styling (Updated to Emerald Theme)
+    isSelected ? "ring-2 ring-[#10B981] border-[#10B981] shadow-lg" : "border-gray-200 hover:shadow-lg",
   ].join(" ");
 
   return (
     <div className={cardClasses} onClick={handleClick}>
-      {/* Quantity Badge: Only shows on the Order page when items are in the cart */}
+      {/* Quantity Badge: Emerald Theme */}
       {quantity > 0 && !selectionMode && (
-        <div className="absolute top-[-10px] right-[-10px] bg-blue-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg z-10">
+        <div className="absolute top-[-10px] right-[-10px] bg-[#10B981] text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg z-10">
           {quantity}
         </div>
       )}
 
-      {/* Selection Overlay: Only shows on the Menu page in selection mode */}
+      {/* Selection Overlay: Emerald Theme */}
       {selectionMode && isSelected && (
-        <div className="absolute inset-0 bg-blue-500 bg-opacity-10 rounded-xl pointer-events-none flex items-center justify-center">
+        <div className="absolute inset-0 bg-[#10B981] bg-opacity-10 rounded-xl pointer-events-none flex items-center justify-center">
             <div className="bg-white rounded-full p-1 shadow">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                <svg className="w-6 h-6 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
             </div>
         </div>
       )}
@@ -94,14 +94,12 @@ const MenuItemCard = ({
         )}
       </div>
 
-      {/* Special Note */}
+      {/* Special Note: Emerald Theme */}
       {item.specialNote && (
-        <p className="text-xs italic text-blue-600 mt-auto pt-2 border-t border-gray-100">
+        <p className="text-xs italic text-[#10B981] mt-auto pt-2 border-t border-gray-100">
           Note: {item.specialNote}
         </p>
       )}
-
-      {/* The old +/- quantity controls are intentionally removed from this component */}
     </div>
   );
 };

@@ -1,11 +1,10 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   addTable,
   onTablesRealtime,
   deleteTable,
-  addTablesInBulk,
   deleteTablesInBulk,
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
@@ -16,6 +15,11 @@ const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); // 'all', 'available', 'occupied'
+
   const navigate = useNavigate();
 
   // State for selection mode
@@ -25,10 +29,15 @@ const Home = () => {
   // State for the modal inputs
   const [addMode, setAddMode] = useState("single");
   const [tableName, setTableName] = useState("");
-  const [tableCapacity, setTableCapacity] = useState(""); // New State for Capacity
+  const [tableCapacity, setTableCapacity] = useState(""); 
+  
+  // Bulk Mode States
   const [bulkTableInput, setBulkTableInput] = useState("");
   const [tablePrefix, setTablePrefix] = useState("T");
+  const [bulkStage, setBulkStage] = useState("setup"); // 'setup' | 'review'
+  const [pendingBulkTables, setPendingBulkTables] = useState([]); // Array of { name, capacity }
 
+  // --- REALTIME DATA FETCH ---
   useEffect(() => {
     setLoading(true);
     const unsubscribe = onTablesRealtime(
@@ -44,6 +53,35 @@ const Home = () => {
     return () => unsubscribe();
   }, []);
 
+  // --- DERIVED STATS ---
+  const stats = useMemo(() => {
+    const total = tables.length;
+    const available = tables.filter(t => t.status === "available").length;
+    const occupied = tables.filter(t => t.status === "occupied").length;
+    return { total, available, occupied };
+  }, [tables]);
+
+  // --- FILTERING & SORTING ---
+  const filteredTables = useMemo(() => {
+    return tables
+      .filter((t) => {
+        // Filter by Status
+        if (filterStatus !== "all" && t.status !== filterStatus) return false;
+        // Filter by Search
+        if (searchQuery && !t.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Natural Sort (T1, T2, T10 instead of T1, T10, T2)
+        const numA = parseInt(a.name.replace(/\D/g, ""), 10) || Infinity;
+        const numB = parseInt(b.name.replace(/\D/g, ""), 10) || Infinity;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+      });
+  }, [tables, filterStatus, searchQuery]);
+
+  // --- HANDLERS ---
+
   const openOrderFor = (tableId) => {
     if (isSelectionMode || !tableId) return;
     navigate(`/order?tableId=${encodeURIComponent(tableId)}`);
@@ -53,9 +91,12 @@ const Home = () => {
     setIsModalOpen(false);
     setAddMode("single");
     setTableName("");
-    setTableCapacity(""); // Reset capacity
+    setTableCapacity("");
+    // Reset Bulk States
     setBulkTableInput("");
     setTablePrefix("T");
+    setBulkStage("setup");
+    setPendingBulkTables([]);
   };
 
   const handleEnterSelectionMode = (tableId) => {
@@ -100,7 +141,8 @@ const Home = () => {
     }
   };
 
-  const handleAddTable = async () => {
+  // --- SINGLE TABLE ADD ---
+  const handleAddSingleTable = async () => {
     const name = tableName.trim();
     if (!name) return;
     if (tables.some((table) => table.name.toLowerCase() === name.toLowerCase())) {
@@ -108,9 +150,8 @@ const Home = () => {
       return;
     }
     
-    // Parse Capacity
     let capacity = parseInt(tableCapacity);
-    if (isNaN(capacity)) capacity = 0; // Default to 0 (Missing) if empty
+    if (isNaN(capacity)) capacity = 4; // Default to 4 if empty for single add
 
     setIsSubmitting(true);
     try {
@@ -124,15 +165,15 @@ const Home = () => {
     }
   };
 
-  const handleBulkAddTables = async () => {
+  // --- BULK TABLE GENERATION (Step 1) ---
+  const handleGeneratePreview = () => {
     const trimmedInput = bulkTableInput.trim();
     if (!trimmedInput) return;
-    
-    // Use the same capacity for all bulk tables if provided
-    let capacity = parseInt(tableCapacity);
-    if (isNaN(capacity)) capacity = 0;
 
-    let initialNamesToCreate = [];
+    // Default capacity for the batch since input is removed from step 1
+    const defaultCap = 4; 
+
+    let namesToCreate = [];
     const rangeMatch = trimmedInput.match(/^(\d+)-(\d+)$/);
 
     if (rangeMatch) {
@@ -143,41 +184,58 @@ const Home = () => {
         alert("Invalid range.");
         return;
       }
+      if (end - start > 100) {
+        if (!window.confirm("You are about to generate over 100 tables. Continue?")) return;
+      }
+
       for (let i = start; i <= end; i++) {
-        initialNamesToCreate.push(`${tablePrefix.trim()}${i}`);
+        namesToCreate.push(`${tablePrefix.trim()}${i}`);
       }
     } else {
       const commaSeparatedNames = trimmedInput.split(",").map((name) => name.trim()).filter(Boolean);
-      initialNamesToCreate.push(...commaSeparatedNames);
+      namesToCreate.push(...commaSeparatedNames);
     }
 
-    if (initialNamesToCreate.length === 0) {
+    if (namesToCreate.length === 0) {
       alert("No valid table names found.");
       return;
     }
 
-    const existingNames = new Set(tables.map((table) => table.name.toLowerCase()));
-    const uniqueNewNames = [];
-
-    initialNamesToCreate.forEach((name) => {
+    const existingNames = new Set(tables.map((t) => t.name.toLowerCase()));
+    const newTables = [];
+    
+    namesToCreate.forEach(name => {
       if (!existingNames.has(name.toLowerCase())) {
-        uniqueNewNames.push(name);
+        newTables.push({ name: name, capacity: defaultCap });
       }
     });
 
-    if (uniqueNewNames.length === 0) {
-      alert("All proposed tables already exist.");
+    if (newTables.length === 0) {
+      alert("All specified tables already exist.");
       return;
     }
 
+    setPendingBulkTables(newTables);
+    setBulkStage("review");
+  };
+
+  // --- BULK TABLE CAPACITY CHANGE (Step 2) ---
+  const updatePendingCapacity = (index, newCap) => {
+    const updated = [...pendingBulkTables];
+    updated[index].capacity = parseInt(newCap) || 0;
+    setPendingBulkTables(updated);
+  };
+
+  // --- BULK TABLE SUBMIT (Step 3) ---
+  const handleBulkSubmitFinal = async () => {
     setIsSubmitting(true);
     try {
-      // Pass capacity to bulk add function
-      await addTablesInBulk(uniqueNewNames, capacity);
+      const promises = pendingBulkTables.map(t => addTable(t.name, t.capacity));
+      await Promise.all(promises);
       closeModal();
     } catch (err) {
-      console.error("Error adding tables in bulk:", err);
-      alert("Failed to add tables in bulk.");
+      console.error("Error adding bulk tables:", err);
+      alert("Failed to add some tables.");
     } finally {
       setIsSubmitting(false);
     }
@@ -205,113 +263,304 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 px-4 py-8 md:px-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-semibold text-gray-900">Tables</h1>
-          <p className="text-gray-600 mt-2">
-            {isSelectionMode ? `${selectedTables.size} table(s) selected` : "Manage all your restaurant tables from here."}
-          </p>
-        </header>
-
-        {loading ? <div className="text-gray-500 mb-6">Loading tables...</div> : null}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...tables]
-            .sort((a, b) => {
-              const numA = parseInt(a.name.replace(/\D/g, ""), 10) || Infinity;
-              const numB = parseInt(b.name.replace(/\D/g, ""), 10) || Infinity;
-              if (numA !== numB) return numA - numB;
-              return a.name.localeCompare(b.name);
-            })
-            .map((table) => {
-              const id = table.id ?? table.name;
-              return (
-                <TableCard
-                  key={id}
-                  table={table}
-                  isSelected={selectedTables.has(id)}
-                  isSelectionMode={isSelectionMode}
-                  onClick={() => handleTableClick(id)}
-                  onDoubleClick={() => openOrderFor(id)}
-                  onEnterSelectionMode={() => handleEnterSelectionMode(id)}
-                  onDelete={() => handleDeleteTable(id)}
-                />
-              );
-            })}
-          <TableCard isAddButton onClick={() => setIsModalOpen(true)} />
-        </div>
-      </div>
-      
-      {isSelectionMode && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white p-3 rounded-2xl shadow-lg border animate-fade-in-up">
-          <button
-            onClick={handleDeleteSelected}
-            className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition flex items-center gap-2 disabled:bg-red-300"
-            disabled={selectedTables.size === 0}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
-            </svg>
-            Delete
-          </button>
-          <button onClick={clearSelection} className="p-2 rounded-full text-gray-600 hover:bg-gray-200 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      <Modal isOpen={isModalOpen} onClose={closeModal}>
-        <div className="p-4">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add Table(s)</h2>
-          
-          {/* Mode Switcher */}
-          <div className="flex border-b mb-4">
-            <button onClick={() => setAddMode("single")} className={`px-4 py-2 text-sm font-medium ${addMode === "single" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}>
-              Single
-            </button>
-            <button onClick={() => setAddMode("bulk")} className={`px-4 py-2 text-sm font-medium ${addMode === "bulk" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}>
-              Bulk
-            </button>
+    <div className="min-h-screen bg-gray-50 px-4 py-8 md:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* --- HEADER SECTION --- */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Floor Plan</h1>
+            <p className="text-gray-500 mt-1">Manage tables and live status</p>
           </div>
+          <div className="flex items-center gap-3">
+             {/* Add Table Button */}
+             <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-[#10B981] text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-[#059669] transition-all transform hover:scale-105"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+               </svg>
+               Add Table
+             </button>
+          </div>
+        </div>
 
-          <div className="space-y-4">
-            {addMode === "single" ? (
-              <input type="text" value={tableName} onChange={(e) => setTableName(e.target.value)} placeholder="Enter table name (e.g. T1)" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onKeyDown={(e) => e.key === "Enter" && handleAddTable()} />
-            ) : (
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Range (e.g. <code className="bg-gray-200 px-1 rounded">1-10</code>) or List (e.g. <code className="bg-gray-200 px-1 rounded">A1, B2</code>).</p>
-                <div className="flex gap-2">
-                  <input type="text" value={tablePrefix} onChange={(e) => setTablePrefix(e.target.value)} placeholder="Prefix" className="w-1/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  <input type="text" value={bulkTableInput} onChange={(e) => setBulkTableInput(e.target.value)} placeholder="e.g. 1-10 or T1, B2" className="w-3/4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onKeyDown={(e) => e.key === "Enter" && handleBulkAddTables()} />
-                </div>
-              </div>
-            )}
-            
-            {/* Capacity Field - Available for both modes */}
+        {/* --- STATS DASHBOARD --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Seating Capacity (Optional)</label>
-              <input 
-                type="number" 
-                min="0"
-                value={tableCapacity} 
-                onChange={(e) => setTableCapacity(e.target.value)} 
-                placeholder="Ex: 4" 
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              <p className="text-sm font-medium text-gray-500">Total Tables</p>
+              <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
+            </div>
+            <div className="p-3 bg-gray-100 rounded-xl text-gray-600">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Available</p>
+              <p className="text-3xl font-bold text-[#10B981]">{stats.available}</p>
+            </div>
+            <div className="p-3 bg-emerald-50 rounded-xl text-[#10B981]">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Occupied</p>
+              <p className="text-3xl font-bold text-red-500">{stats.occupied}</p>
+            </div>
+            <div className="p-3 bg-red-50 rounded-xl text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* --- CONTROLS & GRID --- */}
+        <div className="space-y-6">
+          
+          {/* Controls Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+            {/* Filter Tabs */}
+            <div className="flex p-1 bg-gray-100 rounded-xl w-full sm:w-auto">
+              {['all', 'available', 'occupied'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-semibold capitalize transition-all duration-200 ${
+                    filterStatus === status 
+                      ? "bg-white text-gray-800 shadow-sm" 
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64 md:w-80">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search tables..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-transparent focus:bg-white focus:border-gray-300 rounded-xl text-sm focus:ring-0 transition-colors"
               />
-              <p className="text-[10px] text-gray-400 mt-1">If left empty, Smart Assign will skip this table.</p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
-            <button onClick={closeModal} className="px-4 py-2 rounded-lg border disabled:opacity-50" disabled={isSubmitting}>
+          {/* Selection Banner */}
+          {isSelectionMode && (
+            <div className="bg-[#10B981] bg-opacity-10 border border-[#10B981] p-4 rounded-xl flex items-center justify-between animate-fade-in-up">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#10B981] text-white font-bold text-sm">
+                  {selectedTables.size}
+                </span>
+                <span className="font-medium text-[#065F46]">Tables Selected</span>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={clearSelection}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDeleteSelected}
+                  className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-sm"
+                >
+                  Delete Selected
+                  
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tables Grid */}
+          {loading ? (
+             <div className="text-center py-20 text-gray-400">Loading tables...</div>
+          ) : filteredTables.length === 0 ? (
+             <div className="text-center py-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
+               {searchQuery ? "No tables match your search." : "No tables found. Add one to get started!"}
+             </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              {filteredTables.map((table) => {
+                const id = table.id ?? table.name;
+                return (
+                  <TableCard
+                    key={id}
+                    table={table}
+                    isSelected={selectedTables.has(id)}
+                    isSelectionMode={isSelectionMode}
+                    onClick={() => handleTableClick(id)}
+                    onDoubleClick={() => openOrderFor(id)}
+                    onEnterSelectionMode={() => handleEnterSelectionMode(id)}
+                    onDelete={() => handleDeleteTable(id)}
+                  />
+                );
+              })}
+              {/* Optional: Add Button Card at the end of grid as well */}
+              <TableCard isAddButton onClick={() => setIsModalOpen(true)} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* --- ADD TABLE MODAL --- */}
+      <Modal isOpen={isModalOpen} onClose={closeModal}>
+        <div className="p-4">
+          <h2 className="text-xl font-bold text-gray-800 mb-1">Add Table(s)</h2>
+          <p className="text-sm text-gray-500 mb-6">Create new seating areas for your floor plan.</p>
+          
+          {/* Mode Switcher */}
+          <div className="flex border-b mb-6">
+            <button 
+              onClick={() => { setAddMode("single"); setBulkStage("setup"); }} 
+              className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
+                 addMode === "single" ? "text-[#10B981]" : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Single Table
+              {addMode === "single" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#10B981] rounded-t-full"></div>}
+            </button>
+            <button 
+              onClick={() => setAddMode("bulk")} 
+              className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
+                 addMode === "bulk" ? "text-[#10B981]" : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Bulk Add
+              {addMode === "bulk" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#10B981] rounded-t-full"></div>}
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            
+            {/* --- SINGLE MODE --- */}
+            {addMode === "single" && (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Table Name</label>
+                  <input type="text" value={tableName} onChange={(e) => setTableName(e.target.value)} placeholder="e.g. T1" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] focus:bg-white transition-all" onKeyDown={(e) => e.key === "Enter" && handleAddSingleTable()} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Seating Capacity</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={tableCapacity} 
+                    onChange={(e) => setTableCapacity(e.target.value)} 
+                    placeholder="Default: 4" 
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] focus:bg-white transition-all" 
+                  />
+                </div>
+              </>
+            )}
+
+            {/* --- BULK MODE --- */}
+            {addMode === "bulk" && (
+              <>
+                {/* STAGE 1: SETUP */}
+                {bulkStage === "setup" && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                      <p className="text-sm text-blue-800 font-medium mb-1">How to use Bulk Add:</p>
+                      <ul className="text-xs text-blue-600 space-y-1 list-disc list-inside">
+                        <li>Use ranges like <b>1-10</b> to create T1 through T10.</li>
+                        <li>Or use a list like <b>A1, B2, C3</b>.</li>
+                      </ul>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="w-1/3">
+                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Prefix</label>
+                         <input type="text" value={tablePrefix} onChange={(e) => setTablePrefix(e.target.value)} placeholder="T" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]" />
+                      </div>
+                      <div className="flex-1">
+                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Range / List</label>
+                         <input type="text" value={bulkTableInput} onChange={(e) => setBulkTableInput(e.target.value)} placeholder="1-10" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]" onKeyDown={(e) => e.key === "Enter" && handleGeneratePreview()} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STAGE 2: REVIEW */}
+                {bulkStage === "review" && (
+                  <div className="flex flex-col h-72">
+                    <div className="flex justify-between items-center mb-2 border-b pb-2 px-1">
+                      <span className="text-xs font-bold text-gray-400 uppercase">Table</span>
+                      <span className="text-xs font-bold text-gray-400 uppercase mr-4">Capacity</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                      {pendingBulkTables.map((t, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors">
+                          <span className="font-bold text-gray-700">{t.name}</span>
+                          <input 
+                            type="number" 
+                            min="1"
+                            value={t.capacity}
+                            onChange={(e) => updatePendingCapacity(idx, e.target.value)}
+                            className="w-20 px-2 py-1.5 bg-white border rounded-md text-center focus:ring-2 focus:ring-[#10B981] focus:outline-none text-sm font-medium"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center pt-4">
+                      <span className="text-xs font-medium px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                        Adding {pendingBulkTables.length} tables
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+            <button 
+              onClick={closeModal} 
+              className="px-5 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+              disabled={isSubmitting}
+            >
               Cancel
             </button>
-            <button onClick={addMode === "single" ? handleAddTable : handleBulkAddTables} className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition disabled:bg-blue-300 disabled:cursor-not-allowed" disabled={isSubmitting}>
-              {isSubmitting ? "Adding..." : "Done"}
-            </button>
+            
+            {addMode === "single" && (
+              <button onClick={handleAddSingleTable} className="bg-[#10B981] text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-[#059669] transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled={isSubmitting}>
+                {isSubmitting ? "Adding..." : "Add Table"}
+              </button>
+            )}
+
+            {addMode === "bulk" && bulkStage === "setup" && (
+              <button onClick={handleGeneratePreview} className="bg-[#10B981] text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-[#059669] transition-all">
+                Preview List
+              </button>
+            )}
+
+            {addMode === "bulk" && bulkStage === "review" && (
+              <>
+                <button onClick={() => setBulkStage("setup")} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors">
+                  Back
+                </button>
+                <button onClick={handleBulkSubmitFinal} className="bg-[#10B981] text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-[#059669] transition-all disabled:opacity-50" disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Confirm All"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </Modal>

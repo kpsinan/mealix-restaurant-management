@@ -19,7 +19,8 @@ const Icons = {
   Table: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
   User: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
   Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>,
-  Alert: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+  Alert: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  Link: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
 };
 
 // --- Sub-Components ---
@@ -96,14 +97,13 @@ const Order = () => {
           const linked = params.get("linked");
 
           if (tId) {
-            // Auto-select Table ONLY
+            // Auto-select Table ONLY and Merged Tables
             setSession(prev => ({ 
               ...prev, 
               tableId: tId, 
               linkedTableIds: linked ? linked.split(',') : [] 
             }));
             
-            // NOTE: REMOVED AUTO-SELECT STAFF LOGIC HERE
             // Modal stays open to force Staff selection
             setUiState(prev => ({ ...prev, isModalOpen: true }));
           } else {
@@ -241,15 +241,39 @@ const Order = () => {
           <div className="max-h-[70vh] overflow-y-auto px-1 py-1 scrollbar-hide">
             <h2 className="text-xl font-bold mb-6 text-gray-800 sticky top-0 bg-white pb-2">Start Session</h2>
             <div className="space-y-5">
+              
+              {/* Table Selection Logic */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Table</label>
-                <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value, linkedTableIds: [] })} 
-                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
-                  <option value="">Select Table</option>
-                  {/* Show all tables, but normally filtered in a real app */}
-                  {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name} (Cap: {t.capacity || 0})</option>)}
-                </select>
+                
+                {/* Check if we have linked tables (Merged Session).
+                    If yes, show a read-only block with the full merged name so the user knows
+                    the merge is active and doesn't accidentally clear it by picking a single table.
+                */}
+                {session.linkedTableIds && session.linkedTableIds.length > 0 ? (
+                    <div className="w-full p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-sm font-bold flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <Icons.Link />
+                           <span>{sessionTableName}</span>
+                        </div>
+                        <button 
+                            onClick={() => setSession(prev => ({ ...prev, tableId: "", linkedTableIds: [] }))}
+                            className="text-xs text-blue-600 underline hover:text-blue-800 font-medium"
+                        >
+                            Change
+                        </button>
+                    </div>
+                ) : (
+                    // Standard Dropdown for Single Tables
+                    <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value, linkedTableIds: [] })} 
+                      className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
+                      <option value="">Select Table</option>
+                      {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name} (Cap: {t.capacity || 0})</option>)}
+                    </select>
+                )}
               </div>
+
+              {/* Staff Selection */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Staff</label>
                 <select value={session.staffId} onChange={(e) => setSession({ ...session, staffId: e.target.value })} 
@@ -259,6 +283,7 @@ const Order = () => {
                 </select>
               </div>
             </div>
+            
             {/* Button disabled if either table OR staff is missing */}
             <button onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} disabled={!session.tableId || !session.staffId} 
               className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation ${(!session.tableId || !session.staffId) ? "bg-gray-200 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}>

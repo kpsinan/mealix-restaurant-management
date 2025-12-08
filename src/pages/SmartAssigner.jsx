@@ -1,42 +1,15 @@
-// SmartAssigner.jsx
-// Includes: full UI + maximum-intelligence algorithm (no paid APIs)
-
+// src/pages/SmartAssigner.jsx
 import React, { useState, useEffect, useCallback } from "react";
-// Removed: import { getTables } from "../firebase/firebase";
-// Removed: import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
+import { 
+  collection, 
+  onSnapshot, 
+  query,
+  where 
+} from "firebase/firestore";
+import db from "../firebase/firebase"; // Use shared instance for Auth consistency
 
-// --- MOCK FIREBASE/ROUTER FUNCTIONS (Required for single-file operation) ---
-
-// Mock data for available tables - now only includes 'Table' type (T)
-const mockTables = [
-    { id: "T1", name: "Table 1", capacity: 4, status: "available" },
-    { id: "T2", name: "Table 2", capacity: 2, status: "available" },
-    { id: "T3", name: "Table 3", capacity: 6, status: "available" },
-    { id: "T4", name: "Table 4", capacity: 4, status: "available" },
-    { id: "T5", name: "Table 5", capacity: 8, status: "available" },
-    { id: "T6", name: "Table 6", capacity: 10, status: "available" },
-    { id: "T9", name: "Table 9", capacity: 2, status: "occupied" }, // Occupied table should be ignored
-];
-
-// Mock function to simulate fetching tables from Firebase
-const getTables = () => {
-    return new Promise(resolve => {
-        // Simulate network delay
-        setTimeout(() => resolve(mockTables), 50);
-    });
-};
-
-// Mock function for navigation
-const useNavigate = () => {
-    // This is a placeholder. In a real React environment, this would handle routing.
-    return (url) => {
-        console.log(`Navigation intended to: ${url}`);
-        // Optionally, you could use window.location.href = url for a simple redirect
-        // but for a React component in a sandbox, logging is safer.
-    };
-};
-
-// --- Algorithm Settings ---
+// --- ALGORITHM SETTINGS ---
 const CONFIG = {
   maxTablesPerCombo: 4,
   maxOptions: 3,
@@ -49,7 +22,9 @@ const CONFIG = {
   }
 };
 
-// --- Normalize Tables ---
+// --- INTELLIGENCE ALGORITHM ---
+
+// Normalize Tables
 function normalizeTables(raw) {
   return raw.map(t => ({
     id: String(t.id ?? t._id ?? t.name),
@@ -59,7 +34,7 @@ function normalizeTables(raw) {
   }));
 }
 
-// --- Adjacency Score ---
+// Adjacency Score
 function adjacencyPenalty(combo) {
   const nums = combo
     .map(t => {
@@ -80,7 +55,7 @@ function adjacencyPenalty(combo) {
   return -close;
 }
 
-// --- Score Combo ---
+// Score Combo
 function scoreCombo(combo, guests, weights) {
   const totalCapacity = combo.reduce((s, t) => s + t.capacity, 0);
   const waste = totalCapacity - guests;
@@ -117,6 +92,7 @@ function greedyFill(available, guests) {
 function assignTables(rawTables, guests, cfg = CONFIG) {
   const tables = normalizeTables(rawTables);
 
+  // Filter for available tables (Double check, though Query handles this now)
   const available = tables
     .filter(t => t.status === "available" && t.capacity > 0)
     .sort((a, b) => a.capacity - b.capacity);
@@ -132,7 +108,6 @@ function assignTables(rawTables, guests, cfg = CONFIG) {
     }
   };
   
-  // guests must be a positive number to proceed with calculations
   if (guests <= 0) {
       return [];
   }
@@ -201,32 +176,46 @@ function assignTables(rawTables, guests, cfg = CONFIG) {
   return results.slice(0, cfg.maxOptions);
 }
 
-// --- React Component with UI ---
+// --- REACT COMPONENT ---
 const SmartAssigner = () => {
-  // Initialize guests to null for empty input field
   const [tables, setTables] = useState([]);
-  const [guests, setGuests] = useState(null); // Changed default value from 1 to null
+  const [guests, setGuests] = useState(null);
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [dbError, setDbError] = useState(null);
 
   const navigate = useNavigate();
 
-  // Load tables
+  // Load tables from Firebase Realtime
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await getTables();
-        setTables(data);
-      } catch (e) {
-        console.error(e);
+    // OPTIMIZATION: Only fetch tables that are currently 'available'.
+    // This reduces Firestore reads by ignoring updates to occupied tables.
+    const q = query(
+        collection(db, "tables"), 
+        where("status", "==", "available")
+    );
+    
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const tableData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setTables(tableData);
+        setDbError(null);
+      },
+      (error) => {
+        console.error("Error fetching tables:", error);
+        setDbError("Failed to load tables from database.");
       }
-    })();
+    );
+
+    return () => unsubscribe();
   }, []);
 
   // RUN AI ALGORITHM
   const calculateAssignment = useCallback(() => {
-    // Only calculate if guests is a positive number
     if (!guests || guests <= 0) {
       setOptions([{
         type: "error",
@@ -238,6 +227,7 @@ const SmartAssigner = () => {
     setIsCalculating(true);
     setOptions([]);
 
+    // Small timeout to allow UI to show "Analyzing..." state
     setTimeout(() => {
       const res = assignTables(tables, guests);
       setOptions(res);
@@ -250,41 +240,55 @@ const SmartAssigner = () => {
     setLoading(true);
 
     const ids = opt.tables.map(t => t.id);
-    const primaryId = ids[0];
-    const linked = ids.slice(1).join(",");
+    const primaryId = encodeURIComponent(ids[0]);
+    
+    // Construct linked tables parameter for merged combos
+    const linked = ids.slice(1).map(id => encodeURIComponent(id)).join(",");
 
     let url = `/order?tableId=${primaryId}`;
     if (linked) url += `&linked=${linked}`;
 
     navigate(url);
+    
+    // Reset loading state safely (component might unmount, but timeout handles cleanup visually)
+    setTimeout(() => setLoading(false), 500);
   };
   
-  // Handler to allow empty input (null state)
   const handleGuestChange = (e) => {
     const value = e.target.value;
     if (value === "") {
       setGuests(null);
     } else {
-      // Ensure the number is valid and positive, default to 1 if user tries to input 0 or negative
-      // We parse the value and ensure it's at least 1, or 0 if parsing fails (to be caught by validation)
       const parsedValue = parseInt(value, 10);
       setGuests(Math.max(1, isNaN(parsedValue) ? 0 : parsedValue));
     }
   };
 
   return (
-    // Responsive outer container: padding ensures margins on all screens.
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-      {/* Responsive card: full width on mobile, constrained to XL width on desktop */}
       <div className="bg-white max-w-xl w-full rounded-2xl shadow-xl p-6 md:p-8 border border-gray-200">
 
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1 tracking-tight">
-            Host AI <span className="text-blue-600">Optimizer</span>
+            Host AI <span className="text-[#10B981]">Optimizer</span>
           </h1>
-          <p className="text-sm sm:text-base text-gray-500 font-medium">Find the most efficient table assignment for your guests.</p>
+          <p className="text-sm sm:text-base text-gray-500 font-medium">
+            Find the most efficient table assignment for your guests.
+          </p>
         </div>
+
+        {/* Database Status Indicator */}
+        {dbError && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">
+            {dbError}
+          </div>
+        )}
+        {!dbError && tables.length === 0 && (
+           <div className="mb-4 text-center text-sm text-gray-400">
+             Waiting for available tables...
+           </div>
+        )}
 
         {/* Input & Action */}
         <div className="flex flex-col md:flex-row items-stretch gap-4 mb-8">
@@ -293,23 +297,21 @@ const SmartAssigner = () => {
             <input
               type="number"
               min="1"
-              value={guests === null ? "" : guests} // Display empty string if guests is null
-              placeholder="Enter 1 or more" // Watermark/instruction
+              value={guests === null ? "" : guests}
+              placeholder="Enter 1 or more"
               onChange={handleGuestChange}
-              // Adjust input size slightly smaller on mobile for better fit
-              className="w-full p-3 sm:p-4 text-2xl sm:text-3xl font-extrabold text-center bg-white border border-gray-300 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150 shadow-inner"
+              className="w-full p-3 sm:p-4 text-2xl sm:text-3xl font-extrabold text-center bg-white border border-gray-300 rounded-xl focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition duration-150 shadow-inner"
             />
           </div>
 
           <button
             onClick={calculateAssignment}
-            // Disable if calculating OR guests is not a valid positive number
-            disabled={isCalculating || !guests || guests <= 0}
+            disabled={isCalculating || !guests || guests <= 0 || tables.length === 0}
             className={`
               w-full md:w-auto mt-4 md:mt-0 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold transition duration-200 ease-in-out transform hover:scale-[1.01]
-              ${isCalculating || !guests || guests <= 0 
+              ${isCalculating || !guests || guests <= 0 || tables.length === 0
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none" 
-                : "bg-blue-600 text-white shadow-lg shadow-blue-500/50 hover:bg-blue-700 active:shadow-md"
+                : "bg-[#10B981] text-white shadow-lg shadow-emerald-500/50 hover:bg-[#059669] active:shadow-md"
               }
             `}
           >
@@ -332,7 +334,7 @@ const SmartAssigner = () => {
                   className={`
                     border-2 rounded-xl p-4 sm:p-5 transition duration-200 ease-in-out hover:shadow-lg
                     ${idx === 0 
-                      ? "border-blue-600 bg-blue-50 shadow-md scale-[1.005]" 
+                      ? "border-[#10B981] bg-[#ECFDF5] shadow-md scale-[1.005]" 
                       : "border-gray-200 bg-white"
                     }
                   `}
@@ -347,7 +349,7 @@ const SmartAssigner = () => {
                             key={t.id} 
                             className={`
                               px-3 py-1 text-xs sm:text-sm font-semibold rounded-full 
-                              ${idx === 0 ? "bg-blue-200 text-blue-800" : "bg-gray-200 text-gray-700"}
+                              ${idx === 0 ? "bg-[#D1FAE5] text-[#065F46]" : "bg-gray-200 text-gray-700"}
                             `}
                           >
                             {t.name} ({t.capacity})
@@ -357,7 +359,7 @@ const SmartAssigner = () => {
                       <div className="text-sm text-gray-600 font-medium mt-1">
                         Total Capacity: <b className="text-gray-800">{opt.totalCapacity}</b> — 
                         {opt.waste === 0 ? (
-                          <span className="text-green-600 ml-2 font-bold flex items-center">
+                          <span className="text-[#059669] ml-2 font-bold flex items-center">
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Perfect Fit
                           </span>
@@ -368,7 +370,7 @@ const SmartAssigner = () => {
                         )}
                       </div>
                       <div className="text-xs text-gray-400 mt-1">
-                        Score: {opt.score} (Lower is better)
+                        Score: {opt.score}
                       </div>
                     </div>
 
@@ -377,18 +379,17 @@ const SmartAssigner = () => {
                       onClick={() => handleConfirm(opt)}
                       disabled={loading}
                       className={`
-                        w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-lg font-bold text-base transition duration-200 ease-in-out shadow-md hover:bg-green-700 active:shadow-none
+                        w-full sm:w-auto px-6 py-3 bg-[#10B981] text-white rounded-lg font-bold text-base transition duration-200 ease-in-out shadow-md hover:bg-[#059669] active:shadow-none
                         ${loading ? "opacity-75 cursor-wait" : ""}
                       `}
                     >
-                      Select
+                      {loading ? "Redirecting..." : "Select"}
                     </button>
                   </div>
                 </div>
               )}
             </div>
           ))}
-          {/* Default message when no options are present and not calculating */}
           {options.length === 0 && !isCalculating && guests && guests > 0 && (
              <div className="p-5 text-center text-gray-500 bg-white rounded-xl border border-gray-300">
                 No matching assignments found for {guests} guests.

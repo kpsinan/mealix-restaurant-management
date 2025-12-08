@@ -10,8 +10,7 @@ import {
   Info, 
   Save, 
   CheckCircle, 
-  AlertCircle,
-  Monitor
+  AlertCircle
 } from 'lucide-react';
 
 // --- Constants ---
@@ -360,8 +359,9 @@ const Settings = () => {
           {/* --- TAB: ABOUT --- */}
           {activeTab === 'about' && (
             <div className="animate-in fade-in zoom-in-95 duration-300 flex flex-col items-center justify-center py-10">
-               <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl shadow-xl flex items-center justify-center mb-6 transform rotate-3">
-                  <Monitor className="w-12 h-12" />
+               {/* Updated App Icon Section */}
+               <div className="w-32 h-32 bg-white rounded-2xl shadow-2xl flex items-center justify-center mb-6 transform rotate-3 border border-gray-100 overflow-hidden">
+                  <img src="/favicon.ico" alt="App Icon" className="w-full h-full object-contain p-4" />
                </div>
                <h2 className="text-3xl font-extrabold text-gray-900">MealiX POS</h2>
                <span className="inline-block px-3 py-1 mt-3 text-xs font-bold text-blue-800 bg-blue-100 rounded-full">Version 3.6.0</span>
