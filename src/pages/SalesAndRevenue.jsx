@@ -6,6 +6,9 @@ import {
   Squares2X2Icon,       // Replaced ChartPieIcon
   SquaresPlusIcon,      // Replaced TableCellsIcon
   CreditCardIcon,
+  ShoppingBagIcon,      // New for Order Type
+  TagIcon,              // New for Discounts
+  ClockIcon,            // New for Hourly
 } from '@heroicons/react/24/outline';
 
 const reportCards = [
@@ -36,6 +39,28 @@ const reportCards = [
     description: 'Breakdown of sales by payment method like cash, card, etc.',
     icon: <CreditCardIcon className="h-8 w-8 text-yellow-500" />,
     color: 'yellow'
+  },
+  // --- New Reports Added Below ---
+  {
+    to: '/reports/order-type',
+    title: 'Order Type Report',
+    description: 'Breakdown of Dine-In, Takeaway, Delivery, Cloud Kitchen orders.',
+    icon: <ShoppingBagIcon className="h-8 w-8 text-orange-500" />,
+    color: 'orange'
+  },
+  {
+    to: '/reports/discounts',
+    title: 'Discount & Offer Report',
+    description: 'Tracks discounts applied, coupon usage, and total discount value.',
+    icon: <TagIcon className="h-8 w-8 text-red-500" />,
+    color: 'red'
+  },
+  {
+    to: '/reports/hourly-sales',
+    title: 'Hourly Time-Slot Sales Report',
+    description: 'Identifies peak business hours and low-performing hours.',
+    icon: <ClockIcon className="h-8 w-8 text-indigo-500" />,
+    color: 'indigo'
   },
 ];
 
