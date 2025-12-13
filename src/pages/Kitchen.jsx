@@ -185,7 +185,6 @@ const Kitchen = () => {
           {orders.length > 0 && (
             <div className="text-right">
               <EmergencyHoldButton onComplete={() => setIsConfirming(true)}>Press & Hold to Clear Orders</EmergencyHoldButton>
-              {/* --- ADDED WARNING MESSAGE --- */}
               <div className="flex items-center justify-end mt-2 text-red-600">
                 <div className="w-4 h-4 mr-1">
                   <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M8.257 3.099c.636-1.21 2.273-1.21 2.91 0l5.396 10.297c.63 1.202-.288 2.653-1.64 2.653H4.5c-1.352 0-2.27-1.451-1.64-2.653l5.396-10.297zM9 8a1 1 0 011 1v3a1 1 0 11-2 0V9a1 1 0 011-1zm1 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"></path></svg>
@@ -210,21 +209,38 @@ const Kitchen = () => {
                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusStyles.badgeBg} ${statusStyles.badgeText}`}>{order.status}</span>
                   </div>
                   
-                  <ul className="text-gray-700 mb-3 space-y-1 flex-grow">
+                  <ul className="text-gray-700 mb-3 space-y-2 flex-grow">
                     {order.items.map((item, idx) => (
-                      <li key={idx} className="flex justify-between items-start">
-                        <span className="flex-1 pr-2">
-                          {getItemName(item.itemId)}
-                          {item.portion && (
-                            <span className="text-sm text-gray-500 capitalize ml-1">({item.portion})</span>
-                          )}
-                        </span>
-                        <span className="font-semibold">x {item.quantity}</span>
+                      <li key={idx} className="flex flex-col border-b border-dashed border-gray-100 last:border-0 pb-2 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <span className="flex-1 pr-2 font-medium">
+                            {getItemName(item.itemId)}
+                            {item.portion && (
+                              <span className="text-sm text-gray-500 capitalize ml-1">({item.portion})</span>
+                            )}
+                          </span>
+                          <span className="font-bold">x {item.quantity}</span>
+                        </div>
+                        {/* ITEM LEVEL NOTE */}
+                        {item.notes && (
+                           <div className="mt-1 flex items-start text-sm text-red-600 bg-red-50 p-1.5 rounded">
+                             <span className="mr-1 text-xs">📝</span>
+                             <span className="italic leading-snug">{item.notes}</span>
+                           </div>
+                        )}
                       </li>
                     ))}
                   </ul>
                   
-                  <div className="mt-auto pt-2 border-t">
+                  {/* ORDER LEVEL NOTE */}
+                  {order.notes && (
+                    <div className="mt-auto mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                        <span className="font-bold block text-xs uppercase text-yellow-600 mb-0.5">Order Note:</span>
+                        <p className="leading-snug">{order.notes}</p>
+                    </div>
+                  )}
+
+                  <div className={`${!order.notes ? 'mt-auto' : ''} pt-2 border-t`}>
                     <p className="text-gray-800 font-semibold">Total: {settings.currencySymbol}{order.total.toFixed(2)}</p>
                     {order.staffId && (<p className="text-sm text-gray-500 mt-1">Staff: {getStaffName(order.staffId)}</p>)}
                   

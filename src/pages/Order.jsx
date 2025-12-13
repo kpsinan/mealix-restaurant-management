@@ -20,7 +20,8 @@ const Icons = {
   User: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
   Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>,
   Alert: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
-  Link: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+  Link: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+  Note: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
 };
 
 // --- Sub-Components ---
@@ -70,7 +71,8 @@ const Order = () => {
   // State
   const [data, setData] = useState({ tables: [], staff: [], menu: [], settings: { currencySymbol: '₹' } });
   const [session, setSession] = useState({ tableId: "", staffId: "", linkedTableIds: [] });
-  const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false });
+  // 'items' structure now includes 'note'
+  const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false, generalNote: "" });
   const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
 
   // Helpers
@@ -139,21 +141,32 @@ const Order = () => {
   const handlePortionChange = useCallback((itemId, portion, change) => {
     setOrderState(prev => {
       const items = { ...prev.items };
-      if (!items[itemId]) items[itemId] = { full: 0, half: 0, quarter: 0 };
+      // Ensure object exists with note property
+      if (!items[itemId]) items[itemId] = { full: 0, half: 0, quarter: 0, note: "" };
+      
       items[itemId][portion] = Math.max(0, (items[itemId][portion] || 0) + change);
-      if (!items[itemId].full && !items[itemId].half && !items[itemId].quarter) delete items[itemId];
+      
       return { ...prev, items };
     });
   }, []);
 
+  const handleItemNoteChange = useCallback((itemId, note) => {
+    setOrderState(prev => {
+        const items = { ...prev.items };
+        if (!items[itemId]) items[itemId] = { full: 0, half: 0, quarter: 0, note: "" };
+        items[itemId].note = note;
+        return { ...prev, items };
+    });
+  }, []);
+
   const totalAmount = useMemo(() => {
-    return Object.entries(orderState.items).reduce((acc, [itemId, portions]) => {
+    return Object.entries(orderState.items).reduce((acc, [itemId, dataObj]) => {
       const item = data.menu.find(i => (i.id ?? i._id) === itemId);
       if (!item) return acc;
       return acc + 
-        (portions.full * (item.fullPrice ?? item.price ?? 0)) +
-        (portions.half * (item.halfPrice ?? 0)) +
-        (portions.quarter * (item.quarterPrice ?? 0));
+        (dataObj.full * (item.fullPrice ?? item.price ?? 0)) +
+        (dataObj.half * (item.halfPrice ?? 0)) +
+        (dataObj.quarter * (item.quarterPrice ?? 0));
     }, 0);
   }, [orderState.items, data.menu]);
 
@@ -167,13 +180,16 @@ const Order = () => {
     }
 
     const orderPayload = [];
-    Object.entries(orderState.items).forEach(([itemId, portions]) => {
+    Object.entries(orderState.items).forEach(([itemId, dataObj]) => {
       const item = data.menu.find(i => (i.id ?? i._id) === itemId);
       if (!item) return;
       
-      if (portions.full > 0) orderPayload.push({ itemId, quantity: portions.full, portion: 'full', price: item.fullPrice ?? item.price });
-      if (portions.half > 0) orderPayload.push({ itemId, quantity: portions.half, portion: 'half', price: item.halfPrice });
-      if (portions.quarter > 0) orderPayload.push({ itemId, quantity: portions.quarter, portion: 'quarter', price: item.quarterPrice });
+      // Common note for this item
+      const note = dataObj.note || "";
+
+      if (dataObj.full > 0) orderPayload.push({ itemId, quantity: dataObj.full, portion: 'full', price: item.fullPrice ?? item.price, notes: note });
+      if (dataObj.half > 0) orderPayload.push({ itemId, quantity: dataObj.half, portion: 'half', price: item.halfPrice, notes: note });
+      if (dataObj.quarter > 0) orderPayload.push({ itemId, quantity: dataObj.quarter, portion: 'quarter', price: item.quarterPrice, notes: note });
     });
 
     if (orderPayload.length === 0) return showNotification("Please add items first", "warning");
@@ -184,19 +200,21 @@ const Order = () => {
       await addOrder({
         tableId: session.tableId,
         linkedTableIds: session.linkedTableIds, 
-        staffId: session.staffId, // Now strictly required
+        staffId: session.staffId,
         items: orderPayload,
         total: totalAmount,
+        notes: orderState.generalNote, // Send general note
         createdAt: new Date().toISOString(),
       });
       
-      // Update ALL tables to occupied NOW (Logic moved from SmartAssigner to here)
+      // Update ALL tables to occupied NOW
       const allTableIds = [session.tableId, ...session.linkedTableIds];
       await updateMultipleTablesStatus(allTableIds, "occupied");
       
       window.dispatchEvent(new CustomEvent("tablesUpdated"));
       showNotification("Order submitted successfully!", "success");
-      setOrderState(prev => ({ ...prev, items: {}, expandedId: null }));
+      // Reset State
+      setOrderState(prev => ({ ...prev, items: {}, expandedId: null, generalNote: "" }));
     } catch (err) {
       console.error(err);
       showNotification("Failed to submit order", "error");
@@ -210,7 +228,7 @@ const Order = () => {
       <Toast notification={uiState.notification} />
 
       {/* Main Layout */}
-      <div className="container mx-auto px-4 md:px-6 pt-24 pb-40 max-w-3xl">
+      <div className="container mx-auto px-4 md:px-6 pt-24 pb-48 max-w-3xl">
         
         {/* Header */}
         <div className="flex justify-between items-end mb-6">
@@ -246,10 +264,6 @@ const Order = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Table</label>
                 
-                {/* Check if we have linked tables (Merged Session).
-                    If yes, show a read-only block with the full merged name so the user knows
-                    the merge is active and doesn't accidentally clear it by picking a single table.
-                */}
                 {session.linkedTableIds && session.linkedTableIds.length > 0 ? (
                     <div className="w-full p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-sm font-bold flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-2">
@@ -264,7 +278,6 @@ const Order = () => {
                         </button>
                     </div>
                 ) : (
-                    // Standard Dropdown for Single Tables
                     <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value, linkedTableIds: [] })} 
                       className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
                       <option value="">Select Table</option>
@@ -284,7 +297,6 @@ const Order = () => {
               </div>
             </div>
             
-            {/* Button disabled if either table OR staff is missing */}
             <button onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} disabled={!session.tableId || !session.staffId} 
               className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation ${(!session.tableId || !session.staffId) ? "bg-gray-200 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}>
               Start Order
@@ -299,8 +311,8 @@ const Order = () => {
             {data.menu.map((item) => {
               const itemId = item.id ?? item._id;
               const isExpanded = orderState.expandedId === itemId;
-              const qty = orderState.items[itemId];
-              const totalQty = (qty?.full || 0) + (qty?.half || 0) + (qty?.quarter || 0);
+              const itemState = orderState.items[itemId];
+              const totalQty = (itemState?.full || 0) + (itemState?.half || 0) + (itemState?.quarter || 0);
 
               return (
                 <div key={itemId} className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden ${isExpanded ? 'ring-1 ring-blue-500 border-blue-500 shadow-md' : 'border-gray-100 shadow-sm'}`}>
@@ -331,11 +343,26 @@ const Order = () => {
                             <div className="text-xs font-semibold text-gray-600">{opt.label}</div>
                             <div className="text-xs font-bold text-blue-600">{data.settings.currencySymbol}{opt.price.toFixed(2)}</div>
                           </div>
-                          <QuantityControl quantity={qty?.[opt.key] || 0} 
+                          <QuantityControl quantity={itemState?.[opt.key] || 0} 
                             onDecrease={() => handlePortionChange(itemId, opt.key, -1)} 
                             onIncrease={() => handlePortionChange(itemId, opt.key, 1)} />
                         </div>
                       ))}
+                      
+                      {/* --- ITEM NOTE INPUT --- */}
+                      <div className="mt-2 pt-2 border-t border-dashed border-gray-200">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                            <Icons.Note />
+                            <label className="text-xs font-bold text-gray-500 uppercase">Special Request</label>
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="e.g. Spicy, No Onions..." 
+                            value={itemState?.note || ""} 
+                            onChange={(e) => handleItemNoteChange(itemId, e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -343,6 +370,23 @@ const Order = () => {
             })}
           </div>
         )}
+
+        {/* --- GENERAL ORDER NOTE --- */}
+        {!orderState.loading && (
+            <div className="mt-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-2 text-gray-700">
+                    <Icons.Alert />
+                    <span className="font-bold text-sm">Kitchen Note / Allergies</span>
+                </div>
+                <textarea
+                    value={orderState.generalNote}
+                    onChange={(e) => setOrderState(prev => ({ ...prev, generalNote: e.target.value }))}
+                    placeholder="Enter general instructions for the entire order..."
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[80px]"
+                ></textarea>
+            </div>
+        )}
+
       </div>
 
       {/* Sticky Action Bar */}

@@ -263,20 +263,20 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8 md:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 px-3 py-4 md:px-8 md:py-8">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         
         {/* --- HEADER SECTION --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Floor Plan</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Floor Plan</h1>
             <p className="text-gray-500 mt-1">Manage tables and live status</p>
           </div>
           <div className="flex items-center gap-3">
              {/* Add Table Button */}
              <button 
                 onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 bg-[#10B981] text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-[#059669] transition-all transform hover:scale-105"
+                className="flex items-center gap-2 bg-[#10B981] text-white px-4 py-2.5 md:px-5 rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-[#059669] active:scale-95 transition-all transform hover:scale-105"
              >
                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -287,8 +287,8 @@ const Home = () => {
         </div>
 
         {/* --- STATS DASHBOARD --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Total Tables</p>
               <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
@@ -299,7 +299,7 @@ const Home = () => {
               </svg>
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Available</p>
               <p className="text-3xl font-bold text-[#10B981]">{stats.available}</p>
@@ -310,7 +310,7 @@ const Home = () => {
               </svg>
             </div>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+          <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Occupied</p>
               <p className="text-3xl font-bold text-red-500">{stats.occupied}</p>
@@ -324,17 +324,17 @@ const Home = () => {
         </div>
 
         {/* --- CONTROLS & GRID --- */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           
           {/* Controls Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
             {/* Filter Tabs */}
             <div className="flex p-1 bg-gray-100 rounded-xl w-full sm:w-auto">
               {['all', 'available', 'occupied'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
-                  className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-semibold capitalize transition-all duration-200 ${
+                  className={`flex-1 sm:flex-none px-4 md:px-6 py-2 rounded-lg text-sm font-semibold capitalize transition-all duration-200 whitespace-nowrap ${
                     filterStatus === status 
                       ? "bg-white text-gray-800 shadow-sm" 
                       : "text-gray-500 hover:text-gray-700"
@@ -357,33 +357,32 @@ const Home = () => {
                 placeholder="Search tables..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-transparent focus:bg-white focus:border-gray-300 rounded-xl text-sm focus:ring-0 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-transparent focus:bg-white focus:border-gray-300 rounded-xl text-base sm:text-sm focus:ring-0 transition-colors"
               />
             </div>
           </div>
 
           {/* Selection Banner */}
           {isSelectionMode && (
-            <div className="bg-[#10B981] bg-opacity-10 border border-[#10B981] p-4 rounded-xl flex items-center justify-between animate-fade-in-up">
+            <div className="bg-[#10B981] bg-opacity-10 border border-[#10B981] p-3 md:p-4 rounded-xl flex items-center justify-between animate-fade-in-up">
               <div className="flex items-center gap-3">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#10B981] text-white font-bold text-sm">
                   {selectedTables.size}
                 </span>
-                <span className="font-medium text-[#065F46]">Tables Selected</span>
+                <span className="font-medium text-[#065F46] text-sm md:text-base">Selected</span>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 md:gap-3">
                 <button 
                   onClick={clearSelection}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                  className="px-3 md:px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleDeleteSelected}
-                  className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-sm"
+                  className="px-3 md:px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-sm"
                 >
-                  Delete Selected
-                  
+                  Delete
                 </button>
               </div>
             </div>
@@ -397,7 +396,7 @@ const Home = () => {
                {searchQuery ? "No tables match your search." : "No tables found. Add one to get started!"}
              </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
               {filteredTables.map((table) => {
                 const id = table.id ?? table.name;
                 return (
@@ -455,7 +454,14 @@ const Home = () => {
               <>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Table Name</label>
-                  <input type="text" value={tableName} onChange={(e) => setTableName(e.target.value)} placeholder="e.g. T1" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] focus:bg-white transition-all" onKeyDown={(e) => e.key === "Enter" && handleAddSingleTable()} />
+                  <input 
+                    type="text" 
+                    value={tableName} 
+                    onChange={(e) => setTableName(e.target.value)} 
+                    placeholder="e.g. T1" 
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] focus:bg-white transition-all text-base sm:text-sm" 
+                    onKeyDown={(e) => e.key === "Enter" && handleAddSingleTable()} 
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Seating Capacity</label>
@@ -465,7 +471,7 @@ const Home = () => {
                     value={tableCapacity} 
                     onChange={(e) => setTableCapacity(e.target.value)} 
                     placeholder="Default: 4" 
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] focus:bg-white transition-all" 
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] focus:bg-white transition-all text-base sm:text-sm" 
                   />
                 </div>
               </>
@@ -487,11 +493,24 @@ const Home = () => {
                     <div className="flex gap-3">
                       <div className="w-1/3">
                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Prefix</label>
-                         <input type="text" value={tablePrefix} onChange={(e) => setTablePrefix(e.target.value)} placeholder="T" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]" />
+                         <input 
+                            type="text" 
+                            value={tablePrefix} 
+                            onChange={(e) => setTablePrefix(e.target.value)} 
+                            placeholder="T" 
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] text-base sm:text-sm" 
+                         />
                       </div>
                       <div className="flex-1">
                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Range / List</label>
-                         <input type="text" value={bulkTableInput} onChange={(e) => setBulkTableInput(e.target.value)} placeholder="1-10" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981]" onKeyDown={(e) => e.key === "Enter" && handleGeneratePreview()} />
+                         <input 
+                            type="text" 
+                            value={bulkTableInput} 
+                            onChange={(e) => setBulkTableInput(e.target.value)} 
+                            placeholder="1-10" 
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10B981] text-base sm:text-sm" 
+                            onKeyDown={(e) => e.key === "Enter" && handleGeneratePreview()} 
+                         />
                       </div>
                     </div>
                   </div>
@@ -513,7 +532,7 @@ const Home = () => {
                             min="1"
                             value={t.capacity}
                             onChange={(e) => updatePendingCapacity(idx, e.target.value)}
-                            className="w-20 px-2 py-1.5 bg-white border rounded-md text-center focus:ring-2 focus:ring-[#10B981] focus:outline-none text-sm font-medium"
+                            className="w-20 px-2 py-1.5 bg-white border rounded-md text-center focus:ring-2 focus:ring-[#10B981] focus:outline-none text-base sm:text-sm font-medium"
                           />
                         </div>
                       ))}
