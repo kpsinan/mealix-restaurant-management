@@ -12,6 +12,7 @@ const FaChartLine = () => <svg stroke="currentColor" fill="currentColor" strokeW
 const FaTrophy = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M552 64H448V24c0-13.3-10.7-24-24-24H152c-13.3 0-24 10.7-24 24v40H24C10.7 64 0 74.7 0 88v56c0 66.5 77.9 130.7 171.9 142.4C203.3 392.4 256 464 256 464v48H176c-13.3 0-24 10.7-24 24s10.7 24 24 24h224c13.3 0 24-10.7 24-24s-10.7-24-24-24H320v-48s52.7-71.6 84.1-177.6C502.1 274.7 576 210.5 576 144V88c0-13.3-10.7-24-24-24zM128 128c0-17.7 14.3-32 32-32h192c17.7 0 32 14.3 32 32v32H128v-32z"></path></svg>;
 const FaMoon = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M283.211 512c78.962 0 151.079-35.925 198.857-94.792 7.068-8.708-.639-21.43-11.562-19.35-124.203 23.654-238.262-71.576-238.262-196.954 0-72.222 38.662-138.635 101.498-174.394 9.686-5.512 7.25-20.197-3.756-22.23A258.156 258.156 0 0 0 283.211 0c-141.309 0-256 114.51-256 256 0 141.309 114.51 256 256 256z"></path></svg>;
 const FaSun = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M256 160c-52.9 0-96 43.1-96 96s43.1 96 96 96 96-43.1 96-96-43.1-96-96-96zm246.4 80.5l-94.7-47.3 33.5-100.4c4.5-13.6-8.4-26.5-21.9-21.9l-100.4 33.5-47.3-94.7c-6.4-12.8-24.6-12.8-31 0l-47.3 94.7-100.4-33.5c-13.6-4.5-26.5 8.4-21.9 21.9l33.5 100.4-94.7 47.3c-12.8 6.4-12.8 24.6 0 31l94.7 47.3-33.5 100.5c-4.5 13.6 8.4 26.5 21.9 21.9l100.4-33.5 47.3 94.7c6.4 12.8 24.6 12.8 31 0l47.3-94.7 100.4 33.5c13.6 4.5 26.5-8.4 21.9-21.9l-33.5-100.4 94.7-47.3c13-6.5 13-24.7.2-31.1z"></path></svg>;
+const FaTimes = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 352 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></svg>;
 
 // --- Custom Hooks ---
 const useAnimatedCounter = (endValue = 0, duration = 1500) => {
@@ -348,7 +349,16 @@ const ItemWiseSalesReport = () => {
     if (isModalOpen) {
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md animate-fade-in-up">
+                <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md animate-fade-in-up relative">
+                    {/* Close Button */}
+                    <button 
+                        onClick={() => setIsModalOpen(false)} 
+                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                        title="Close"
+                    >
+                        <FaTimes style={{ fontSize: '1.25rem' }} />
+                    </button>
+
                     <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Select Date Range</h2>
                     <div className="flex justify-center gap-2 mb-4">
                         <button onClick={() => handleDateShortcut('today')} className="px-3 py-1 text-sm bg-slate-200 rounded-full hover:bg-slate-300">Today</button>

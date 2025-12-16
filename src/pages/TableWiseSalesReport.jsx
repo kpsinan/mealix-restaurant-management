@@ -12,6 +12,7 @@ const FaPlay = () => <svg stroke="currentColor" fill="currentColor" strokeWidth=
 const FaChartBar = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 448 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M32 32v448h448V32H32zm240 344h-32V200h32v176zm88 0h-32V136h32v240zm-176 0h-32V280h32v96z"></path></svg>;
 const FaTrophy = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 576 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M552 64H448V24c0-13.3-10.7-24-24-24H152c-13.3 0-24 10.7-24 24v40H24C10.7 64 0 74.7 0 88v56c0 66.5 77.9 130.7 171.9 142.4C203.3 392.4 256 464 256 464v48H176c-13.3 0-24 10.7-24 24s10.7 24 24 24h224c13.3 0 24-10.7 24-24s-10.7-24-24-24H320v-48s52.7-71.6 84.1-177.6C502.1 274.7 576 210.5 576 144V88c0-13.3-10.7-24-24-24zM128 128c0-17.7 14.3-32 32-32h192c17.7 0 32 14.3 32 32v32H128v-32z"></path></svg>;
 const FaChartPie = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 544 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M527.79 288H290.51a15.95 15.95 0 0 1-15.95-16V16.21a15.95 15.95 0 0 1 15.95-16c2.65 0 5.26.65 7.64 1.86A256.06 256.06 0 0 1 527.79 288zm-288-16a15.95 15.95 0 0 1 15.95-16H528a16 16 0 0 1 16 16v16a256 256 0 0 1-256 256H21.53c-11.21 0-19.18-11.45-14.45-21.53A256.06 256.06 0 0 1 239.79 272z"></path></svg>;
+const FaTimes = () => <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 352 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></svg>;
 
 
 const TableWiseSalesReport = () => {
@@ -259,7 +260,16 @@ const TableWiseSalesReport = () => {
   if (isModalOpen) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md animate-fade-in-up">
+        <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md animate-fade-in-up relative">
+          {/* Close Button */}
+          <button 
+            onClick={() => setIsModalOpen(false)} 
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+            title="Close"
+          >
+            <FaTimes style={{ fontSize: '1.25rem' }} />
+          </button>
+
           <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Select Date Range</h2>
           <div className="flex justify-center gap-2 mb-4">
               <button onClick={() => handleDateShortcut('today')} className="px-3 py-1 text-sm bg-slate-200 rounded-full hover:bg-slate-300">Today</button>

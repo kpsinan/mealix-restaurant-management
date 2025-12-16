@@ -7,7 +7,7 @@ import MenuItemCard from "../components/MenuItemCard";
 
 // Compact Translations
 const TRANSLATIONS = {
-  en: { menuTitle: "Menu", menuSubtitle: "Manage your restaurant's menu items.", selected: "selected", selectSubtitle: "Select items to delete.", selectAll: "Select All", deselectAll: "Deselect All", delete: "Delete", cancel: "Cancel", bulkActions: "Bulk Actions", selectItems: "Select Items", addNewItem: "Add New Item", confirmDeleteTitle: "Confirm Deletion", confirmDeleteMsg: "Are you sure you want to permanently delete", items: "item(s)?", deleting: "Deleting...", addItemTitle: "Add New Menu Item", itemName: "Item Name", fullPrice: "Full Portion Price", halfPrice: "Half Portion Price", quarterPrice: "Quarter Portion Price", ingredients: "Ingredients (comma-separated)", specialNote: "Special Note (optional)", done: "Done", bulkActionTitle: "Bulk Actions", bulkActionSubtitle: "Add or update multiple items quickly.", addNewItemsBtn: "Add New Items", updateExistingBtn: "Update Existing Items", bulkAddTitle: "Bulk Add New Items", bulkAddSubtitle: "Use arrow keys. Rows missing name/price skipped.", bulkUpdateTitle: "Bulk Update Existing Items", bulkUpdateSubtitle: "Edit multiple items. Match by name.", status: "Status", matchStatus: "Match", matched: "Matched", notMatched: "Not Found", willUpdate: "Will Update", addRow: "+ Add Row", clearAll: "Clear All", addItems: "Add Items", updateItems: "Update Items", adding: "Adding...", updating: "Updating...", updatedCount: "items updated successfully.", noMatches: "No items matched.", partialUpdate: "Some updated, others not found." },
+  en: { menuTitle: "Menu", menuSubtitle: "Manage your restaurant's menu items.", selected: "selected", selectSubtitle: "Select items to delete.", selectAll: "Select All", deselectAll: "Deselect All", delete: "Delete", cancel: "Cancel", bulkActions: "Bulk Actions", selectItems: "Select Items", addNewItem: "Add New Item", confirmDeleteTitle: "Confirm Deletion", confirmDeleteMsg: "Are you sure you want to permanently delete", items: "item(s)?", deleting: "Deleting...", addItemTitle: "Add New Menu Item", itemName: "Item Name", fullPrice: "Full Portion Price", halfPrice: "Half Portion Price", quarterPrice: "Quarter Portion Price", ingredients: "Ingredients (comma-separated)", specialNote: "Special Note (optional)", done: "Done", bulkActionTitle: "Bulk Actions", bulkActionSubtitle: "Add or update multiple items quickly.", addNewItemsBtn: "Add New Items", updateExistingBtn: "Update Existing Items", bulkAddTitle: "Bulk Add New Items", bulkAddSubtitle: "Use arrow keys. Rows missing name/price skipped.", bulkUpdateTitle: "Bulk Update Existing Items", bulkUpdateSubtitle: "Edit multiple items. Rename or match by name.", status: "Status", matchStatus: "Match", matched: "Matched", notMatched: "Not Found", willUpdate: "Will Update", addRow: "+ Add Row", clearAll: "Clear All", addItems: "Add Items", updateItems: "Update Items", adding: "Adding...", updating: "Updating...", updatedCount: "items updated successfully.", noMatches: "No items matched.", partialUpdate: "Some updated, others not found." },
   hi: { menuTitle: "मेनू (Menu)", menuSubtitle: "मेनू आइटम प्रबंधित करें।", selected: "चयनित", selectSubtitle: "हटाने के लिए आइटम चुनें।", selectAll: "सभी चुनें", deselectAll: "सभी अचयनित करें", delete: "हटाएं", cancel: "रद्द करें", bulkActions: "थोक क्रियाएं", selectItems: "आइटम चुनें", addNewItem: "नया आइटम", confirmDeleteTitle: "हटाने की पुष्टि", confirmDeleteMsg: "क्या आप हटाना चाहते हैं", items: "आइटम?", deleting: "हटा रहा है...", addItemTitle: "नया आइटम जोड़ें", itemName: "आइटम का नाम", fullPrice: "पूर्ण कीमत", halfPrice: "आधी कीमत", quarterPrice: "चौथाई कीमत", ingredients: "सामग्री", specialNote: "विशेष नोट", done: "हो गया", bulkActionTitle: "थोक क्रियाएं", bulkActionSubtitle: "कई आइटम जोड़ें/अपडेट करें।", addNewItemsBtn: "नए आइटम जोड़ें", updateExistingBtn: "मौजूदा अपडेट करें", bulkAddTitle: "थोक में जोड़ें", bulkAddSubtitle: "तीर कुंजियों का उपयोग करें।", bulkUpdateTitle: "थोक अपडेट", bulkUpdateSubtitle: "नाम से मिलान करें।", status: "स्थिति", matchStatus: "मिलान", matched: "मिला", notMatched: "नहीं मिला", willUpdate: "अपडेट होगा", addRow: "+ पंक्ति", clearAll: "साफ़ करें", addItems: "जोड़ें", updateItems: "अपडेट करें", adding: "जोड़ रहा है...", updating: "अपडेट...", updatedCount: "सफल।", noMatches: "कोई नहीं मिला।", partialUpdate: "कुछ अपडेट, कुछ नहीं।" },
   es: { menuTitle: "Menú", menuSubtitle: "Administra el menú.", selected: "seleccionado", selectSubtitle: "Selecciona para eliminar.", selectAll: "Todos", deselectAll: "Ninguno", delete: "Eliminar", cancel: "Cancelar", bulkActions: "Acciones masivas", selectItems: "Seleccionar", addNewItem: "Nuevo artículo", confirmDeleteTitle: "Confirmar", confirmDeleteMsg: "¿Eliminar", items: "elemento(s)?", deleting: "Eliminando...", addItemTitle: "Nuevo elemento", itemName: "Nombre", fullPrice: "Precio completo", halfPrice: "Precio media", quarterPrice: "Precio cuarto", ingredients: "Ingredientes", specialNote: "Nota", done: "Hecho", bulkActionTitle: "Acciones masivas", bulkActionSubtitle: "Gestiona múltiples elementos.", addNewItemsBtn: "Agregar nuevos", updateExistingBtn: "Actualizar existentes", bulkAddTitle: "Agregar masivo", bulkAddSubtitle: "Usa flechas.", bulkUpdateTitle: "Actualización masiva", bulkUpdateSubtitle: "Coincidencia por nombre.", status: "Estado", matchStatus: "Coincidencia", matched: "Coincide", notMatched: "No encontrado", willUpdate: "Actualizará", addRow: "+ Fila", clearAll: "Borrar", addItems: "Agregar", updateItems: "Actualizar", adding: "Agregando...", updating: "Actualizando...", updatedCount: "actualizados.", noMatches: "Sin coincidencias.", partialUpdate: "Parcialmente actualizado." },
   ar: { menuTitle: "القائمة", menuSubtitle: "إدارة القائمة.", selected: "محدد", selectSubtitle: "حدد للحذف.", selectAll: "تحديد الكل", deselectAll: "إلغاء الكل", delete: "حذف", cancel: "إلغاء", bulkActions: "إجراءات جماعية", selectItems: "تحديد", addNewItem: "عنصر جديد", confirmDeleteTitle: "تأكيد الحذف", confirmDeleteMsg: "هل تريد حذف", items: "عنصر؟", deleting: "حذف...", addItemTitle: "إضافة عنصر", itemName: "الاسم", fullPrice: "سعر كامل", halfPrice: "سعر نصف", quarterPrice: "سعر ربع", ingredients: "المكونات", specialNote: "ملاحظة", done: "تم", bulkActionTitle: "إجراءات جماعية", bulkActionSubtitle: "إضافة/تحديث بسرعة.", addNewItemsBtn: "إضافة جديد", updateExistingBtn: "تحديث موجود", bulkAddTitle: "إضافة بالجملة", bulkAddSubtitle: "استخدم الأسهم.", bulkUpdateTitle: "تحديث جماعي", bulkUpdateSubtitle: "تطابق بالاسم.", status: "الحالة", matchStatus: "تطابق", matched: "متطابق", notMatched: "غير موجود", willUpdate: "سيحدث", addRow: "+ صف", clearAll: "مسح", addItems: "إضافة", updateItems: "تحديث", adding: "إضافة...", updating: "تحديث...", updatedCount: "تم بنجاح.", noMatches: "لا يوجد تطابق.", partialUpdate: "تحديث جزئي." },
@@ -85,9 +85,15 @@ const Menu = () => {
   const handleRowXClick = (idx, row) => {
     if (modals.bulkUpdate) {
       // In Bulk Update, try to delete the actual item if it exists
-      const match = menuItems.find(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase());
-      if (match) {
-        setSelection({ active: false, items: [match.id], deleting: false });
+      // Fix: Prioritize ID match, fall back to name match
+      let targetId = row.id;
+      if (!targetId) {
+         const match = menuItems.find(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase());
+         if (match) targetId = match.id;
+      }
+
+      if (targetId) {
+        setSelection({ active: false, items: [targetId], deleting: false });
         toggleModal('confirm', true);
       } else {
         // If it's a new row or not matched, just remove from list
@@ -136,7 +142,14 @@ const Menu = () => {
         showNotify(`${toAdd.length} items added.`);
       } else {
         const updates = validRows.map(r => {
-          const original = menuItems.find(m => m.name.trim().toLowerCase() === r.name.trim().toLowerCase());
+          // Fix: Try to find by ID first (robust against name changes), then Name
+          let original;
+          if (r.id) {
+            original = menuItems.find(m => m.id === r.id);
+          } else {
+            original = menuItems.find(m => m.name.trim().toLowerCase() === r.name.trim().toLowerCase());
+          }
+
           if (!original) return null;
           const u = {};
           
@@ -148,6 +161,7 @@ const Menu = () => {
              if (val && val !== original[key]) u[key] = val;
           };
 
+          checkStr('name', r.name); // Explicitly allow name updates
           checkNum('fullPrice', r.fullPrice);
           checkNum('halfPrice', r.halfPrice);
           checkNum('quarterPrice', r.quarterPrice);
@@ -197,7 +211,12 @@ const Menu = () => {
           </thead>
           <tbody>
             {bulkItems.map((row, idx) => {
-              const matched = isUpdate && menuItems.some(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase());
+              // Fix: Matched if it has an ID (existing item) OR matches a name
+              const matched = isUpdate && (
+                (row.id && menuItems.some(m => m.id === row.id)) || 
+                menuItems.some(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase())
+              );
+
               const valid = !isUpdate && row.name && row.fullPrice && !isNaN(parseFloat(row.fullPrice));
               const statusColor = isUpdate ? (matched ? (row.fullPrice ? "bg-yellow-500" : "bg-green-500") : "bg-red-500") : (valid ? "bg-green-500" : (row.name ? "bg-red-500" : "bg-gray-300"));
               

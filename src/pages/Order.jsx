@@ -92,7 +92,17 @@ const Order = () => {
         ]);
         
         if (mounted) {
-          setData({ tables: tables || [], staff: staff || [], menu: menu || [], settings: settings || { currencySymbol: '₹' } });
+          // Sort tables by name (natural sort order for handling "Table 1", "Table 10")
+          const sortedTables = (tables || []).sort((a, b) => 
+            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+          );
+
+          setData({ 
+            tables: sortedTables, 
+            staff: staff || [], 
+            menu: menu || [], 
+            settings: settings || { currencySymbol: '₹' } 
+          });
 
           const params = new URLSearchParams(location.search);
           const tId = params.get("tableId");

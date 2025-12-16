@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { getSalesByDateRange, getSettings } from "../firebase/firebase"; // Adjust path as needed
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FaFilePdf, FaCalendarAlt, FaInbox, FaPlay } from "react-icons/fa";
+import { FaFilePdf, FaInbox, FaPlay, FaTimes } from "react-icons/fa";
 
 // Note: Font imports are removed as they are not needed if no symbol is shown.
 
@@ -78,7 +78,33 @@ const SalesReport = () => {
   // ✅ This line ensures no currency symbol is ever shown.
   const currency = "";
 
-  // --- Modal Submission & Enter Key Logic ---
+  // --- Modal Submission & Shortcuts ---
+  const handleDateShortcut = (range) => {
+    const end = new Date();
+    let start = new Date();
+    if(range === 'today') {
+        start.setHours(0,0,0,0);
+    } else if (range === 'week') {
+        const day = end.getDay();
+        const diff = end.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        start.setDate(diff);
+        start.setHours(0,0,0,0);
+    } else if (range === 'month') {
+        start.setDate(1); // Start of month
+        start.setHours(0,0,0,0);
+    }
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    // Update refs directly so the user sees the change immediately in inputs
+    if (startDateRef.current) startDateRef.current.value = formatDate(start);
+    if (endDateRef.current) endDateRef.current.value = formatDate(end);
+
+    // Trigger submit logic
+    setStartDate(formatDate(start));
+    setEndDate(formatDate(end));
+    setIsModalOpen(false);
+  };
+
   const handleDateSubmit = () => {
     if (!startDateRef.current.value || !endDateRef.current.value) {
       alert("Please select both a start and end date.");
@@ -227,8 +253,25 @@ const SalesReport = () => {
   if (isModalOpen) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md animate-fade-in-up">
+        <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md animate-fade-in-up relative">
+          {/* Close Button */}
+          <button 
+            onClick={() => setIsModalOpen(false)} 
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+            title="Close"
+          >
+            <FaTimes size={20} />
+          </button>
+
           <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Select Date Range</h2>
+          
+          {/* Quick Buttons */}
+          <div className="flex justify-center gap-2 mb-6">
+              <button onClick={() => handleDateShortcut('today')} className="px-3 py-1 text-sm bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">Today</button>
+              <button onClick={() => handleDateShortcut('week')} className="px-3 py-1 text-sm bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">This Week</button>
+              <button onClick={() => handleDateShortcut('month')} className="px-3 py-1 text-sm bg-slate-200 rounded-full hover:bg-slate-300 transition-colors">This Month</button>
+          </div>
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Start Date</label>
@@ -269,13 +312,21 @@ const SalesReport = () => {
             <h1 className="text-3xl font-bold text-slate-800">Sales Report</h1>
             <p className="text-sm text-slate-500 mt-1">Showing results for: <span className="font-semibold">{startDate}</span> to <span className="font-semibold">{endDate}</span></p>
         </div>
-        <button
-          onClick={exportPDF}
-          disabled={sales.length === 0}
-          className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-rose-700 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:bg-gray-400 disabled:scale-100 disabled:cursor-not-allowed mt-4 sm:mt-0"
-        >
-          <FaFilePdf size={18} /> Export as PDF
-        </button>
+        <div className="flex gap-2">
+            <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 border border-indigo-200 font-medium transition mt-4 sm:mt-0"
+            >
+                Date Filter
+            </button>
+            <button
+            onClick={exportPDF}
+            disabled={sales.length === 0}
+            className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-rose-700 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:bg-gray-400 disabled:scale-100 disabled:cursor-not-allowed mt-4 sm:mt-0"
+            >
+            <FaFilePdf size={18} /> Export as PDF
+            </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto bg-white rounded-lg shadow-lg">
