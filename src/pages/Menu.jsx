@@ -4,15 +4,9 @@ import {
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
 import MenuItemCard from "../components/MenuItemCard";
+import { getTranslation } from '../translations'; // <-- UPDATED IMPORT
 
-// Compact Translations
-const TRANSLATIONS = {
-  en: { menuTitle: "Menu", menuSubtitle: "Manage your restaurant's menu items.", selected: "selected", selectSubtitle: "Select items to delete.", selectAll: "Select All", deselectAll: "Deselect All", delete: "Delete", cancel: "Cancel", bulkActions: "Bulk Actions", selectItems: "Select Items", addNewItem: "Add New Item", confirmDeleteTitle: "Confirm Deletion", confirmDeleteMsg: "Are you sure you want to permanently delete", items: "item(s)?", deleting: "Deleting...", addItemTitle: "Add New Menu Item", itemName: "Item Name", fullPrice: "Full Portion Price", halfPrice: "Half Portion Price", quarterPrice: "Quarter Portion Price", ingredients: "Ingredients (comma-separated)", specialNote: "Special Note (optional)", done: "Done", bulkActionTitle: "Bulk Actions", bulkActionSubtitle: "Add or update multiple items quickly.", addNewItemsBtn: "Add New Items", updateExistingBtn: "Update Existing Items", bulkAddTitle: "Bulk Add New Items", bulkAddSubtitle: "Use arrow keys. Rows missing name/price skipped.", bulkUpdateTitle: "Bulk Update Existing Items", bulkUpdateSubtitle: "Edit multiple items. Rename or match by name.", status: "Status", matchStatus: "Match", matched: "Matched", notMatched: "Not Found", willUpdate: "Will Update", addRow: "+ Add Row", clearAll: "Clear All", addItems: "Add Items", updateItems: "Update Items", adding: "Adding...", updating: "Updating...", updatedCount: "items updated successfully.", noMatches: "No items matched.", partialUpdate: "Some updated, others not found." },
-  hi: { menuTitle: "मेनू (Menu)", menuSubtitle: "मेनू आइटम प्रबंधित करें।", selected: "चयनित", selectSubtitle: "हटाने के लिए आइटम चुनें।", selectAll: "सभी चुनें", deselectAll: "सभी अचयनित करें", delete: "हटाएं", cancel: "रद्द करें", bulkActions: "थोक क्रियाएं", selectItems: "आइटम चुनें", addNewItem: "नया आइटम", confirmDeleteTitle: "हटाने की पुष्टि", confirmDeleteMsg: "क्या आप हटाना चाहते हैं", items: "आइटम?", deleting: "हटा रहा है...", addItemTitle: "नया आइटम जोड़ें", itemName: "आइटम का नाम", fullPrice: "पूर्ण कीमत", halfPrice: "आधी कीमत", quarterPrice: "चौथाई कीमत", ingredients: "सामग्री", specialNote: "विशेष नोट", done: "हो गया", bulkActionTitle: "थोक क्रियाएं", bulkActionSubtitle: "कई आइटम जोड़ें/अपडेट करें।", addNewItemsBtn: "नए आइटम जोड़ें", updateExistingBtn: "मौजूदा अपडेट करें", bulkAddTitle: "थोक में जोड़ें", bulkAddSubtitle: "तीर कुंजियों का उपयोग करें।", bulkUpdateTitle: "थोक अपडेट", bulkUpdateSubtitle: "नाम से मिलान करें।", status: "स्थिति", matchStatus: "मिलान", matched: "मिला", notMatched: "नहीं मिला", willUpdate: "अपडेट होगा", addRow: "+ पंक्ति", clearAll: "साफ़ करें", addItems: "जोड़ें", updateItems: "अपडेट करें", adding: "जोड़ रहा है...", updating: "अपडेट...", updatedCount: "सफल।", noMatches: "कोई नहीं मिला।", partialUpdate: "कुछ अपडेट, कुछ नहीं।" },
-  es: { menuTitle: "Menú", menuSubtitle: "Administra el menú.", selected: "seleccionado", selectSubtitle: "Selecciona para eliminar.", selectAll: "Todos", deselectAll: "Ninguno", delete: "Eliminar", cancel: "Cancelar", bulkActions: "Acciones masivas", selectItems: "Seleccionar", addNewItem: "Nuevo artículo", confirmDeleteTitle: "Confirmar", confirmDeleteMsg: "¿Eliminar", items: "elemento(s)?", deleting: "Eliminando...", addItemTitle: "Nuevo elemento", itemName: "Nombre", fullPrice: "Precio completo", halfPrice: "Precio media", quarterPrice: "Precio cuarto", ingredients: "Ingredientes", specialNote: "Nota", done: "Hecho", bulkActionTitle: "Acciones masivas", bulkActionSubtitle: "Gestiona múltiples elementos.", addNewItemsBtn: "Agregar nuevos", updateExistingBtn: "Actualizar existentes", bulkAddTitle: "Agregar masivo", bulkAddSubtitle: "Usa flechas.", bulkUpdateTitle: "Actualización masiva", bulkUpdateSubtitle: "Coincidencia por nombre.", status: "Estado", matchStatus: "Coincidencia", matched: "Coincide", notMatched: "No encontrado", willUpdate: "Actualizará", addRow: "+ Fila", clearAll: "Borrar", addItems: "Agregar", updateItems: "Actualizar", adding: "Agregando...", updating: "Actualizando...", updatedCount: "actualizados.", noMatches: "Sin coincidencias.", partialUpdate: "Parcialmente actualizado." },
-  ar: { menuTitle: "القائمة", menuSubtitle: "إدارة القائمة.", selected: "محدد", selectSubtitle: "حدد للحذف.", selectAll: "تحديد الكل", deselectAll: "إلغاء الكل", delete: "حذف", cancel: "إلغاء", bulkActions: "إجراءات جماعية", selectItems: "تحديد", addNewItem: "عنصر جديد", confirmDeleteTitle: "تأكيد الحذف", confirmDeleteMsg: "هل تريد حذف", items: "عنصر؟", deleting: "حذف...", addItemTitle: "إضافة عنصر", itemName: "الاسم", fullPrice: "سعر كامل", halfPrice: "سعر نصف", quarterPrice: "سعر ربع", ingredients: "المكونات", specialNote: "ملاحظة", done: "تم", bulkActionTitle: "إجراءات جماعية", bulkActionSubtitle: "إضافة/تحديث بسرعة.", addNewItemsBtn: "إضافة جديد", updateExistingBtn: "تحديث موجود", bulkAddTitle: "إضافة بالجملة", bulkAddSubtitle: "استخدم الأسهم.", bulkUpdateTitle: "تحديث جماعي", bulkUpdateSubtitle: "تطابق بالاسم.", status: "الحالة", matchStatus: "تطابق", matched: "متطابق", notMatched: "غير موجود", willUpdate: "سيحدث", addRow: "+ صف", clearAll: "مسح", addItems: "إضافة", updateItems: "تحديث", adding: "إضافة...", updating: "تحديث...", updatedCount: "تم بنجاح.", noMatches: "لا يوجد تطابق.", partialUpdate: "تحديث جزئي." },
-  fr: { menuTitle: "Menu", menuSubtitle: "Gérez le menu.", selected: "sélectionné", selectSubtitle: "Sélectionnez pour supprimer.", selectAll: "Tout", deselectAll: "Rien", delete: "Supprimer", cancel: "Annuler", bulkActions: "Actions en masse", selectItems: "Sélectionner", addNewItem: "Nouvel élément", confirmDeleteTitle: "Confirmer", confirmDeleteMsg: "Supprimer", items: "élément(s)?", deleting: "Suppression...", addItemTitle: "Ajouter élément", itemName: "Nom", fullPrice: "Prix complet", halfPrice: "Prix demi", quarterPrice: "Prix quart", ingredients: "Ingrédients", specialNote: "Note", done: "Fait", bulkActionTitle: "Actions en masse", bulkActionSubtitle: "Ajoutez/Modifiez rapidement.", addNewItemsBtn: "Ajouter nouveaux", updateExistingBtn: "Mettre à jour", bulkAddTitle: "Ajout en masse", bulkAddSubtitle: "Utilisez les flèches.", bulkUpdateTitle: "Mise à jour en masse", bulkUpdateSubtitle: "Match par nom.", status: "Statut", matchStatus: "Match", matched: "Trouvé", notMatched: "Non trouvé", willUpdate: "Sera maj", addRow: "+ Ligne", clearAll: "Effacer", addItems: "Ajouter", updateItems: "MAJ", adding: "Ajout...", updating: "MAJ...", updatedCount: "succès.", noMatches: "Aucun trouvé.", partialUpdate: "MAJ partielle." }
-};
+// Compact Translations: REMOVED HARDCODED OBJECT
 
 const Notification = ({ msg, type, onClose }) => {
   if (!msg) return null;
@@ -27,7 +21,7 @@ const Notification = ({ msg, type, onClose }) => {
 
 const Menu = () => {
   const [settings, setSettings] = useState({ currencySymbol: '₹', language: 'en' });
-  const [t, setT] = useState(TRANSLATIONS.en);
+  const [t, setT] = useState(getTranslation('en')); // Initialize with English translation
   const [menuItems, setMenuItems] = useState([]);
   const [notif, setNotif] = useState(null);
   
@@ -42,7 +36,8 @@ const Menu = () => {
   
   // Refs
   const cellRefs = useRef([]);
-  const isRTL = settings.language === 'ar';
+  // Language check now uses the settings state
+  const isRTL = settings.language === 'ar'; 
   
   const showNotify = useCallback((msg, type = 'success') => {
     setNotif({ msg, type });
@@ -50,12 +45,15 @@ const Menu = () => {
   }, []);
 
   useEffect(() => {
+    // Load settings from Firebase
     getSettings().then(s => {
       if (s) {
-        setSettings({ currencySymbol: s.currencySymbol || '₹', language: s.language || 'en' });
-        setT(TRANSLATIONS[s.language] || TRANSLATIONS.en);
+        const lang = s.language || 'en';
+        setSettings({ currencySymbol: s.currencySymbol || '₹', language: lang });
+        setT(getTranslation(lang)); // Get and set the correct translation
       }
     });
+    // Subscribe to menu items
     return onMenuItemsRealtime(items => setMenuItems(items || []));
   }, []);
 
@@ -108,7 +106,7 @@ const Menu = () => {
   // Handlers: Add Single
   const handleAddItem = async () => {
     if (!newItem.name?.trim() || !newItem.fullPrice || isNaN(parseFloat(newItem.fullPrice))) {
-      return showNotify("Name and valid Full Price are required.", "error");
+      return showNotify(t.addItemTitle + " requires name and valid price.", "error"); // Generic error, could be improved
     }
     await addMenuItem({ ...newItem, fullPrice: parseFloat(newItem.fullPrice), halfPrice: parseFloat(newItem.halfPrice)||null, quarterPrice: parseFloat(newItem.quarterPrice)||null });
     setNewItem({ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" });
@@ -139,7 +137,7 @@ const Menu = () => {
         const toAdd = validRows.filter(r => r.fullPrice && !isNaN(parseFloat(r.fullPrice)));
         if (!toAdd.length) throw new Error("No rows with valid Name and Price.");
         await Promise.all(toAdd.map(r => addMenuItem({ ...r, fullPrice: parseFloat(r.fullPrice), halfPrice: parseFloat(r.halfPrice)||null, quarterPrice: parseFloat(r.quarterPrice)||null })));
-        showNotify(`${toAdd.length} items added.`);
+        showNotify(`${toAdd.length} ${t.item} added.`);
       } else {
         const updates = validRows.map(r => {
           // Fix: Try to find by ID first (robust against name changes), then Name
@@ -175,8 +173,8 @@ const Menu = () => {
         
         const count = updates.length;
         const msg = count === 1 
-          ? "1 item updated successfully." 
-          : (count ? `${count} ${t.updatedCount}` : "No items required updates.");
+          ? `1 ${t.item} updated successfully.` 
+          : (count ? `${count} ${t.updatedCount}` : t.noMatches);
           
         showNotify(msg, count ? 'success' : 'error');
       }
@@ -203,7 +201,7 @@ const Menu = () => {
       <div className="max-h-[55vh] overflow-y-auto">
         <table className="w-full text-sm text-left text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10">
-            <tr>
+            <tr dir={isRTL ? 'rtl' : 'ltr'}>
               <th className="px-4 py-3 text-center">{isUpdate ? t.matchStatus : t.status}</th>
               {[t.itemName, t.fullPrice, t.halfPrice, t.quarterPrice, t.ingredients, t.specialNote].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
               <th className="px-4 py-3"></th>
@@ -235,6 +233,7 @@ const Menu = () => {
                         onChange={(e) => handleBulkChange(idx, field, e.target.value)}
                         onKeyDown={(e) => handleKey(e, idx, ci)}
                         className="w-full p-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                        dir="auto"
                       />
                     </td>
                   ))}
@@ -272,7 +271,8 @@ const Menu = () => {
             ) : (
               <>
                 <button onClick={() => toggleModal('bulkSelect')} className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-800">{t.bulkActions}</button>
-                <button onClick={() => setSelection({ active: true, items: [], deleting: false })} className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">{t.selectItems}</button>
+                <button onClick={() => toggleModal('single')} className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">{t.addNewItem}</button>
+                <button onClick={() => setSelection({ active: true, items: [], deleting: false })} className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">{t.selectItems}</button>
               </>
             )}
           </div>
@@ -314,13 +314,14 @@ const Menu = () => {
             { n: 'specialNote', p: t.specialNote }
           ].map(f => (
             <div key={f.n} className="relative">
-              {f.pre && <span className="absolute left-3 top-2.5 text-gray-500">{f.pre}</span>}
+              {f.pre && <span className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-2.5 text-gray-500`}>{f.pre}</span>}
               <input 
                 name={f.n} 
                 value={newItem[f.n]} 
                 onChange={e => setNewItem(p => ({ ...p, [e.target.name]: e.target.value }))} 
                 placeholder={f.p} 
-                className={`w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${f.pre ? 'pl-8' : ''}`} 
+                className={`w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${f.pre ? (isRTL ? 'pr-8' : 'pl-8') : ''}`} 
+                dir="auto"
               />
             </div>
           ))}

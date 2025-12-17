@@ -1,0 +1,589 @@
+// Centralized translation data and utility functions.
+const ALL_TRANSLATIONS = {
+  // --- Global Constants (used in Settings dropdowns) ---
+  LANGUAGES: [
+    { code: 'en', name: 'English' },
+    { code: 'hi', name: 'Hindi (हिंदी)' },
+    { code: 'ml', name: 'Malayalam (മലയാളം)' },
+    { code: 'es', name: 'Spanish (Español)' },
+    { code: 'ar', name: 'Arabic (العربية)' },
+    { code: 'fr', name: 'French (Français)' },
+  ],
+  CURRENCIES: [
+    { symbol: '₹', code: 'INR', name: 'Indian Rupee' },
+    { symbol: '$', code: 'USD', name: 'US Dollar' },
+    { symbol: '€', code: 'EUR', name: 'Euro' },
+    { symbol: '£', code: 'GBP', name: 'British Pound' },
+    { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
+    { symbol: 'AED', code: 'AED', name: 'UAE Dirham' },
+  ],
+
+  // --- Core Page Translations ---
+  en: {
+    // Sidebar & Profile
+    sidebar: {
+      dashboard: "Dashboard",
+      floorPlan: "Floor Plan",
+      smartAssign: "Smart Assign",
+      order: "Order",
+      menu: "Menu",
+      billing: "Billing",
+      reports: "Reports",
+      staff: "Staff",
+      kitchen: "Kitchen",
+      settings: "Settings",
+      profile: "Profile",
+      logout: "Logout",
+      manager: "Manager",
+      admin: "Admin",
+      collapse: "Collapse sidebar",
+      expand: "Expand sidebar",
+      profileDefaultName: "Manager",
+      profileDefaultEmail: "manager@restrogrid.com"
+    },
+    // Shared
+    cancel: "Cancel",
+    delete: "Delete",
+    saveChanges: "Save Changes",
+    saving: "Saving...",
+    loading: "Loading Preferences...",
+    item: "item(s)",
+    
+    // Settings Page
+    settingsTitle: "Settings",
+    settingsSubtitle: "Configure your POS system parameters",
+    saveSuccess: "Settings saved permanently!",
+    saveError: "Failed to save settings. Check internet connection.",
+    loadError: "Failed to load settings from database.",
+    
+    // Settings Tabs
+    tabGeneral: "General",
+    tabLocalization: "Language & Currency",
+    tabPrinting: "Print & Receipt",
+    tabShortcuts: "Keyboard Shortcuts",
+    tabAbout: "About App",
+    
+    // General Tab
+    generalTitle: "General Information",
+    restaurantName: "Restaurant Name",
+    restaurantNamePlaceholder: "e.g. The Grand Kitchen",
+    address: "Address",
+    addressSubtitle: "This address will appear on printed receipts.",
+    addressPlaceholder: "Full street address...",
+    upiId: "UPI ID",
+    upiIdSubtitle: "Used to generate QR codes for customer payments.",
+    
+    // Localization Tab
+    localizationTitle: "Language & Currency",
+    appLanguage: "Application Language",
+    appLanguageSubtitle: "Select your preferred interface language.",
+    defaultCurrency: "Default Currency",
+    defaultCurrencySubtitle: "This symbol will be used for all pricing.",
+
+    // Printing Tab
+    printingTitle: "Receipt Printing Config",
+    paperSize: "Paper Size",
+    paperSizeSubtitle: "Width of your thermal paper roll.",
+    fontDensity: "Font Density",
+    fontDensitySubtitle: "Adjust text size on the receipt.",
+    footerMessage: "Footer Message",
+    footerMessageSubtitle: "Appears at the very bottom of the receipt.",
+    showLogo: "Show Header Logo/Name",
+    showLogoSubtitle: "Include the restaurant name at the top of the receipt.",
+    
+    // Shortcuts Tab
+    shortcutsTitle: "Keyboard Cheat Sheet",
+    shortcutsKey: "Key",
+    shortcutsAction: "Action",
+    shortcutsCategory: "Category",
+    
+    // About Tab
+    aboutTitle: "About App",
+    appSlogan: "Designed to simplify restaurant management. From billing to settings, everything you need is right here.",
+    
+    // Menu Page
+    menuTitle: "Menu", menuSubtitle: "Manage your restaurant's menu items.", selected: "selected", selectSubtitle: "Select items to delete.", selectAll: "Select All", deselectAll: "Deselect All", bulkActions: "Bulk Actions", selectItems: "Select Items", addNewItem: "Add New Item", confirmDeleteTitle: "Confirm Deletion", confirmDeleteMsg: "Are you sure you want to permanently delete", items: "item(s)?", deleting: "Deleting...", addItemTitle: "Add New Menu Item", itemName: "Item Name", fullPrice: "Full Portion Price", halfPrice: "Half Portion Price", quarterPrice: "Quarter Portion Price", ingredients: "Ingredients (comma-separated)", specialNote: "Special Note (optional)", done: "Done", bulkActionTitle: "Bulk Actions", bulkActionSubtitle: "Add or update multiple items quickly.", addNewItemsBtn: "Add New Items", updateExistingBtn: "Update Existing Items", bulkAddTitle: "Bulk Add New Items", bulkAddSubtitle: "Use arrow keys. Rows missing name/price skipped.", bulkUpdateTitle: "Bulk Update Existing Items", bulkUpdateSubtitle: "Edit multiple items. Rename or match by name.", status: "Status", matchStatus: "Match", matched: "Matched", notMatched: "Not Found", willUpdate: "Will Update", addRow: "+ Add Row", clearAll: "Clear All", addItems: "Add Items", updateItems: "Update Items", adding: "Adding...", updating: "Updating...", updatedCount: "items updated successfully.", noMatches: "No items matched.", partialUpdate: "Some updated, others not found.",
+  },
+  
+  hi: {
+    sidebar: {
+      dashboard: "डैशबोर्ड",
+      floorPlan: "फ्लोर प्लान",
+      smartAssign: "स्मार्ट असाइन",
+      order: "ऑर्डर",
+      menu: "मेनू",
+      billing: "बिलिंग",
+      reports: "रिपोर्ट्स",
+      staff: "स्टाफ",
+      kitchen: "रसोई (Kitchen)",
+      settings: "सेटिंग्स",
+      profile: "प्रोफ़ाइल",
+      logout: "लॉग आउट",
+      manager: "प्रबंधक",
+      admin: "एडमिन",
+      collapse: "साइडबार संक्षिप्त करें",
+      expand: "साइडबार विस्तृत करें",
+      profileDefaultName: "प्रबंधक",
+      profileDefaultEmail: "manager@restrogrid.com"
+    },
+    // Shared
+    cancel: "रद्द करें",
+    delete: "हटाएं",
+    saveChanges: "परिवर्तन सहेजें",
+    saving: "सहेजा जा रहा है...",
+    loading: "वरीयताएँ लोड हो रही हैं...",
+    item: "आइटम",
+    
+    // Settings Page
+    settingsTitle: "सेटिंग्स (Settings)",
+    settingsSubtitle: "अपने पीओएस सिस्टम मापदंडों को कॉन्फ़िगर करें",
+    saveSuccess: "सेटिंग्स स्थायी रूप से सहेजी गईं!",
+    saveError: "सेटिंग्स सहेजने में विफल। इंटरनेट कनेक्शन जांचें।",
+    loadError: "डेटाबेस से सेटिंग्स लोड करने में विफल।",
+    
+    // Settings Tabs
+    tabGeneral: "सामान्य",
+    tabLocalization: "भाषा और मुद्रा",
+    tabPrinting: "प्रिंट और रसीद",
+    tabShortcuts: "कीबोर्ड शॉर्टकट",
+    tabAbout: "ऐप के बारे में",
+    
+    // General Tab
+    generalTitle: "सामान्य जानकारी",
+    restaurantName: "रेस्तरां का नाम",
+    restaurantNamePlaceholder: "उदाहरण: द ग्रैंड किचन",
+    address: "पता",
+    addressSubtitle: "यह पता मुद्रित रसीदों पर दिखाई देगा।",
+    addressPlaceholder: "पूरा सड़क का पता...",
+    upiId: "यूपीआई आईडी",
+    upiIdSubtitle: "ग्राहक भुगतान के लिए क्यूआर कोड बनाने में उपयोग किया जाता है।",
+    
+    // Localization Tab
+    localizationTitle: "भाषा और मुद्रा",
+    appLanguage: "एप्लिकेशन भाषा",
+    appLanguageSubtitle: "अपनी पसंदीदा इंटरफ़ेस भाषा चुनें।",
+    defaultCurrency: "डिफ़ॉल्ट मुद्रा",
+    defaultCurrencySubtitle: "इस प्रतीक का उपयोग सभी मूल्य निर्धारण के लिए किया जाएगा।",
+
+    // Printing Tab
+    printingTitle: "रसीद मुद्रण कॉन्फ़िगरेशन",
+    paperSize: "पेपर आकार",
+    paperSizeSubtitle: "आपके थर्मल पेपर रोल की चौड़ाई।",
+    fontDensity: "फ़ॉन्ट घनत्व",
+    fontDensitySubtitle: "रसीद पर पाठ का आकार समायोजित करें।",
+    footerMessage: "फ़ूटर संदेश",
+    footerMessageSubtitle: "रसीद के निचले भाग में दिखाई देता है।",
+    showLogo: "शीर्षलेख लोगो/नाम दिखाएं",
+    showLogoSubtitle: "रसीद के शीर्ष पर रेस्तरां का नाम शामिल करें।",
+    
+    // Shortcuts Tab
+    shortcutsTitle: "कीबोर्ड चीट शीट",
+    shortcutsKey: "कुंजी",
+    shortcutsAction: "कार्रवाई",
+    shortcutsCategory: "श्रेणी",
+    
+    // About Tab
+    aboutTitle: "ऐप के बारे में",
+    appSlogan: "रेस्तरां प्रबंधन को सरल बनाने के लिए डिज़ाइन किया गया। बिलिंग से लेकर सेटिंग्स तक, आपकी ज़रूरत की हर चीज़ यहीं है।",
+
+    // Menu Page
+    menuTitle: "मेनू (Menu)", menuSubtitle: "मेनू आइटम प्रबंधित करें।", selected: "चयनित", selectSubtitle: "हटाने के लिए आइटम चुनें।", selectAll: "सभी चुनें", deselectAll: "सभी अचयनित करें", bulkActions: "थोक क्रियाएं", selectItems: "आइटम चुनें", addNewItem: "नया आइटम", confirmDeleteTitle: "हटाने की पुष्टि", confirmDeleteMsg: "क्या आप हटाना चाहते हैं", items: "आइटम?", deleting: "हटा रहा है...", addItemTitle: "नया आइटम जोड़ें", itemName: "आइटम का नाम", fullPrice: "पूर्ण कीमत", halfPrice: "आधी कीमत", quarterPrice: "चौथाई कीमत", ingredients: "सामग्री", specialNote: "विशेष नोट", done: "हो गया", bulkActionTitle: "थोक क्रियाएं", bulkActionSubtitle: "कई आइटम जोड़ें/अपडेट करें।", addNewItemsBtn: "नए आइटम जोड़ें", updateExistingBtn: "मौजूदा अपडेट करें", bulkAddTitle: "थोक में जोड़ें", bulkAddSubtitle: "तीर कुंजियों का उपयोग करें।", bulkUpdateTitle: "थोक अपडेट", bulkUpdateSubtitle: "नाम से मिलान करें।", status: "स्थिति", matchStatus: "मिलान", matched: "मिला", notMatched: "नहीं मिला", willUpdate: "अपडेट होगा", addRow: "+ पंक्ति", clearAll: "साफ़ करें", addItems: "जोड़ें", updateItems: "अपडेट करें", adding: "जोड़ रहा है...", updating: "अपडेट...", updatedCount: "सफल।", noMatches: "कोई नहीं मिला।", partialUpdate: "कुछ अपडेट, कुछ नहीं।"
+  },
+  
+  ml: {
+    sidebar: {
+      dashboard: "ഡാഷ്‌ബോർഡ്",
+      floorPlan: "ഫ്ലോർ പ്ലാൻ",
+      smartAssign: "സ്മാർട്ട് അസൈൻ",
+      order: "ഓർഡർ",
+      menu: "മെനു",
+      billing: "ബില്ലിംഗ്",
+      reports: "റിപ്പോർട്ടുകൾ",
+      staff: "സ്റ്റാഫ്",
+      kitchen: "അടുക്കള (Kitchen)",
+      settings: "സെറ്റിംഗ്സ്",
+      profile: "പ്രൊഫൈൽ",
+      logout: "ലോഗൗട്ട്",
+      manager: "മാനേജർ",
+      admin: "അഡ്മിൻ",
+      collapse: "സൈഡ്ബാർ ചുരുക്കുക",
+      expand: "സൈഡ്ബാർ വലുതാക്കുക",
+      profileDefaultName: "മാനേജർ",
+      profileDefaultEmail: "manager@restrogrid.com"
+    },
+    // Shared
+    cancel: "Cancel",
+    delete: "ഡിലീറ്റ്",
+    saveChanges: "സേവ് ചെയ്യുക",
+    saving: "സേവ് ചെയ്യുന്നു...",
+    loading: "ലോഡ് ചെയ്യുന്നു...",
+    item: "ഐറ്റം",
+    
+    // Settings Page
+    settingsTitle: "സെറ്റിംഗ്സ്",
+    settingsSubtitle: "നിങ്ങളുടെ POS സിസ്റ്റം ഇവിടെ സെറ്റ് ചെയ്യാം",
+    saveSuccess: "സെറ്റിംഗ്സ് സേവ് ആയി!",
+    saveError: "സേവ് ചെയ്യാൻ പറ്റിയില്ല. ഇൻ്റർനെറ്റ് ചെക്ക് ചെയ്യുക.",
+    loadError: "വിവരങ്ങൾ ലോഡ് ചെയ്യാൻ പറ്റിയില്ല.",
+    
+    // Settings Tabs
+    tabGeneral: "ജനറൽ",
+    tabLocalization: "ഭാഷയും കറൻസിയും",
+    tabPrinting: "പ്രിന്റിംഗ് & ബില്ല്",
+    tabShortcuts: "ഷോർട്ട്കട്ടുകൾ",
+    tabAbout: "ആപ്പിനെക്കുറിച്ച്",
+    
+    // General Tab
+    generalTitle: "വിവരങ്ങൾ",
+    restaurantName: "റെസ്റ്റോറന്റിൻ്റെ പേര്",
+    restaurantNamePlaceholder: "ഉദാ: ദി ഗ്രാൻഡ് കിച്ചൺ",
+    address: "അഡ്രസ്",
+    addressSubtitle: "ബില്ലിൽ വരാനുള്ള അഡ്രസ് ആണിത്.",
+    addressPlaceholder: "ഫുൾ അഡ്രസ് ടൈപ്പ് ചെയ്യുക...",
+    upiId: "UPI ഐഡി",
+    upiIdSubtitle: "ക്യുആർ കോഡ് ജനറേറ്റ് ചെയ്യാൻ വേണ്ടിയുള്ളതാണ്.",
+    
+    // Localization Tab
+    localizationTitle: "ഭാഷയും കറൻസിയും",
+    appLanguage: "ആപ്പിലെ ഭാഷ",
+    appLanguageSubtitle: "നിങ്ങൾക്ക് വേണ്ട ഭാഷ തിരഞ്ഞെടുക്കുക.",
+    defaultCurrency: "കറൻസി",
+    defaultCurrencySubtitle: "വില കാണിക്കാൻ ഈ ചിഹ്നം ഉപയോഗിക്കും.",
+
+    // Printing Tab
+    printingTitle: "ബില്ല് പ്രിന്റിംഗ് സെറ്റിംഗ്സ്",
+    paperSize: "പേപ്പർ സൈസ്",
+    paperSizeSubtitle: "പേപ്പർ റോളിൻ്റെ വീതി.",
+    fontDensity: "അക്ഷരങ്ങളുടെ വലിപ്പം",
+    fontDensitySubtitle: "ബില്ലിലെ അക്ഷരങ്ങൾ കൂട്ടാനും കുറയ്ക്കാനും.",
+    footerMessage: "ഫൂട്ടർ മെസ്സേജ്",
+    footerMessageSubtitle: "ബില്ലിൻ്റെ ഏറ്റവും താഴെ വരുന്നത്.",
+    showLogo: "ഹെഡർ ലോഗോ/പേര് കാണിക്കുക",
+    showLogoSubtitle: "ബില്ലിൻ്റെ മുകളിൽ റെസ്റ്റോറൻ്റ് പേര് വേണോ?",
+    
+    // Shortcuts Tab
+    shortcutsTitle: "കീബോർഡ് ഷോർട്ട്കട്ടുകൾ",
+    shortcutsKey: "കീ",
+    shortcutsAction: "ആക്ഷൻ",
+    shortcutsCategory: "കാറ്റഗറി",
+    
+    // About Tab
+    aboutTitle: "ആപ്പിനെക്കുറിച്ച്",
+    appSlogan: "റെസ്റ്റോറൻ്റ് കാര്യങ്ങൾ എളുപ്പമാക്കാൻ. ബില്ലിംഗ് മുതൽ സെറ്റിംഗ്സ് വരെ എല്ലാം ഇവിടെയുണ്ട്.",
+    
+    // Menu Page
+    menuTitle: "മെനു", 
+    menuSubtitle: "വിഭവങ്ങളിൽ മാറ്റം വരുത്തുക.", 
+    selected: "സെലക്ട് ചെയ്തു", 
+    selectSubtitle: "ഡിലീറ്റ് ചെയ്യാൻ ഐറ്റങ്ങൾ സെലക്ട് ചെയ്യുക.", 
+    selectAll: "എല്ലാം സെലക്ട് ചെയ്യുക", 
+    deselectAll: "സെലക്ഷൻ മാറ്റുക", 
+    bulkActions: "ബൾക്ക് ആക്ഷൻസ്", 
+    selectItems: "ഐറ്റങ്ങൾ തിരഞ്ഞെടുക്കുക", 
+    addNewItem: "പുതിയ ഐറ്റം", 
+    confirmDeleteTitle: "ഡിലീറ്റ് ചെയ്യട്ടെ?", 
+    confirmDeleteMsg: "തിരഞ്ഞെടുത്തവ ഒഴിവാക്കണമെന്ന് ഉറപ്പാണോ?", 
+    items: "ഐറ്റംസ്", 
+    deleting: "ഡിലീറ്റ് ചെയ്യുന്നു...", 
+    addItemTitle: "പുതിയ വിഭവം ചേർക്കുക", 
+    itemName: "ഐറ്റത്തിൻ്റെ പേര്", 
+    fullPrice: "ഫുൾ റേറ്റ്", 
+    halfPrice: "ഹാഫ് റേറ്റ്", 
+    quarterPrice: "ക്വാർട്ടർ റേറ്റ്", 
+    ingredients: "ചേരുവകൾ", 
+    specialNote: "പ്രത്യേക ശ്രദ്ധയ്ക്ക്", 
+    done: "ശരി", 
+    bulkActionTitle: "ബൾക്ക് ആക്ഷൻസ്", 
+    bulkActionSubtitle: "ഒരുമിച്ച് മാറ്റങ്ങൾ വരുത്താം.", 
+    addNewItemsBtn: "പുതിയവ ചേർക്കാം", 
+    updateExistingBtn: "നിലവിലുള്ളവ മാറ്റാം", 
+    bulkAddTitle: "ബൾക്ക് ആഡ്", 
+    bulkAddSubtitle: "അമ്പടയാള കീകൾ ഉപയോഗിക്കുക. പേരോ വിലയോ ഇല്ലാത്തവ ഒഴിവാക്കപ്പെടും.", 
+    bulkUpdateTitle: "ബൾക്ക് അപ്‌ഡേറ്റ്", 
+    bulkUpdateSubtitle: "പേര് വെച്ച് മാച്ച് ചെയ്ത് മാറ്റങ്ങൾ വരുത്താം.", 
+    status: "സ്റ്റാറ്റസ്", 
+    matchStatus: "മാച്ച്", 
+    matched: "കണ്ടെത്തി", 
+    notMatched: "കിട്ടിയില്ല", 
+    willUpdate: "അപ്‌ഡേറ്റ് ചെയ്യും", 
+    addRow: "+ റോ ചേർക്കുക", 
+    clearAll: "എല്ലാം ക്ലിയർ ചെയ്യുക", 
+    addItems: "ഐറ്റങ്ങൾ ചേർക്കുക", 
+    updateItems: "അപ്‌ഡേറ്റ് ചെയ്യുക", 
+    adding: "ചേർക്കുന്നു...", 
+    updating: "അപ്‌ഡേറ്റ് ചെയ്യുന്നു...", 
+    updatedCount: "ഐറ്റങ്ങൾ വിജയകരമായി അപ്‌ഡേറ്റ് ചെയ്തു.", 
+    noMatches: "പൊരുത്തമുള്ളവ ഒന്നും കണ്ടെത്തിയില്ല.", 
+    partialUpdate: "ചിലത് അപ്‌ഡേറ്റ് ചെയ്തു, ബാക്കിയുള്ളവ കിട്ടിയില്ല."
+  },
+  
+  es: {
+    sidebar: {
+      dashboard: "Tablero",
+      floorPlan: "Plano de Sala",
+      smartAssign: "Asignación Inteligente",
+      order: "Pedido",
+      menu: "Menú",
+      billing: "Facturación",
+      reports: "Informes",
+      staff: "Personal",
+      kitchen: "Cocina",
+      settings: "Ajustes",
+      profile: "Perfil",
+      logout: "Cerrar Sesión",
+      manager: "Gerente",
+      admin: "Admin",
+      collapse: "Contraer barra lateral",
+      expand: "Expandir barra lateral",
+      profileDefaultName: "Gerente",
+      profileDefaultEmail: "manager@restrogrid.com"
+    },
+    // Shared
+    cancel: "Cancelar",
+    delete: "Eliminar",
+    saveChanges: "Guardar Cambios",
+    saving: "Guardando...",
+    loading: "Cargando Preferencias...",
+    item: "elemento(s)",
+    
+    // Settings Page
+    settingsTitle: "Ajustes",
+    settingsSubtitle: "Configure los parámetros de su sistema POS",
+    saveSuccess: "¡Ajustes guardados permanentemente!",
+    saveError: "Fallo al guardar. Verifique la conexión a Internet.",
+    loadError: "Fallo al cargar la configuración de la base de datos.",
+    
+    // Settings Tabs
+    tabGeneral: "General",
+    tabLocalization: "Idioma y Moneda",
+    tabPrinting: "Impresión y Recibo",
+    tabShortcuts: "Atajos de Teclado",
+    tabAbout: "Acerca de la App",
+    
+    // General Tab
+    generalTitle: "Información General",
+    restaurantName: "Nombre del Restaurante",
+    restaurantNamePlaceholder: "ej. La Gran Cocina",
+    address: "Dirección",
+    addressSubtitle: "Esta dirección aparecerá en los recibos impresos.",
+    addressPlaceholder: "Dirección completa...",
+    upiId: "ID UPI",
+    upiIdSubtitle: "Se utiliza para generar códigos QR para pagos de clientes.",
+    
+    // Localization Tab
+    localizationTitle: "Idioma y Moneda",
+    appLanguage: "Idioma de la Aplicación",
+    appLanguageSubtitle: "Seleccione su idioma de interfaz preferido.",
+    defaultCurrency: "Moneda Predeterminada",
+    defaultCurrencySubtitle: "Este símbolo se utilizará para todos los precios.",
+
+    // Printing Tab
+    printingTitle: "Configuración de Impresión de Recibos",
+    paperSize: "Tamaño del Papel",
+    paperSizeSubtitle: "Ancho de su rollo de papel térmico.",
+    fontDensity: "Densidad de Fuente",
+    fontDensitySubtitle: "Ajuste el tamaño del texto en el recibo.",
+    footerMessage: "Mensaje de Pie de Página",
+    footerMessageSubtitle: "Aparece en la parte inferior del recibo.",
+    showLogo: "Mostrar Logo/Nombre de Encabezado",
+    showLogoSubtitle: "Incluya el nombre del restaurante en la parte superior del recibo.",
+    
+    // Shortcuts Tab
+    shortcutsTitle: "Hoja de Trucos del Teclado",
+    shortcutsKey: "Clave",
+    shortcutsAction: "Acción",
+    shortcutsCategory: "Categoría",
+    
+    // About Tab
+    aboutTitle: "Acerca de la App",
+    appSlogan: "Diseñado para simplificar la gestión de restaurantes. Desde la facturación hasta la configuración, todo lo que necesita está aquí.",
+
+    // Menu Page
+    menuTitle: "Menú", menuSubtitle: "Administra el menú.", selected: "seleccionado", selectSubtitle: "Selecciona para eliminar.", selectAll: "Todos", deselectAll: "Ninguno", bulkActions: "Acciones masivas", selectItems: "Seleccionar", addNewItem: "Nuevo artículo", confirmDeleteTitle: "Confirmar", confirmDeleteMsg: "¿Eliminar", items: "elemento(s)?", deleting: "Eliminando...", addItemTitle: "Nuevo elemento", itemName: "Nombre", fullPrice: "Precio completo", halfPrice: "Precio media", quarterPrice: "Precio cuarto", ingredients: "Ingredientes", specialNote: "Nota", done: "Hecho", bulkActionTitle: "Acciones masivas", bulkActionSubtitle: "Gestiona múltiples elementos.", addNewItemsBtn: "Agregar nuevos", updateExistingBtn: "Actualizar existentes", bulkAddTitle: "Agregar masivo", bulkAddSubtitle: "Usa flechas.", bulkUpdateTitle: "Actualización masiva", bulkUpdateSubtitle: "Coincidencia por nombre.", status: "Estado", matchStatus: "Coincidencia", matched: "Coincide", notMatched: "No encontrado", willUpdate: "Actualizará", addRow: "+ Fila", clearAll: "Borrar", addItems: "Agregar", updateItems: "Actualizar", adding: "Agregando...", updating: "Actualizando...", updatedCount: "actualizados.", noMatches: "Sin coincidencias.", partialUpdate: "Parcialmente actualizado."
+  },
+
+  ar: {
+    sidebar: {
+      dashboard: "لوحة التحكم",
+      floorPlan: "مخطط الطابق",
+      smartAssign: "تعيين ذكي",
+      order: "الطلب",
+      menu: "القائمة",
+      billing: "الفواتير",
+      reports: "التقارير",
+      staff: "الموظفين",
+      kitchen: "المطبخ",
+      settings: "الإعدادات",
+      profile: "الملف الشخصي",
+      logout: "تسجيل الخروج",
+      manager: "مدير",
+      admin: "مسؤول",
+      collapse: "طي الشريط الجانبي",
+      expand: "توسيع الشريط الجانبي",
+      profileDefaultName: "مدير",
+      profileDefaultEmail: "manager@restrogrid.com"
+    },
+    // Shared
+    cancel: "إلغاء",
+    delete: "حذف",
+    saveChanges: "حفظ التغييرات",
+    saving: "جارٍ الحفظ...",
+    loading: "جاري تحميل التفضيلات...",
+    item: "عنصر",
+    
+    // Settings Page
+    settingsTitle: "الإعدادات",
+    settingsSubtitle: "قم بتكوين معلمات نظام نقاط البيع الخاص بك",
+    saveSuccess: "تم حفظ الإعدادات بنجاح!",
+    saveError: "فشل حفظ الإعدادات. تحقق من الاتصال.",
+    loadError: "فشل تحميل الإعدادات من قاعدة البيانات.",
+    
+    // Settings Tabs
+    tabGeneral: "عام",
+    tabLocalization: "اللغة والعملة",
+    tabPrinting: "الطباعة والإيصال",
+    tabShortcuts: "اختصارات لوحة المفاتيح",
+    tabAbout: "حول التطبيق",
+    
+    // General Tab
+    generalTitle: "المعلومات العامة",
+    restaurantName: "اسم المطعم",
+    restaurantNamePlaceholder: "مثال: المطبخ الكبير",
+    address: "العنوان",
+    addressSubtitle: "سيظهر هذا العنوان في الإيصالات المطبوعة.",
+    addressPlaceholder: "العنوان الكامل...",
+    upiId: "معرف UPI",
+    upiIdSubtitle: "يستخدم لإنشاء رموز QR لدفعات العملاء.",
+    
+    // Localization Tab
+    localizationTitle: "اللغة والعملة",
+    appLanguage: "لغة التطبيق",
+    appLanguageSubtitle: "حدد لغة الواجهة المفضلة لديك.",
+    defaultCurrency: "العملة الافتراضية",
+    defaultCurrencySubtitle: "سيتم استخدام هذا الرمز لجميع الأسعار.",
+
+    // Printing Tab
+    printingTitle: "تكوين طباعة الإيصال",
+    paperSize: "حجم الورق",
+    paperSizeSubtitle: "عرض لفة الورق الحراري الخاص بك.",
+    fontDensity: "كثافة الخط",
+    fontDensitySubtitle: "ضبط حجم النص على الإيصال.",
+    footerMessage: "رسالة التذييل",
+    footerMessageSubtitle: "تظهر في أسفل الإيصال.",
+    showLogo: "إظهار شعار/اسم الرأس",
+    showLogoSubtitle: "قم بتضمين اسم المطعم في الجزء العلوي من الإيصال.",
+    
+    // Shortcuts Tab
+    shortcutsTitle: "ورقة غش لوحة المفاتيح",
+    shortcutsKey: "المفتاح",
+    shortcutsAction: "الإجراء",
+    shortcutsCategory: "الفئة",
+    
+    // About Tab
+    aboutTitle: "حول التطبيق",
+    appSlogan: "مصمم لتبسيط إدارة المطاعم. من الفواتير إلى الإعدادات، كل ما تحتاجه موجود هنا.",
+    
+    // Menu Page
+    menuTitle: "القائمة", menuSubtitle: "إدارة القائمة.", selected: "محدد", selectSubtitle: "حدد للحذف.", selectAll: "تحديد الكل", deselectAll: "إلغاء الكل", bulkActions: "إجراءات جماعية", selectItems: "تحديد", addNewItem: "عنصر جديد", confirmDeleteTitle: "تأكيد الحذف", confirmDeleteMsg: "هل تريد حذف", items: "عنصر؟", deleting: "حذف...", addItemTitle: "إضافة عنصر", itemName: "الاسم", fullPrice: "سعر كامل", halfPrice: "سعر نصف", quarterPrice: "سعر ربع", ingredients: "المكونات", specialNote: "ملاحظة", done: "تم", bulkActionTitle: "إجراءات جماعية", bulkActionSubtitle: "إضافة/تحديث بسرعة.", addNewItemsBtn: "إضافة جديد", updateExistingBtn: "تحديث موجود", bulkAddTitle: "إضافة بالجملة", bulkAddSubtitle: "استخدم الأسهم.", bulkUpdateTitle: "تحديث جماعي", bulkUpdateSubtitle: "تطابق بالاسم.", status: "الحالة", matchStatus: "تطابق", matched: "متطابق", notMatched: "غير موجود", willUpdate: "سيحدث", addRow: "+ صف", clearAll: "مسح", addItems: "إضافة", updateItems: "تحديث", adding: "إضافة...", updating: "تحديث...", updatedCount: "تم بنجاح.", noMatches: "لا يوجد تطابق.", partialUpdate: "تحديث جزئي."
+  },
+  
+  fr: {
+    sidebar: {
+      dashboard: "Tableau de bord",
+      floorPlan: "Plan de salle",
+      smartAssign: "Attribution Intelligente",
+      order: "Commande",
+      menu: "Menu",
+      billing: "Facturation",
+      reports: "Rapports",
+      staff: "Personnel",
+      kitchen: "Cuisine",
+      settings: "Paramètres",
+      profile: "Profil",
+      logout: "Déconnexion",
+      manager: "Directeur",
+      admin: "Admin",
+      collapse: "Réduire la barre latérale",
+      expand: "Étendre la barre latérale",
+      profileDefaultName: "Directeur",
+      profileDefaultEmail: "manager@restrogrid.com"
+    },
+    // Shared
+    cancel: "Annuler",
+    delete: "Supprimer",
+    saveChanges: "Enregistrer les modifications",
+    saving: "Enregistrement...",
+    loading: "Chargement des préférences...",
+    item: "élément(s)",
+    
+    // Settings Page
+    settingsTitle: "Paramètres",
+    settingsSubtitle: "Configurez les paramètres de votre système POS",
+    saveSuccess: "Paramètres enregistrés de manière permanente!",
+    saveError: "Échec de l'enregistrement. Vérifiez la connexion Internet.",
+    loadError: "Échec du chargement des paramètres depuis la base de données.",
+    
+    // Settings Tabs
+    tabGeneral: "Général",
+    tabLocalization: "Langue et Devise",
+    tabPrinting: "Impression et Reçu",
+    tabShortcuts: "Raccourcis Clavier",
+    tabAbout: "À propos de l'App",
+    
+    // General Tab
+    generalTitle: "Informations Générales",
+    restaurantName: "Nom du Restaurant",
+    restaurantNamePlaceholder: "ex. La Grande Cuisine",
+    address: "Adresse",
+    addressSubtitle: "Cette adresse apparaîtra sur les reçus imprimés.",
+    addressPlaceholder: "Adresse complète...",
+    upiId: "ID UPI",
+    upiIdSubtitle: "Utilisé pour générer des codes QR pour les paiements clients.",
+    
+    // Localization Tab
+    localizationTitle: "Langue et Devise",
+    appLanguage: "Langue de l'Application",
+    appLanguageSubtitle: "Sélectionnez votre langue d'interface préférée.",
+    defaultCurrency: "Devise par Défaut",
+    defaultCurrencySubtitle: "Ce symbole sera utilisé pour tous les prix.",
+
+    // Printing Tab
+    printingTitle: "Configuration d'Impression des Reçus",
+    paperSize: "Taille du Papier",
+    paperSizeSubtitle: "Largeur de votre rouleau de papier thermique.",
+    fontDensity: "Densité de Police",
+    fontDensitySubtitle: "Ajustez la taille du texte sur le reçu.",
+    footerMessage: "Message de Pied de Page",
+    footerMessageSubtitle: "Apparaît au bas du reçu.",
+    showLogo: "Afficher le Logo/Nom d'Entête",
+    showLogoSubtitle: "Incluez le nom du restaurant en haut du reçu.",
+    
+    // Shortcuts Tab
+    shortcutsTitle: "Aide-mémoire du Clavier",
+    shortcutsKey: "Clé",
+    shortcutsAction: "Action",
+    shortcutsCategory: "Catégorie",
+    
+    // About Tab
+    aboutTitle: "À propos de l'App",
+    appSlogan: "Conçu pour simplifier la gestion des restaurants. De la facturation aux paramètres, tout ce dont vous avez besoin est ici.",
+
+    // Menu Page
+    menuTitle: "Menu", menuSubtitle: "Gérez le menu.", selected: "sélectionné", selectSubtitle: "Sélectionnez pour supprimer.", selectAll: "Tout", deselectAll: "Rien", bulkActions: "Actions en masse", selectItems: "Sélectionner", addNewItem: "Nouvel élément", confirmDeleteTitle: "Confirmer", confirmDeleteMsg: "Supprimer", items: "élément(s)?", deleting: "Suppression...", addItemTitle: "Ajouter élément", itemName: "Nom", fullPrice: "Prix complet", halfPrice: "Prix demi", quarterPrice: "Prix quart", ingredients: "Ingrédients", specialNote: "Note", done: "Fait", bulkActionTitle: "Actions en masse", bulkActionSubtitle: "Ajoutez/Modifiez rapidement.", addNewItemsBtn: "Ajouter nouveaux", updateExistingBtn: "Mettre à jour", bulkAddTitle: "Ajout en masse", bulkAddSubtitle: "Utilisez les flèches.", bulkUpdateTitle: "Mise à jour en masse", bulkUpdateSubtitle: "Match par nom.", status: "Statut", matchStatus: "Match", matched: "Trouvé", notMatched: "Non trouvé", willUpdate: "Sera maj", addRow: "+ Ligne", clearAll: "Effacer", addItems: "Ajouter", updateItems: "MAJ", adding: "Ajout...", updating: "MAJ...", updatedCount: "succès.", noMatches: "Aucun trouvé.", partialUpdate: "MAJ partielle."
+  },
+  
+  // Note: Malayalam (ml) translation is slightly simplified but structurally complete
+};
+
+/**
+ * Retrieves the translation object for a given language code, falling back to English ('en') if not found.
+ * @param {string} langCode The 2-letter language code (e.g., 'en', 'hi', 'ar').
+ * @returns {object} The translation object.
+ */
+export const getTranslation = (langCode) => {
+    return ALL_TRANSLATIONS[langCode] || ALL_TRANSLATIONS.en;
+};
+
+// Export the lists directly as they are shared constants
+export const LANGUAGES = ALL_TRANSLATIONS.LANGUAGES;
+export const CURRENCIES = ALL_TRANSLATIONS.CURRENCIES;
