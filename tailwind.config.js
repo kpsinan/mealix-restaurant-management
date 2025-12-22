@@ -3,12 +3,12 @@ export default {
   darkMode: "class",
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx}",
+    "./src/**/*.{js,jsx,ts,tsx}", // Scans all your React files
   ],
   theme: {
     extend: {
       fontFamily: {
-        // Inter is primary. Manjari is fallback.
+        // LOGIC: Use Inter first. If character is missing (like Malayalam), use Manjari.
         sans: ['Inter', 'Manjari', 'sans-serif'],
       },
     },
