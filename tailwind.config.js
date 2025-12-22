@@ -8,7 +8,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        // Inter is primary. Manjari is fallback.
+        sans: ['Inter', 'Manjari', 'sans-serif'],
       },
     },
   },

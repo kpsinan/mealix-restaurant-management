@@ -4,10 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Restaurant Management System</title>
+    
+    <!-- Added Manjari for Malayalam support. Inter remains the primary font. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manjari:wght@400;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
-        font-family: 'Inter', sans-serif;
+        /* Inter is first (for English/others). Manjari is second (fallback for Malayalam). */
+        font-family: 'Inter', 'Manjari', sans-serif;
         background-color: #f5f5f5;
       }
     </style>

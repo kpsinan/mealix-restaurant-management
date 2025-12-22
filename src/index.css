@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 body {
-  font-family: 'Inter', sans-serif;
+  /* Inter is used for everything supported (English, numbers, etc.) */
+  /* Manjari is used ONLY when Inter doesn't have the character (Malayalam) */
+  font-family: 'Inter', 'Manjari', sans-serif;
   margin: 0;
   background-color: #f5f5f5;
 }
