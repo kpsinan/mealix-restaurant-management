@@ -14,7 +14,7 @@ import {
   query,
   where,
   Timestamp,
-  getCountFromServer, // Added for Dashboard optimization
+  getCountFromServer,
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -35,6 +35,7 @@ const db = getFirestore(app);
 // Collection references
 const tablesCollection = collection(db, "tables");
 const menuItemsCollection = collection(db, "menuItems");
+const categoriesCollection = collection(db, "categories"); // Essential for Menu.jsx
 const staffCollection = collection(db, "staff");
 const ordersCollection = collection(db, "orders");
 const settingsCollection = collection(db, "settings");
@@ -69,11 +70,36 @@ export const updateSettings = async (settingsData) => {
   }
 };
 
+/* ----------------------
+   Categories (Required for Menu.jsx)
+   ---------------------- */
+export const addCategory = async (categoryData) => {
+  try {
+    const docRef = await addDoc(categoriesCollection, categoryData);
+    return { id: docRef.id, ...categoryData };
+  } catch (error) {
+    console.error("Error adding category:", error);
+    throw error;
+  }
+};
+
+export const onCategoriesRealtime = (callback, onError) => {
+  return onSnapshot(
+    categoriesCollection,
+    (snapshot) => {
+      const cats = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      callback(cats);
+    },
+    (err) => {
+      console.error("onCategoriesRealtime error:", err);
+      if (onError) onError(err);
+    }
+  );
+};
 
 /* ----------------------
    Tables
    ---------------------- */
-// UPDATED: Added capacity parameter (defaulting to 4 for backward compatibility)
 export const addTable = async (name, capacity = 4) => {
   try {
     const docRef = await addDoc(tablesCollection, { name, capacity: Number(capacity), status: "available" });
@@ -92,7 +118,6 @@ export const addTablesInBulk = async (tableNames) => {
     const batch = writeBatch(db);
     tableNames.forEach((name) => {
       const tableRef = doc(collection(db, "tables"));
-      // Default bulk add to capacity 4 if not specified
       batch.set(tableRef, { name, capacity: 4, status: "available" });
     });
     await batch.commit();
@@ -138,7 +163,6 @@ export const updateTableStatus = async (tableId, status) => {
   }
 };
 
-// NEW: Helper to update multiple tables at once (Atomically)
 export const updateMultipleTablesStatus = async (tableIds, status) => {
   if (!tableIds || tableIds.length === 0) return;
   try {
@@ -262,10 +286,7 @@ export const deleteMenuItemsInBulk = async (itemIds) => {
 };
 
 export const updateMenuItemsInBulk = async (itemsToUpdate) => {
-  if (!itemsToUpdate || itemsToUpdate.length === 0) {
-    console.warn("updateMenuItemsInBulk: No items to update.");
-    return;
-  }
+  if (!itemsToUpdate || itemsToUpdate.length === 0) return;
   try {
     const batch = writeBatch(db);
     itemsToUpdate.forEach(item => {
@@ -351,7 +372,6 @@ export const getStaff = async () => {
    ---------------------- */
 export const addOrder = async (order) => {
   try {
-    // FIX: Explicitly set status to 'Pending' so Dashboard queries work
     const newOrder = {
       ...order,
       status: "Pending", 
@@ -386,16 +406,12 @@ export const deleteOrder = async (orderId) => {
 };
 
 export const updateOrderStatus = async (orderId, newStatus) => {
-  if (!orderId || !newStatus) {
-    throw new Error("updateOrderStatus: orderId and newStatus are required.");
-  }
+  if (!orderId || !newStatus) throw new Error("updateOrderStatus: Missing required parameters.");
   try {
     const orderRef = doc(db, "orders", orderId);
-    await updateDoc(orderRef, {
-      status: newStatus,
-    });
+    await updateDoc(orderRef, { status: newStatus });
   } catch (error) {
-    console.error(`Error updating order status for order ${orderId}:`, error);
+    console.error("Error updating order status:", error);
     throw error;
   }
 };
@@ -417,10 +433,7 @@ export const onOrdersRealtime = (callback, onError) => {
 export const clearAllOrders = async () => {
   try {
     const ordersSnapshot = await getDocs(ordersCollection);
-    if (ordersSnapshot.empty) {
-      console.log("No orders to delete.");
-      return; 
-    }
+    if (ordersSnapshot.empty) return;
     const batch = writeBatch(db);
     ordersSnapshot.docs.forEach((document) => {
       batch.delete(document.ref);
@@ -448,29 +461,55 @@ export const addSaleRecord = async (saleData) => {
   }
 };
 
+/**
+ * Fetches all sales records from the collection.
+ * Essential for Menu Performance (ABC Analysis).
+ */
+export const getAllSales = async () => {
+  try {
+    const snapshot = await getDocs(salesCollection);
+    return snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching all sales:", error);
+    throw error;
+  }
+};
+
 export const getSalesByDateRange = async (startDate, endDate) => {
   try {
     const endOfDay = new Date(endDate);
     endOfDay.setHours(23, 59, 59, 999);
-
     const q = query(
       salesCollection,
       where("finalizedAt", ">=", Timestamp.fromDate(startDate)),
       where("finalizedAt", "<=", Timestamp.fromDate(endOfDay))
     );
-
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        ...data,
-        finalizedAt: data.finalizedAt.toDate(),
-      };
-    });
+    return snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      finalizedAt: d.data().finalizedAt.toDate(),
+    }));
   } catch (error) {
     console.error("Error fetching sales by date range:", error);
     throw error;
+  }
+};
+
+/* ----------------------
+   Dashboard Helpers
+   ---------------------- */
+export const getCollectionCount = async (collName) => {
+  try {
+    const coll = collection(db, collName);
+    const snapshot = await getCountFromServer(coll);
+    return snapshot.data().count;
+  } catch (error) {
+    console.error(`Error counting ${collName}:`, error);
+    return 0;
   }
 };
 

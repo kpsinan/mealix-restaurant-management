@@ -1,12 +1,17 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
-  addMenuItem, updateMenuItem, onMenuItemsRealtime, deleteMenuItemsInBulk, getSettings
+  addMenuItem, 
+  updateMenuItem, 
+  onMenuItemsRealtime, 
+  deleteMenuItemsInBulk, 
+  updateMenuItemsInBulk,
+  getSettings,
+  onCategoriesRealtime,
+  addCategory 
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
 import MenuItemCard from "../components/MenuItemCard";
-import { getTranslation } from '../translations'; // <-- UPDATED IMPORT
-
-// Compact Translations: REMOVED HARDCODED OBJECT
+import { getTranslation } from '../translations';
 
 const Notification = ({ msg, type, onClose }) => {
   if (!msg) return null;
@@ -21,22 +26,32 @@ const Notification = ({ msg, type, onClose }) => {
 
 const Menu = () => {
   const [settings, setSettings] = useState({ currencySymbol: '₹', language: 'en' });
-  const [t, setT] = useState(getTranslation('en')); // Initialize with English translation
+  const [t, setT] = useState(getTranslation('en'));
   const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [notif, setNotif] = useState(null);
   
   // Modals & Modes
-  const [modals, setModals] = useState({ single: false, bulkSelect: false, bulkAdd: false, bulkUpdate: false, confirm: false });
+  const [modals, setModals] = useState({ 
+    single: false, 
+    bulkSelect: false, 
+    bulkAdd: false, 
+    bulkUpdate: false, 
+    confirm: false,
+    newCategory: false 
+  });
   const [selection, setSelection] = useState({ active: false, items: [], deleting: false });
   
   // Form Data
-  const [newItem, setNewItem] = useState({ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" });
+  const [newItem, setNewItem] = useState({ 
+    name: "", fullPrice: "", halfPrice: "", quarterPrice: "", 
+    ingredients: "", specialNote: "", category: "" 
+  });
+  const [tempCategory, setTempCategory] = useState("");
   const [bulkItems, setBulkItems] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Refs
   const cellRefs = useRef([]);
-  // Language check now uses the settings state
   const isRTL = settings.language === 'ar'; 
   
   const showNotify = useCallback((msg, type = 'success') => {
@@ -45,86 +60,105 @@ const Menu = () => {
   }, []);
 
   useEffect(() => {
-    // Load settings from Firebase
     getSettings().then(s => {
       if (s) {
         const lang = s.language || 'en';
         setSettings({ currencySymbol: s.currencySymbol || '₹', language: lang });
-        setT(getTranslation(lang)); // Get and set the correct translation
+        setT(getTranslation(lang));
       }
     });
-    // Subscribe to menu items
-    return onMenuItemsRealtime(items => setMenuItems(items || []));
+
+    const unsubItems = onMenuItemsRealtime(items => setMenuItems(items || []));
+    const unsubCats = onCategoriesRealtime(cats => setCategories(cats || []));
+
+    return () => {
+        unsubItems();
+        unsubCats();
+    };
   }, []);
 
   const toggleModal = (key, open = true) => setModals(p => ({ ...p, [key]: open }));
   
-  // Handlers: Selection & Delete
-  const toggleSelect = (id) => setSelection(prev => ({ ...prev, items: prev.items.includes(id) ? prev.items.filter(x => x !== id) : [...prev.items, id] }));
-  
+  // Selection Handlers
+  const toggleSelect = (id) => setSelection(prev => ({ 
+    ...prev, 
+    items: prev.items.includes(id) ? prev.items.filter(x => x !== id) : [...prev.items, id] 
+  }));
+
   const handleBulkDelete = async () => {
     if (!selection.items.length) return;
     setSelection(p => ({ ...p, deleting: true }));
     try {
       await deleteMenuItemsInBulk(selection.items);
-      if (modals.bulkUpdate) {
-        // Remove deleted items from the bulk update table view
-        setBulkItems(prev => prev.filter(i => !selection.items.includes(i.id)));
-      }
+      if (modals.bulkUpdate) setBulkItems(prev => prev.filter(i => !selection.items.includes(i.id)));
       showNotify("Item(s) deleted successfully.");
     } catch (e) {
-      console.error(e);
       showNotify("Error deleting items.", "error");
     }
     setSelection({ active: false, items: [], deleting: false });
     toggleModal('confirm', false);
   };
 
+  // Category Handlers
+  const handleAddNewCategory = async () => {
+    if (!tempCategory.trim()) return;
+    try {
+      await addCategory({ name: tempCategory.trim() });
+      setNewItem(p => ({ ...p, category: tempCategory.trim() }));
+      setTempCategory("");
+      toggleModal('newCategory', false);
+      showNotify("Category added!");
+    } catch (e) {
+      showNotify("Error adding category", "error");
+    }
+  };
+
+  // Grid Table Row Handler
   const handleRowXClick = (idx, row) => {
     if (modals.bulkUpdate) {
-      // In Bulk Update, try to delete the actual item if it exists
-      // Fix: Prioritize ID match, fall back to name match
-      let targetId = row.id;
-      if (!targetId) {
-         const match = menuItems.find(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase());
-         if (match) targetId = match.id;
-      }
-
+      let targetId = row.id || menuItems.find(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase())?.id;
       if (targetId) {
         setSelection({ active: false, items: [targetId], deleting: false });
         toggleModal('confirm', true);
       } else {
-        // If it's a new row or not matched, just remove from list
         setBulkItems(p => p.filter((_, i) => i !== idx));
       }
     } else {
-      // In Bulk Add, just remove the row
       setBulkItems(p => p.filter((_, i) => i !== idx));
     }
   };
 
-  // Handlers: Add Single
+  // Add Single Handler
   const handleAddItem = async () => {
     if (!newItem.name?.trim() || !newItem.fullPrice || isNaN(parseFloat(newItem.fullPrice))) {
-      return showNotify(t.addItemTitle + " requires name and valid price.", "error"); // Generic error, could be improved
+      return showNotify(t.addItemTitle + " requires name and valid price.", "error");
     }
-    await addMenuItem({ ...newItem, fullPrice: parseFloat(newItem.fullPrice), halfPrice: parseFloat(newItem.halfPrice)||null, quarterPrice: parseFloat(newItem.quarterPrice)||null });
-    setNewItem({ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" });
+    await addMenuItem({ 
+      ...newItem, 
+      fullPrice: parseFloat(newItem.fullPrice), 
+      halfPrice: newItem.halfPrice ? parseFloat(newItem.halfPrice) : null, 
+      quarterPrice: newItem.quarterPrice ? parseFloat(newItem.quarterPrice) : null 
+    });
+    setNewItem({ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "", category: "" });
     toggleModal('single', false);
     showNotify("Item added successfully!");
   };
 
-  // Handlers: Bulk
+  // Bulk Handlers
   const initBulk = (type) => {
     toggleModal('bulkSelect', false);
     toggleModal(type, true);
     cellRefs.current = [];
-    if (type === 'bulkAdd') setBulkItems([{ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" }]);
-    else setBulkItems(menuItems.length ? menuItems.map(i => ({ ...i, id: i.id, fullPrice: "", halfPrice: "", quarterPrice: "" })) : [{ name: "" }]);
-  };
-
-  const handleBulkChange = (idx, field, val) => {
-    setBulkItems(prev => { const c = [...prev]; c[idx] = { ...c[idx], [field]: val }; return c; });
+    if (type === 'bulkAdd') {
+      setBulkItems([{ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", category: "", ingredients: "", specialNote: "" }]);
+    } else {
+      setBulkItems(menuItems.map(i => ({ 
+        ...i, 
+        fullPrice: i.fullPrice?.toString() || "", 
+        halfPrice: i.halfPrice?.toString() || "", 
+        quarterPrice: i.quarterPrice?.toString() || "" 
+      })));
+    }
   };
 
   const handleBulkSubmit = async (isUpdate) => {
@@ -135,53 +169,31 @@ const Menu = () => {
     try {
       if (!isUpdate) {
         const toAdd = validRows.filter(r => r.fullPrice && !isNaN(parseFloat(r.fullPrice)));
-        if (!toAdd.length) throw new Error("No rows with valid Name and Price.");
-        await Promise.all(toAdd.map(r => addMenuItem({ ...r, fullPrice: parseFloat(r.fullPrice), halfPrice: parseFloat(r.halfPrice)||null, quarterPrice: parseFloat(r.quarterPrice)||null })));
-        showNotify(`${toAdd.length} ${t.item} added.`);
+        await Promise.all(toAdd.map(r => addMenuItem({ 
+          ...r, 
+          fullPrice: parseFloat(r.fullPrice), 
+          halfPrice: r.halfPrice ? parseFloat(r.halfPrice) : null, 
+          quarterPrice: r.quarterPrice ? parseFloat(r.quarterPrice) : null 
+        })));
+        showNotify(`${toAdd.length} items added.`);
       } else {
-        const updates = validRows.map(r => {
-          // Fix: Try to find by ID first (robust against name changes), then Name
-          let original;
-          if (r.id) {
-            original = menuItems.find(m => m.id === r.id);
-          } else {
-            original = menuItems.find(m => m.name.trim().toLowerCase() === r.name.trim().toLowerCase());
-          }
-
-          if (!original) return null;
-          const u = {};
-          
-          // Helper to check if value exists (non-empty) and is different from original
-          const checkNum = (key, val) => {
-             if (val && parseFloat(val) !== original[key]) u[key] = parseFloat(val);
-          };
-          const checkStr = (key, val) => {
-             if (val && val !== original[key]) u[key] = val;
-          };
-
-          checkStr('name', r.name); // Explicitly allow name updates
-          checkNum('fullPrice', r.fullPrice);
-          checkNum('halfPrice', r.halfPrice);
-          checkNum('quarterPrice', r.quarterPrice);
-          checkStr('ingredients', r.ingredients);
-          checkStr('specialNote', r.specialNote);
-
-          return Object.keys(u).length ? updateMenuItem(original.id, u) : null;
-        }).filter(Boolean);
-        
-        await Promise.all(updates);
-        
-        const count = updates.length;
-        const msg = count === 1 
-          ? `1 ${t.item} updated successfully.` 
-          : (count ? `${count} ${t.updatedCount}` : t.noMatches);
-          
-        showNotify(msg, count ? 'success' : 'error');
+        const updates = validRows.map(r => ({
+          id: r.id,
+          name: r.name,
+          fullPrice: parseFloat(r.fullPrice),
+          halfPrice: r.halfPrice ? parseFloat(r.halfPrice) : null,
+          quarterPrice: r.quarterPrice ? parseFloat(r.quarterPrice) : null,
+          category: r.category,
+          ingredients: r.ingredients,
+          specialNote: r.specialNote
+        }));
+        await updateMenuItemsInBulk(updates);
+        showNotify("Bulk update successful.");
       }
-      if (isUpdate && validRows.some(r => r)) toggleModal('bulkUpdate', false); // Close only if something happened
-      else if (!isUpdate) toggleModal('bulkAdd', false);
-
-    } catch (e) { showNotify(e.message, "error"); }
+      toggleModal(isUpdate ? 'bulkUpdate' : 'bulkAdd', false);
+    } catch (e) { 
+      showNotify(e.message, "error"); 
+    }
     setIsProcessing(false);
   };
 
@@ -191,50 +203,63 @@ const Menu = () => {
     let nr = r, nc = c;
     if (e.key === "ArrowUp") nr = Math.max(0, r - 1);
     if (e.key === "ArrowDown") nr = Math.min(bulkItems.length - 1, r + 1);
-    // Logic for left/right omitted for brevity but keeps focus flow if needed, mostly up/down used in bulk
     cellRefs.current[nr]?.[nc]?.focus();
   };
 
-  // Render Helpers
+  // Shared Table Renderer
   const renderBulkTable = (isUpdate) => (
     <div className="flex-grow overflow-hidden rounded-lg border border-gray-200">
       <div className="max-h-[55vh] overflow-y-auto">
         <table className="w-full text-sm text-left text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10">
-            <tr dir={isRTL ? 'rtl' : 'ltr'}>
+            <tr>
               <th className="px-4 py-3 text-center">{isUpdate ? t.matchStatus : t.status}</th>
-              {[t.itemName, t.fullPrice, t.halfPrice, t.quarterPrice, t.ingredients, t.specialNote].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
+              {[t.itemName, t.fullPrice, t.halfPrice, t.quarterPrice, "Category", t.ingredients, t.specialNote].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {bulkItems.map((row, idx) => {
-              // Fix: Matched if it has an ID (existing item) OR matches a name
-              const matched = isUpdate && (
-                (row.id && menuItems.some(m => m.id === row.id)) || 
-                menuItems.some(i => i.name.trim().toLowerCase() === row.name?.trim().toLowerCase())
-              );
-
+              const matched = isUpdate && menuItems.some(m => m.id === row.id || m.name.toLowerCase() === row.name?.toLowerCase());
               const valid = !isUpdate && row.name && row.fullPrice && !isNaN(parseFloat(row.fullPrice));
-              const statusColor = isUpdate ? (matched ? (row.fullPrice ? "bg-yellow-500" : "bg-green-500") : "bg-red-500") : (valid ? "bg-green-500" : (row.name ? "bg-red-500" : "bg-gray-300"));
+              const statusColor = isUpdate ? (matched ? "bg-green-500" : "bg-red-500") : (valid ? "bg-green-500" : (row.name ? "bg-red-500" : "bg-gray-300"));
               
               if (!cellRefs.current[idx]) cellRefs.current[idx] = [];
 
               return (
                 <tr key={idx} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2 text-center"><span className={`inline-block w-3 h-3 rounded-full ${statusColor}`}></span></td>
-                  {['name', 'fullPrice', 'halfPrice', 'quarterPrice', 'ingredients', 'specialNote'].map((field, ci) => (
-                    <td key={field}>
-                      <input
-                        ref={el => cellRefs.current[idx][ci] = el}
-                        type="text"
-                        value={row[field] || ""}
-                        placeholder={isUpdate && matched && field !== 'name' ? "no change" : (field.includes('Price') ? '0.00' : '')}
-                        onChange={(e) => handleBulkChange(idx, field, e.target.value)}
-                        onKeyDown={(e) => handleKey(e, idx, ci)}
-                        className="w-full p-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
-                        dir="auto"
-                      />
+                  {['name', 'fullPrice', 'halfPrice', 'quarterPrice', 'category', 'ingredients', 'specialNote'].map((field, ci) => (
+                    <td key={field} className="px-1">
+                      {field === 'category' ? (
+                        <select
+                          ref={el => cellRefs.current[idx][ci] = el}
+                          value={row[field] || ""}
+                          onChange={(e) => setBulkItems(prev => { 
+                            const c = [...prev]; 
+                            c[idx] = { ...c[idx], [field]: e.target.value }; 
+                            return c; 
+                          })}
+                          onKeyDown={(e) => handleKey(e, idx, ci)}
+                          className="w-full p-2 bg-white border border-transparent focus:border-blue-300 focus:ring-1 focus:ring-blue-300 rounded outline-none"
+                        >
+                          <option value="">Select Category</option>
+                          {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          ref={el => cellRefs.current[idx][ci] = el}
+                          type="text"
+                          value={row[field] || ""}
+                          onChange={(e) => setBulkItems(prev => { 
+                            const c = [...prev]; 
+                            c[idx] = { ...c[idx], [field]: e.target.value }; 
+                            return c; 
+                          })}
+                          onKeyDown={(e) => handleKey(e, idx, ci)}
+                          className="w-full p-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-300 rounded"
+                        />
+                      )}
                     </td>
                   ))}
                   <td className="text-center">
@@ -262,17 +287,17 @@ const Menu = () => {
             <p className="mt-1 text-gray-500">{selection.active ? t.selectSubtitle : t.menuSubtitle}</p>
           </div>
           <div className="flex gap-2">
-            {selection.active ? (
-              <>
-                <button onClick={() => setSelection(p => ({ ...p, items: p.items.length === menuItems.length ? [] : menuItems.map(i => i.id) }))} className="btn-secondary">{selection.items.length === menuItems.length ? t.deselectAll : t.selectAll}</button>
-                <button onClick={() => toggleModal('confirm')} disabled={!selection.items.length} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{t.delete}</button>
-                <button onClick={() => setSelection({ active: false, items: [], deleting: false })} className="btn-secondary">{t.cancel}</button>
-              </>
-            ) : (
+            {!selection.active ? (
               <>
                 <button onClick={() => toggleModal('bulkSelect')} className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-800">{t.bulkActions}</button>
                 <button onClick={() => toggleModal('single')} className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">{t.addNewItem}</button>
                 <button onClick={() => setSelection({ active: true, items: [], deleting: false })} className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">{t.selectItems}</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setSelection(p => ({ ...p, items: p.items.length === menuItems.length ? [] : menuItems.map(i => i.id) }))} className="px-4 py-2 bg-gray-200 rounded-lg">{selection.items.length === menuItems.length ? t.deselectAll : t.selectAll}</button>
+                <button onClick={() => toggleModal('confirm')} disabled={!selection.items.length} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{t.delete}</button>
+                <button onClick={() => setSelection({ active: false, items: [], deleting: false })} className="px-4 py-2 bg-gray-200 rounded-lg">{t.cancel}</button>
               </>
             )}
           </div>
@@ -286,7 +311,14 @@ const Menu = () => {
             </button>
           )}
           {menuItems.map(item => (
-            <MenuItemCard key={item.id} item={item} selectionMode={selection.active} isSelected={selection.items.includes(item.id)} onSelect={() => toggleSelect(item.id)} currency={settings.currencySymbol} />
+            <MenuItemCard 
+              key={item.id} 
+              item={item} 
+              selectionMode={selection.active} 
+              isSelected={selection.items.includes(item.id)} 
+              onSelect={() => toggleSelect(item.id)} 
+              currency={settings.currencySymbol} 
+            />
           ))}
         </main>
       </div>
@@ -294,7 +326,7 @@ const Menu = () => {
       {/* Confirmation Modal */}
       <Modal isOpen={modals.confirm} onClose={() => toggleModal('confirm', false)}>
         <h2 className="text-2xl font-bold mb-4">{t.confirmDeleteTitle}</h2>
-        <p className="text-gray-600 mb-6">{t.confirmDeleteMsg} {selection.items.length} {t.items}</p>
+        <p className="text-gray-600 mb-6">{t.confirmDeleteMsg} {selection.items.length} items</p>
         <div className="flex justify-end gap-4">
           <button onClick={() => toggleModal('confirm', false)} className="px-6 py-2 bg-gray-200 rounded-lg">{t.cancel}</button>
           <button onClick={handleBulkDelete} disabled={selection.deleting} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{selection.deleting ? t.deleting : t.delete}</button>
@@ -305,43 +337,37 @@ const Menu = () => {
       <Modal isOpen={modals.single} onClose={() => toggleModal('single', false)}>
         <h2 className="text-2xl font-bold mb-5">{t.addItemTitle}</h2>
         <div className="space-y-4">
-          {[
-            { n: 'name', p: t.itemName }, 
-            { n: 'fullPrice', p: t.fullPrice, pre: settings.currencySymbol },
-            { n: 'halfPrice', p: t.halfPrice, pre: settings.currencySymbol },
-            { n: 'quarterPrice', p: t.quarterPrice, pre: settings.currencySymbol },
-            { n: 'ingredients', p: t.ingredients },
-            { n: 'specialNote', p: t.specialNote }
-          ].map(f => (
-            <div key={f.n} className="relative">
-              {f.pre && <span className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-2.5 text-gray-500`}>{f.pre}</span>}
-              <input 
-                name={f.n} 
-                value={newItem[f.n]} 
-                onChange={e => setNewItem(p => ({ ...p, [e.target.name]: e.target.value }))} 
-                placeholder={f.p} 
-                className={`w-full p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${f.pre ? (isRTL ? 'pr-8' : 'pl-8') : ''}`} 
-                dir="auto"
-              />
+          <div className="flex items-center gap-2">
+            <select
+              value={newItem.category}
+              onChange={e => setNewItem(p => ({ ...p, category: e.target.value }))}
+              className="flex-grow p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Category</option>
+              {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+            </select>
+            <button onClick={() => toggleModal('newCategory', !modals.newCategory)} className="p-2.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100">+</button>
+          </div>
+
+          {modals.newCategory && (
+            <div className="flex gap-2 p-3 bg-blue-50 rounded-lg animate-fade-in">
+                <input placeholder="New category name..." className="flex-grow p-2 border border-blue-200 rounded-md" value={tempCategory} onChange={e => setTempCategory(e.target.value)} />
+                <button onClick={handleAddNewCategory} className="bg-blue-600 text-white px-4 py-1 rounded-md hover:bg-blue-700">Add</button>
             </div>
-          ))}
+          )}
+
+          <input placeholder={t.itemName} value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
+          <div className="relative">
+            <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
+            <input placeholder={t.fullPrice} value={newItem.fullPrice} onChange={e => setNewItem(p => ({ ...p, fullPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+          </div>
         </div>
         <div className="flex justify-end mt-6">
-          <button onClick={handleAddItem} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold">{t.done}</button>
+          <button onClick={handleAddItem} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">{t.done}</button>
         </div>
       </Modal>
 
-      {/* Bulk Select Modal */}
-      <Modal isOpen={modals.bulkSelect} onClose={() => toggleModal('bulkSelect', false)}>
-        <h2 className="text-2xl font-bold mb-4">{t.bulkActionTitle}</h2>
-        <p className="text-gray-600 mb-6">{t.bulkActionSubtitle}</p>
-        <div className="space-y-4">
-          <button onClick={() => initBulk('bulkAdd')} className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">{t.addNewItemsBtn}</button>
-          <button onClick={() => initBulk('bulkUpdate')} className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">{t.updateExistingBtn}</button>
-        </div>
-      </Modal>
-
-      {/* Shared Bulk Modal (Add & Update) */}
+      {/* Shared Bulk Modal */}
       {(modals.bulkAdd || modals.bulkUpdate) && (
         <Modal isOpen={true} onClose={() => { toggleModal('bulkAdd', false); toggleModal('bulkUpdate', false); }} size="5xl">
           <div className="flex flex-col h-full">
@@ -350,18 +376,24 @@ const Menu = () => {
               <p className="text-gray-600 mt-1">{modals.bulkAdd ? t.bulkAddSubtitle : t.bulkUpdateSubtitle}</p>
             </div>
             {renderBulkTable(modals.bulkUpdate)}
-            <div className="flex flex-col sm:flex-row items-center justify-between mt-6">
-              <div className="flex gap-2">
-                <button onClick={() => setBulkItems(p => [...p, { name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "" }])} className="bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 font-semibold">{t.addRow}</button>
-                <button onClick={() => setBulkItems(modals.bulkAdd ? [{ name: "", fullPrice: "" }] : [])} className="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">{t.clearAll}</button>
-              </div>
-              <button onClick={() => handleBulkSubmit(modals.bulkUpdate)} disabled={isProcessing} className={`px-6 py-2.5 rounded-lg text-white font-semibold w-32 ${isProcessing ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                {isProcessing ? (modals.bulkUpdate ? t.updating : t.adding) : (modals.bulkUpdate ? t.updateItems : t.addItems)}
+            <div className="flex items-center justify-between mt-6">
+              <button onClick={() => setBulkItems(p => [...p, { name: "", fullPrice: "", halfPrice: "", quarterPrice: "", category: "", ingredients: "", specialNote: "" }])} className="bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 font-semibold">{t.addRow}</button>
+              <button onClick={() => handleBulkSubmit(modals.bulkUpdate)} disabled={isProcessing} className={`px-8 py-2.5 rounded-lg text-white font-bold ${isProcessing ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                {isProcessing ? t.processing : (modals.bulkUpdate ? t.updateItems : t.addItems)}
               </button>
             </div>
           </div>
         </Modal>
       )}
+
+      {/* Bulk Select Options */}
+      <Modal isOpen={modals.bulkSelect} onClose={() => toggleModal('bulkSelect', false)}>
+        <h2 className="text-2xl font-bold mb-4">{t.bulkActionTitle}</h2>
+        <div className="space-y-4">
+          <button onClick={() => initBulk('bulkAdd')} className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-bold">{t.addNewItemsBtn}</button>
+          <button onClick={() => initBulk('bulkUpdate')} className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-bold">{t.updateExistingBtn}</button>
+        </div>
+      </Modal>
     </div>
   );
 };

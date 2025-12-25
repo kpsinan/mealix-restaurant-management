@@ -2,17 +2,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowTrendingUpIcon, // Replaced ChartBarSquareIcon
+  ArrowTrendingUpIcon,
   BanknotesIcon,
   UsersIcon,
   UserGroupIcon,
   DocumentChartBarIcon,
 } from '@heroicons/react/24/outline';
 
-// Data for all report cards
 const reportCategories = [
   {
-    isLink: true, // Flag to identify the link card
+    isLink: true,
     to: '/reports/sales-and-revenue',
     title: 'Sales & Revenue Reports',
     description: 'Track daily, weekly, and monthly sales performance and revenue streams.',
@@ -32,19 +31,22 @@ const reportCategories = [
     color: 'purple'
   },
   {
+    isLink: true, // Link enabled
+    to: '/staff-and-hr', // Pointing to your new page
     title: 'Staff & HR Reports',
     description: 'Monitor staff performance, work hours, tips, and payroll data.',
     icon: <UserGroupIcon className="h-8 w-8 text-red-500" />,
     color: 'red'
   },
   {
+    isLink: true,
+    to: '/reports/analytical',
     title: 'Analytical & Comparative Reports',
     description: 'Compare performance across different time periods or menu items.',
     icon: <DocumentChartBarIcon className="h-8 w-8 text-indigo-500" />,
     color: 'indigo'
   },
 ];
-
 
 const Reports = () => {
   return (
@@ -84,7 +86,7 @@ const Reports = () => {
                 <p className="text-gray-600 text-sm">{report.description}</p>
               </div>
               <div className="mt-6">
-                <span className={`font-semibold text-gray-400`}>
+                <span className="font-semibold text-gray-400">
                   Coming Soon
                 </span>
               </div>
