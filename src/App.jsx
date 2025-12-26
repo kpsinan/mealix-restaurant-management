@@ -5,6 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import NetworkHandler from './components/NetworkHandler';
+import StaffDirectory from './pages/hr/StaffDirectory';
 
 // Core Pages
 import Home from './pages/Home';
@@ -16,6 +17,7 @@ import Kitchen from './pages/Kitchen';
 import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import StaffAndHR from './pages/StaffAndHR';
+import Attendance from './pages/Attendance';
 
 // Reports Hubs
 import Reports from './pages/Reports';
@@ -77,6 +79,7 @@ const App = () => {
               <Route path="/staff" element={<Staff />} />
               <Route path="/kitchen" element={<Kitchen />} />
               <Route path="/billing" element={<Billing />} />
+              <Route path="/hr/directory" element={<StaffDirectory />} />
 
               {/* Reports Hubs */}
               <Route path="/reports" element={<Reports />} />
@@ -148,6 +151,7 @@ const App = () => {
 
               {/* Settings */}
               <Route path="/settings" element={<Settings />} />
+              <Route path="/attendance" element={<Attendance />} />
             </Routes>
           </div>
         </main>

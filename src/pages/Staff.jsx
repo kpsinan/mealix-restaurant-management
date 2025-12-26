@@ -1,242 +1,341 @@
-// Staff.jsx
-import React, { useState, useEffect } from 'react';
-import { getStaff, addStaff, addStaffInBulk } from '../firebase/firebase';
-import Modal from '../components/Modal'; // Assuming Modal component exists and is styled
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // <--- 1. Import useNavigate
+import {
+  getStaff,
+  addStaff,
+  addStaffInBulk,
+  deleteStaff,
+  deleteStaffInBulk,
+} from "../firebase/firebase";
+import Modal from "../components/Modal";
 
-// --- SVG Icons ---
-const UserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
-const PhoneIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-);
-const LocationIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657l-4.243 4.243a2 2 0 01-2.828 0l-4.242-4.242a8 8 0 1111.313 0z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-const SpinnerIcon = () => (
-    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-);
-
-// UPDATED BulkAddIcon
-const BulkAddIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0 M3 21v-2a4 4 0 0 1 4 -4h4c.96 0 1.84 .338 2.53 .901 M16 3.13a4 4 0 0 1 0 7.75 M16 19h6 M19 16v6" />
+/* ---------------- ICONS ---------------- */
+const CheckIcon = () => <span className="text-indigo-600 font-bold">✓</span>;
+const TrashIcon = () => <span className="text-rose-600 font-bold">🗑</span>;
+const PlusIcon = () => <span className="font-bold text-xl">+</span>;
+const AttendanceIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
   </svg>
 );
 
-
-const initialNewStaffState = { name: '', contact: '', address: '' };
-const initialBulkRow = { name: '', contact: '', address: '' };
-
+/* ---------------- COMPONENT ---------------- */
 const Staff = () => {
+  const navigate = useNavigate(); // <--- 2. Initialize the hook
+  
   const [staff, setStaff] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newStaff, setNewStaff] = useState(initialNewStaffState);
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [bulkStaff, setBulkStaff] = useState([initialBulkRow]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
+
+  const [newStaff, setNewStaff] = useState({
+    name: "",
+    contact: "",
+    address: "",
+  });
+
+  const [bulkRows, setBulkRows] = useState([
+    { name: "", contact: "", address: "" },
+  ]);
+
+  /* ---------------- LOAD ---------------- */
+  const loadStaff = async () => {
+    const data = await getStaff();
+    setStaff(data);
+    setSelected([]);
+  };
 
   useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const staffData = await getStaff();
-        setStaff(staffData);
-      } catch (error) {
-        console.error('Error loading staff:', error);
-      }
-    };
-    fetchStaff();
+    loadStaff();
   }, []);
 
-  const handleNewStaffChange = (e) => {
-    const { name, value } = e.target;
-    setNewStaff(prev => ({ ...prev, [name]: value }));
-  };
-
+  /* ---------------- ADD ---------------- */
   const handleAddStaff = async () => {
-    if (!newStaff.name.trim()) {
-      alert('Staff name is required.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const addedStaff = await addStaff(newStaff);
-      setStaff([...staff, addedStaff]);
-      setNewStaff(initialNewStaffState);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error adding staff:', error);
-      alert('Failed to add staff member.');
-    } finally {
-      setIsLoading(false);
-    }
+    if (!newStaff.name.trim()) return alert("Name required");
+    setLoading(true);
+    await addStaff(newStaff);
+    setNewStaff({ name: "", contact: "", address: "" });
+    setIsAddOpen(false);
+    await loadStaff();
+    setLoading(false);
   };
 
-  const handleBulkStaffChange = (index, e) => {
-    const { name, value } = e.target;
-    const list = [...bulkStaff];
-    list[index][name] = value;
-    setBulkStaff(list);
+  /* ---------------- BULK ADD ---------------- */
+  const handleBulkAdd = async () => {
+    const valid = bulkRows.filter((r) => r.name.trim());
+    if (!valid.length) return alert("No valid rows");
+    setLoading(true);
+    await addStaffInBulk(valid);
+    setBulkRows([{ name: "", contact: "", address: "" }]);
+    setIsBulkOpen(false);
+    await loadStaff();
+    setLoading(false);
   };
 
-  const addBulkRow = () => {
-    setBulkStaff([...bulkStaff, { ...initialBulkRow }]);
+  /* ---------------- DELETE ---------------- */
+  const handleDeleteOne = async (id) => {
+    if (!window.confirm("Delete this staff member?")) return;
+    await deleteStaff(id);
+    await loadStaff();
   };
 
-  const handleBulkSubmit = async () => {
-    const validStaff = bulkStaff.filter(member => member.name.trim() !== '');
-    if (validStaff.length === 0) {
-      alert("Please enter a name for at least one staff member.");
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      await addStaffInBulk(validStaff);
-      const staffData = await getStaff();
-      setStaff(staffData);
-      setBulkStaff([initialBulkRow]);
-      setIsBulkModalOpen(false);
-    } catch (error) {
-      console.error('Error adding staff in bulk:', error);
-      alert('Failed to add staff members in bulk.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleBulkDelete = async () => {
+    if (!selected.length) return;
+    if (!window.confirm(`Delete ${selected.length} staff?`)) return;
+    await deleteStaffInBulk(selected);
+    await loadStaff();
   };
 
-  const handleKeyDown = (e, rowIndex, colIndex) => {
-    const { key, shiftKey } = e;
-    const keyMap = { ArrowDown: { r: 1, c: 0 }, Enter: { r: 1, c: 0, cond: !shiftKey }, ArrowUp: { r: -1, c: 0 }, ArrowRight: { r: 0, c: 1 }, Tab: { r: 0, c: 1, cond: !shiftKey }, ArrowLeft: { r: 0, c: -1 }, };
-    let move = null;
-    if (key === 'Tab' && shiftKey) move = { r: 0, c: -1 };
-    else if (keyMap[key] && (keyMap[key].cond !== false)) move = keyMap[key];
-    if (!move) return;
-    e.preventDefault();
-    let nextRow = rowIndex + move.r, nextCol = colIndex + move.c;
-    if (nextCol > 2) { nextCol = 0; nextRow++; }
-    if (nextCol < 0) { nextCol = 2; nextRow--; }
-    if ((key === 'ArrowDown' || (key === 'Enter' && !shiftKey)) && rowIndex === bulkStaff.length - 1) {
-      addBulkRow();
-      setTimeout(() => { document.querySelector(`[data-row='${nextRow}'][data-col='${colIndex}']`)?.focus(); }, 0);
-      return;
-    }
-    const nextInput = document.querySelector(`[data-row='${nextRow}'][data-col='${nextCol}']`);
-    if (nextInput) { nextInput.focus(); nextInput.select(); }
-  };
+  /* ---------------- SELECT ---------------- */
+  const toggleSelect = (id) =>
+    setSelected((p) =>
+      p.includes(id) ? p.filter((x) => x !== id) : [...p, id]
+    );
 
+  const toggleSelectAll = () =>
+    setSelected(
+      selected.length === staff.length ? [] : staff.map((s) => s.id)
+    );
+
+  /* ---------------- UI ---------------- */
   return (
-    <div className="bg-slate-50 min-h-full p-4 sm:p-6 lg:p-8">
-      <div className="container mx-auto">
-        {/* --- Header --- */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-800">Staff Management</h1>
-          <p className="text-slate-500 mt-1">Add, view, and manage your team members.</p>
-        </div>
+    <div className="p-6 bg-slate-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
 
-        {/* --- Main Grid --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <button onClick={() => setIsModalOpen(true)} className="group bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center min-h-[16rem] text-center p-6 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="font-semibold mt-2">Add New Staff</span>
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-800">
+              Staff Management
+            </h1>
+            <p className="text-slate-500 text-sm">
+              Manage employees, contacts & unique IDs
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {/* NAVIGATION BUTTON TO ATTENDANCE */}
+            <button
+              onClick={() => navigate('/attendance')} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition"
+            >
+              <AttendanceIcon />
+              Mark Attendance
             </button>
-            {staff.map((member) => (
-            <div key={member.id} className="bg-white rounded-xl shadow-md min-h-[16rem] p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
-                   <UserIcon />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-xl font-bold text-slate-800 break-words">{member.name}</h3>
-                </div>
-              </div>
-              <div className="space-y-3 text-sm text-slate-600 mt-4">
-                {member.contact && (
-                  <p className="flex items-center break-all"><PhoneIcon />{member.contact}</p>
-                )}
-                {member.address && (
-                  <p className="flex items-start break-all"><LocationIcon />{member.address}</p>
-                )}
-              </div>
-            </div>
-          ))}
+
+            {selected.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="bg-rose-100 text-rose-600 px-4 py-2 rounded-lg font-semibold hover:bg-rose-200"
+              >
+                <TrashIcon /> Delete ({selected.length})
+              </button>
+            )}
+
+            <button
+              onClick={() => setIsBulkOpen(true)}
+              className="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-slate-900 transition"
+            >
+              Bulk Add
+            </button>
+
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center gap-1"
+            >
+              <PlusIcon /> Add Staff
+            </button>
+          </div>
         </div>
 
-        {/* --- Single Add Modal --- */}
-        <Modal isOpen={isModalOpen} onClose={() => !isLoading && setIsModalOpen(false)}>
-          <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-            <h2 className="text-2xl font-bold text-slate-800">Add New Staff</h2>
-            <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 disabled:opacity-50" disabled={isLoading}>&times;</button>
-          </div>
-          <div className="mt-6 space-y-4">
-            <input type="text" name="name" value={newStaff.name} onChange={handleNewStaffChange} placeholder="Enter staff name *" className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100" disabled={isLoading}/>
-            <input type="text" name="contact" value={newStaff.contact} onChange={handleNewStaffChange} placeholder="Contact Details (e.g., phone)" className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100" disabled={isLoading}/>
-            <input type="text" name="address" value={newStaff.address} onChange={handleNewStaffChange} placeholder="Address" className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100" disabled={isLoading}/>
-          </div>
-          <div className="flex justify-end mt-6 space-x-4">
-             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50" disabled={isLoading}>Cancel</button>
-             <button onClick={handleAddStaff} className="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center disabled:bg-indigo-400" disabled={isLoading}>
-                {isLoading ? <><SpinnerIcon /> Saving...</> : 'Save Staff'}
-             </button>
-          </div>
-        </Modal>
-
-        {/* --- Bulk Add Modal --- */}
-        <Modal isOpen={isBulkModalOpen} onClose={() => !isLoading && setIsBulkModalOpen(false)} size="xl">
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-                <h2 className="text-2xl font-bold text-slate-800">Bulk Add Staff</h2>
-                <button onClick={() => setIsBulkModalOpen(false)} className="text-slate-400 hover:text-slate-600 disabled:opacity-50" disabled={isLoading}>&times;</button>
-            </div>
-            <p className="text-sm text-slate-500 my-4">Use Arrow Keys, Tab, or Enter to navigate. A new row is added automatically.</p>
-            <div className="w-full max-h-[60vh] overflow-auto border border-slate-200 rounded-lg">
-                <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-slate-100 z-10">
-                    <tr>
-                    <th className="p-3 font-semibold text-left text-slate-600">Name *</th>
-                    <th className="p-3 font-semibold text-left text-slate-600">Contact Details</th>
-                    <th className="p-3 font-semibold text-left text-slate-600">Address</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {bulkStaff.map((member, index) => (
-                    <tr key={index} className="even:bg-slate-50">
-                        <td><input type="text" name="name" value={member.name} onChange={(e) => handleBulkStaffChange(index, e)} onKeyDown={(e) => handleKeyDown(e, index, 0)} data-row={index} data-col={0} placeholder={`Staff ${index + 1}`} className="w-full p-3 bg-transparent focus:outline-none focus:bg-white focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100" disabled={isLoading}/></td>
-                        <td><input type="text" name="contact" value={member.contact} onChange={(e) => handleBulkStaffChange(index, e)} onKeyDown={(e) => handleKeyDown(e, index, 1)} data-row={index} data-col={1} placeholder="Contact" className="w-full p-3 bg-transparent focus:outline-none focus:bg-white focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100" disabled={isLoading}/></td>
-                        <td><input type="text" name="address" value={member.address} onChange={(e) => handleBulkStaffChange(index, e)} onKeyDown={(e) => handleKeyDown(e, index, 2)} data-row={index} data-col={2} placeholder="Address" className="w-full p-3 bg-transparent focus:outline-none focus:bg-white focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100" disabled={isLoading}/></td>
-                    </tr>
-                    ))}
-                </tbody>
-                </table>
-            </div>
-            <div className="flex justify-between items-center mt-6">
-                <button onClick={addBulkRow} className="text-indigo-600 font-semibold hover:text-indigo-800 transition-colors disabled:opacity-50" disabled={isLoading}>+ Add Row</button>
-                <div className="flex space-x-4">
-                    <button onClick={() => setIsBulkModalOpen(false)} className="px-6 py-2 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50" disabled={isLoading}>Cancel</button>
-                    <button onClick={handleBulkSubmit} className="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center disabled:bg-indigo-400" disabled={isLoading}>
-                        {isLoading ? <><SpinnerIcon /> Saving...</> : 'Save All'}
+        {/* TABLE */}
+        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100 text-slate-600">
+              <tr>
+                <th className="p-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={selected.length === staff.length && staff.length > 0}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+                <th className="p-3 text-left">Staff ID</th>
+                <th className="p-3 text-left">Name</th>
+                <th className="p-3 text-left">Contact</th>
+                <th className="p-3 text-left">Address</th>
+                <th className="p-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {staff.map((s) => (
+                <tr
+                  key={s.id}
+                  className="border-t hover:bg-slate-50 transition"
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(s.id)}
+                      onChange={() => toggleSelect(s.id)}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <span className="font-mono text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded border border-indigo-100">
+                      {s.staffId || "Generating..."}
+                    </span>
+                  </td>
+                  <td className="p-3 font-semibold text-slate-800">
+                    {s.name}
+                  </td>
+                  <td className="p-3">{s.contact || "—"}</td>
+                  <td className="p-3 max-w-xs truncate">
+                    {s.address || "—"}
+                  </td>
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={() => handleDeleteOne(s.id)}
+                      className="text-rose-500 hover:text-rose-700"
+                    >
+                      <TrashIcon />
                     </button>
-                </div>
-            </div>
-        </Modal>
+                  </td>
+                </tr>
+              ))}
 
-        {/* --- Floating Action Button for Bulk Add --- */}
-        <button onClick={() => setIsBulkModalOpen(true)} className="fixed bottom-8 right-8 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-110">
-          <BulkAddIcon />
-        </button>
+              {!staff.length && (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="text-center p-6 text-slate-400"
+                  >
+                    No staff found. Click "Add Staff" to begin.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* ADD MODAL */}
+      <Modal isOpen={isAddOpen} onClose={() => !loading && setIsAddOpen(false)}>
+        <h2 className="text-xl font-bold mb-4">Add New Staff</h2>
+        <p className="text-sm text-slate-500 mb-4">A unique Staff ID will be assigned automatically upon saving.</p>
+        <div className="space-y-3">
+          <input
+            placeholder="Full Name"
+            className="w-full input"
+            value={newStaff.name}
+            onChange={(e) =>
+              setNewStaff({ ...newStaff, name: e.target.value })
+            }
+          />
+          <input
+            placeholder="Contact Number"
+            className="w-full input"
+            value={newStaff.contact}
+            onChange={(e) =>
+              setNewStaff({ ...newStaff, contact: e.target.value })
+            }
+          />
+          <input
+            placeholder="Home Address"
+            className="w-full input"
+            value={newStaff.address}
+            onChange={(e) =>
+              setNewStaff({ ...newStaff, address: e.target.value })
+            }
+          />
+          <button
+            onClick={handleAddStaff}
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition"
+          >
+            {loading ? "Saving..." : "Save Staff Member"}
+          </button>
+        </div>
+      </Modal>
+
+      {/* BULK MODAL */}
+      <Modal isOpen={isBulkOpen} onClose={() => !loading && setIsBulkOpen(false)} size="xl">
+        <h2 className="text-xl font-bold mb-4">Bulk Add Staff</h2>
+
+        <div className="max-h-80 overflow-y-auto border rounded-lg mb-4 shadow-inner">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-100 sticky top-0">
+              <tr>
+                <th className="p-2 text-left">Name</th>
+                <th className="p-2 text-left">Contact</th>
+                <th className="p-2 text-left">Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bulkRows.map((r, i) => (
+                <tr key={i} className="border-t">
+                  <td className="p-2">
+                    <input
+                      className="w-full input border-none focus:ring-0"
+                      placeholder="Name"
+                      value={r.name}
+                      onChange={(e) => {
+                        const c = [...bulkRows];
+                        c[i].name = e.target.value;
+                        setBulkRows(c);
+                      }}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      className="w-full input border-none focus:ring-0"
+                      placeholder="Contact"
+                      value={r.contact}
+                      onChange={(e) => {
+                        const c = [...bulkRows];
+                        c[i].contact = e.target.value;
+                        setBulkRows(c);
+                      }}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      className="w-full input border-none focus:ring-0"
+                      placeholder="Address"
+                      value={r.address}
+                      onChange={(e) => {
+                        const c = [...bulkRows];
+                        c[i].address = e.target.value;
+                        setBulkRows(c);
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() =>
+              setBulkRows([...bulkRows, { name: "", contact: "", address: "" }])
+            }
+            className="text-indigo-600 font-bold hover:text-indigo-800 transition"
+          >
+            + Add Another Row
+          </button>
+
+          <button
+            onClick={handleBulkAdd}
+            disabled={loading}
+            className="bg-indigo-600 text-white px-8 py-2 rounded-lg font-bold shadow-md hover:bg-indigo-700 disabled:opacity-50 transition"
+          >
+            {loading ? "Importing..." : "Import All"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };
