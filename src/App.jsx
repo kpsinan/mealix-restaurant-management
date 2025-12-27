@@ -34,16 +34,20 @@ import OrderTypeReport from './pages/OrderTypeReport';
 import HourlySalesReport from './pages/HourlySalesReport';
 import TimeComparisonReport from './pages/TimeComparisonReport';
 
-// Analytical Sub-Reports (Existing)
+// Analytical Sub-Reports
 import SalesTrendAnalysis from './pages/SalesTrendAnalysis';
 import PeakTimeAnalysis from './pages/PeakTimeAnalysis';
 import MenuPerformance from './pages/MenuPerformance';
-
-// Analytical Sub-Reports (NEW - Ensure these are in src/pages/reports/)
 import CategoryContribution from './pages/CategoryContribution';
 import TableUtilization from './pages/TableUtilization';
 import AbvAnalysis from './pages/AbvAnalysis';
 
+// HR Analytical Pages
+import StaffOrderVolume from './pages/hr/StaffOrderVolume';
+import StaffSalesContribution from './pages/hr/StaffSalesContribution';
+import StaffProductivityKPI from './pages/hr/StaffProductivityKPI'; // <--- NEW IMPORT
+import ActivityEngagementMonitor from './pages/hr/ActivityEngagementMonitor';
+import StaffLoadRevenueBalance from './pages/hr/StaffLoadRevenueBalance';
 
 // Others
 import SmartAssigner from './pages/SmartAssigner';
@@ -85,69 +89,34 @@ const App = () => {
               <Route path="/reports" element={<Reports />} />
               <Route path="/reports/sales" element={<SalesReport />} />
               <Route path="/reports/sales-and-revenue" element={<SalesAndRevenue />} />
-
-              {/* Analytical Reports Hub */}
               <Route path="/reports/analytical" element={<AnalyticalReports />} />
 
               {/* Analytical Sub Pages */}
-              <Route 
-                path="/reports/analytical/sales-trends" 
-                element={<SalesTrendAnalysis />} 
-              />
-              <Route 
-                path="/reports/analytical/peak-times" 
-                element={<PeakTimeAnalysis />} 
-              />
-              <Route 
-                path="/reports/analytical/menu-performance" 
-                element={<MenuPerformance />} 
-              />
-              <Route 
-                path="/reports/analytical/time-comparison" 
-                element={<TimeComparisonReport />} 
-              />
+              <Route path="/reports/analytical/sales-trends" element={<SalesTrendAnalysis />} />
+              <Route path="/reports/analytical/peak-times" element={<PeakTimeAnalysis />} />
+              <Route path="/reports/analytical/menu-performance" element={<MenuPerformance />} />
+              <Route path="/reports/analytical/time-comparison" element={<TimeComparisonReport />} />
+              <Route path="/reports/analytical/category-contribution" element={<CategoryContribution />} />
+              <Route path="/reports/analytical/table-utilization" element={<TableUtilization />} />
+              <Route path="/reports/analytical/abv-analysis" element={<AbvAnalysis />} />
+              
+              {/* HR Hub */}
               <Route path="/staff-and-hr" element={<StaffAndHR />} />
 
-              {/* --- NEW ANALYTICAL ROUTES --- */}
-              <Route 
-                path="/reports/analytical/category-contribution" 
-                element={<CategoryContribution />} 
-              />
-              <Route 
-                path="/reports/analytical/table-utilization" 
-                element={<TableUtilization />} 
-              />
-              <Route 
-                path="/reports/analytical/abv-analysis" 
-                element={<AbvAnalysis />} 
-              />
-              {/* ----------------------------- */}
-
+              {/* HR Analytics Routes */}
+              <Route path="/hr/staff-order-volume" element={<StaffOrderVolume />} />
+              <Route path="/hr/sales-contribution" element={<StaffSalesContribution />} />
+              <Route path="/hr/productivity-kpi" element={<StaffProductivityKPI />} /> {/* <--- NEW ROUTE */}
+              <Route path="/hr/activity-monitor" element={<ActivityEngagementMonitor />} />
+              <Route path="/hr/load-revenue-balance" element={<StaffLoadRevenueBalance />} />
+              
               {/* Other Reports */}
-              <Route 
-                path="/reports/item-wise-sales" 
-                element={<ItemWiseSalesReport />} 
-              />
-              <Route 
-                path="/reports/table-wise-sales" 
-                element={<TableWiseSalesReport />} 
-              />
-              <Route 
-                path="/reports/payment-mode" 
-                element={<PaymentModeReport />} 
-              />
-              <Route 
-                path="/reports/discounts" 
-                element={<DiscountsReport />} 
-              />
-              <Route 
-                path="/reports/order-type" 
-                element={<OrderTypeReport />} 
-              />
-              <Route 
-                path="/reports/hourly-sales" 
-                element={<HourlySalesReport />} 
-              />
+              <Route path="/reports/item-wise-sales" element={<ItemWiseSalesReport />} />
+              <Route path="/reports/table-wise-sales" element={<TableWiseSalesReport />} />
+              <Route path="/reports/payment-mode" element={<PaymentModeReport />} />
+              <Route path="/reports/discounts" element={<DiscountsReport />} />
+              <Route path="/reports/order-type" element={<OrderTypeReport />} />
+              <Route path="/reports/hourly-sales" element={<HourlySalesReport />} />
 
               {/* Settings */}
               <Route path="/settings" element={<Settings />} />

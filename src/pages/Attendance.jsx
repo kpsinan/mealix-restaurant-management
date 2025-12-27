@@ -65,13 +65,14 @@ const Attendance = () => {
     loadData();
   }, [filterStaff]);
 
-  /* ---------------- LOGIC: CALCULATE SUMMARY ---------------- */
+  /* ---------------- LOGIC: CALCULATE SUMMARY (FIXED) ---------------- */
   const getSummaryData = () => {
     const summary = {};
 
-    // Group records by Date + Staff
+    // 1. Group records by Date + Staff
     history.forEach(rec => {
-      const dateKey = rec.dateStr;
+      // Ensure dateStr is uniform (e.g. YYYY-MM-DD)
+      const dateKey = rec.dateStr; 
       const staffKey = rec.staffId;
       const combinedKey = `${dateKey}_${staffKey}`;
 
@@ -89,23 +90,37 @@ const Attendance = () => {
     });
 
     return Object.values(summary).map(day => {
-      // Sort records for this day ascending to calculate duration
+      // 2. Sort records ascending by time
       const sorted = day.records.sort((a, b) => a.timestamp - b.timestamp);
+      
       let totalMs = 0;
       let lastInTime = null;
 
       sorted.forEach(r => {
         if (r.type === "in") {
+          // Track the very first punch of the day
           if (!day.firstIn) day.firstIn = r.timestamp;
-          lastInTime = r.timestamp;
-        } else if (r.type === "out" && lastInTime) {
-          totalMs += (r.timestamp - lastInTime);
-          day.lastOut = r.timestamp;
-          lastInTime = null;
+
+          // FIX: Only start a new session if we aren't already "in".
+          // This prevents accidental double "IN" punches from resetting the clock.
+          if (lastInTime === null) {
+            lastInTime = r.timestamp;
+          }
+        } else if (r.type === "out") {
+          // Only calculate duration if we have a valid "in" time
+          if (lastInTime !== null) {
+            totalMs += (r.timestamp - lastInTime);
+            day.lastOut = r.timestamp;
+            
+            // Close the session
+            lastInTime = null; 
+          }
         }
       });
 
+      // Convert to hours (2 decimal places)
       const hours = (totalMs / (1000 * 60 * 60)).toFixed(2);
+      
       return { ...day, activeHours: hours };
     });
   };
