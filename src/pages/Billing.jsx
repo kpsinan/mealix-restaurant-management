@@ -143,6 +143,8 @@ const Billing = () => {
   // --- 3. Keyboard Navigation (Restored Original Logic) ---
   useEffect(() => {
     const kbd = (e) => {
+      const isInput = document.activeElement.tagName === 'INPUT';
+
       if (e.ctrlKey && e.key.toLowerCase() === 'p') { e.preventDefault(); handlePrint(); return; }
       
       const setters = { 'F3': ['orderType','Dine-In'], 'F4': ['orderType','Takeaway'], 'F7': ['paymentMode','Cash'], 'F8': ['paymentMode','Card'], 'F9': ['paymentMode','UPI'] };
@@ -152,7 +154,38 @@ const Billing = () => {
           showToast(`${setters[e.key][1]} Mode`, "info"); 
           return; 
       }
+
+      // F1: Focus Table Select
+      if (e.key === 'F1') {
+          e.preventDefault();
+          tableSelectRef.current?.focus();
+          return;
+      }
+
+      // F2: Focus Discount
+      if (e.key === 'F2') {
+          e.preventDefault();
+          const discountEl = document.getElementById('discount-input');
+          if (discountEl) {
+              discountEl.focus();
+              discountEl.select();
+          }
+          return;
+      }
+
+      // Escape: Clear Selection
+      if (e.key === 'Escape') {
+          e.preventDefault();
+          setBillDetails(null);
+          setUi(p => ({ ...p, selectedTableId: "", highlightedIndex: -1, discount: 0 }));
+          tableSelectRef.current?.blur();
+          document.activeElement?.blur();
+          return;
+      }
       
+      // Avoid hijacking arrow keys if user is typing in an input
+      if (isInput && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter')) return;
+
       // ARROW KEYS: Update Highlight Index ONLY (Visual Scrolling)
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
@@ -232,7 +265,7 @@ const Billing = () => {
         </div>
 
         <div className="mt-6 pt-6 border-t">
-          <label htmlFor="table-select" className="block text-sm font-medium text-gray-700 mb-1">Select Occupied Table (Use ↑↓ & Enter)</label>
+          <label htmlFor="table-select" className="block text-sm font-medium text-gray-700 mb-1">Select Occupied Table (F1 to Focus, ↑↓ & Enter to Select, Esc to Clear)</label>
           <select 
             id="table-select"
             ref={tableSelectRef} 

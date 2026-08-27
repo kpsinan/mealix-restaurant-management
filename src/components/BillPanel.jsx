@@ -135,6 +135,7 @@ const BillPanel = forwardRef(
             <div className="discount-control">
               <span>{currencySymbol}{Number(discount).toFixed(2)}</span>
               <input
+                id="discount-input"
                 type="number"
                 value={discount}
                 onChange={onDiscountChange}
