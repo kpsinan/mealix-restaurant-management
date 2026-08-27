@@ -1,7 +1,7 @@
 // src/components/Sidebar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import db, { auth } from "../firebase/firebase"; // Importing the initialized Firestore and Auth instance
 import { getTranslation } from "../translations";
@@ -82,23 +82,24 @@ const Sidebar = () => {
     localStorage.setItem("sidebarOpen", JSON.stringify(isOpen));
   }, [isOpen]);
 
-  // 3. Real-time Listener for Language Settings from Firebase
+  // 3. Fetch Language Settings from Firebase (Optimized for cost efficiency: one-time read instead of real-time listener)
   useEffect(() => {
-    const settingsRef = doc(db, "settings", "appSettings");
-
-    const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.language) {
-          setLanguage(data.language);
+    const fetchSettings = async () => {
+      try {
+        const settingsRef = doc(db, "settings", "appSettings");
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.language) {
+            setLanguage(data.language);
+          }
         }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
       }
-    }, (error) => {
-      console.error("Error listening to settings:", error);
-    });
+    };
 
-    // Cleanup listener on unmount
-    return () => unsubscribe();
+    fetchSettings();
   }, []);
 
   const scrollbarHiddenStyle = {
@@ -218,9 +219,9 @@ const Sidebar = () => {
               }`}
             >
               <div className="px-4 py-3 border-b border-[#E5E7EB]">
-                <p className="font-semibold text-[#1F2937]">{t.sidebar.profileDefaultName}</p>
+                <p className="font-semibold text-[#1F2937]">{auth.currentUser?.displayName || t.sidebar.profileDefaultName}</p>
                 <p className="text-xs text-[#6B7280] truncate">
-                  {t.sidebar.profileDefaultEmail}
+                  {auth.currentUser?.email || t.sidebar.profileDefaultEmail}
                 </p>
               </div>
               <button className="flex w-full items-center px-4 py-2.5 text-sm text-[#1F2937] hover:bg-[#ECFDF5] hover:text-[#10B981] transition-colors">
@@ -249,7 +250,7 @@ const Sidebar = () => {
                 <p className="font-semibold text-sm text-[#1F2937] leading-none">
                   {t.sidebar.manager}
                 </p>
-                <p className="text-[10px] text-[#6B7280] mt-1">{t.sidebar.admin}</p>
+                <p className="text-[10px] text-[#6B7280] mt-1 max-w-[120px] truncate">{auth.currentUser?.email || t.sidebar.admin}</p>
               </div>
             )}
           </div>

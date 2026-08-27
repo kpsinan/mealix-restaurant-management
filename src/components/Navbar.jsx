@@ -1,7 +1,7 @@
 // src/components/Navbar.jsx
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 /**
  * NOTE: For the purpose of this environment, we assume the existence of 
@@ -59,29 +59,26 @@ const Navbar = () => {
     }
   };
 
-  // 1. Real-time Listener for Language Settings from Firebase (Mirroring Sidebar.jsx)
+  // 1. Fetch Language Settings from Firebase (Optimized for cost efficiency: one-time read instead of real-time listener)
   useEffect(() => {
-    // Check if db is defined to prevent initial load errors if firebase isn't initialized
     if (!db) return;
 
-    const settingsRef = doc(db, "settings", "appSettings");
-
-    const unsubscribe = onSnapshot(
-      settingsRef,
-      (docSnap) => {
+    const fetchSettings = async () => {
+      try {
+        const settingsRef = doc(db, "settings", "appSettings");
+        const docSnap = await getDoc(settingsRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.language) {
             setLanguage(data.language);
           }
         }
-      },
-      (error) => {
-        console.error("Error listening to settings in Navbar:", error);
+      } catch (error) {
+        console.error("Error fetching settings in Navbar:", error);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    fetchSettings();
   }, []);
 
   // Close menu automatically when route changes
@@ -258,9 +255,9 @@ const Navbar = () => {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-gray-800">
-                      {t.sidebar.manager}
+                      {auth.currentUser?.displayName || t.sidebar.manager}
                     </span>
-                    <span className="text-xs text-gray-500">{t.sidebar.admin}</span>
+                    <span className="text-xs text-gray-500 max-w-[120px] truncate">{auth.currentUser?.email || t.sidebar.admin}</span>
                   </div>
                 </div>
                 <FaChevronDown
