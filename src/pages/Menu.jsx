@@ -45,7 +45,7 @@ const Menu = () => {
   // Form Data
   const [newItem, setNewItem] = useState({ 
     name: "", fullPrice: "", halfPrice: "", quarterPrice: "", 
-    ingredients: "", specialNote: "", category: "" 
+    ingredients: "", specialNote: "", category: "", servingSize: "" 
   });
   const [tempCategory, setTempCategory] = useState("");
   const [bulkItems, setBulkItems] = useState([]);
@@ -137,9 +137,10 @@ const Menu = () => {
       ...newItem, 
       fullPrice: parseFloat(newItem.fullPrice), 
       halfPrice: newItem.halfPrice ? parseFloat(newItem.halfPrice) : null, 
-      quarterPrice: newItem.quarterPrice ? parseFloat(newItem.quarterPrice) : null 
+      quarterPrice: newItem.quarterPrice ? parseFloat(newItem.quarterPrice) : null,
+      servingSize: newItem.servingSize
     });
-    setNewItem({ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "", category: "" });
+    setNewItem({ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", ingredients: "", specialNote: "", category: "", servingSize: "" });
     toggleModal('single', false);
     showNotify("Item added successfully!");
   };
@@ -150,13 +151,14 @@ const Menu = () => {
     toggleModal(type, true);
     cellRefs.current = [];
     if (type === 'bulkAdd') {
-      setBulkItems([{ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", category: "", ingredients: "", specialNote: "" }]);
+      setBulkItems([{ name: "", fullPrice: "", halfPrice: "", quarterPrice: "", category: "", ingredients: "", specialNote: "", servingSize: "" }]);
     } else {
       setBulkItems(menuItems.map(i => ({ 
         ...i, 
         fullPrice: i.fullPrice?.toString() || "", 
         halfPrice: i.halfPrice?.toString() || "", 
-        quarterPrice: i.quarterPrice?.toString() || "" 
+        quarterPrice: i.quarterPrice?.toString() || "",
+        servingSize: i.servingSize || ""
       })));
     }
   };
@@ -173,7 +175,8 @@ const Menu = () => {
           ...r, 
           fullPrice: parseFloat(r.fullPrice), 
           halfPrice: r.halfPrice ? parseFloat(r.halfPrice) : null, 
-          quarterPrice: r.quarterPrice ? parseFloat(r.quarterPrice) : null 
+          quarterPrice: r.quarterPrice ? parseFloat(r.quarterPrice) : null,
+          servingSize: r.servingSize 
         })));
         showNotify(`${toAdd.length} items added.`);
       } else {
@@ -185,7 +188,8 @@ const Menu = () => {
           quarterPrice: r.quarterPrice ? parseFloat(r.quarterPrice) : null,
           category: r.category,
           ingredients: r.ingredients,
-          specialNote: r.specialNote
+          specialNote: r.specialNote,
+          servingSize: r.servingSize
         }));
         await updateMenuItemsInBulk(updates);
         showNotify("Bulk update successful.");
@@ -214,7 +218,7 @@ const Menu = () => {
           <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 text-center">{isUpdate ? t.matchStatus : t.status}</th>
-              {[t.itemName, t.fullPrice, t.halfPrice, t.quarterPrice, "Category", t.ingredients, t.specialNote].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
+              {[t.itemName, t.fullPrice, t.halfPrice, t.quarterPrice, "Category", "Serving Size", t.ingredients, t.specialNote].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -229,7 +233,7 @@ const Menu = () => {
               return (
                 <tr key={idx} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2 text-center"><span className={`inline-block w-3 h-3 rounded-full ${statusColor}`}></span></td>
-                  {['name', 'fullPrice', 'halfPrice', 'quarterPrice', 'category', 'ingredients', 'specialNote'].map((field, ci) => (
+                  {['name', 'fullPrice', 'halfPrice', 'quarterPrice', 'category', 'servingSize', 'ingredients', 'specialNote'].map((field, ci) => (
                     <td key={field} className="px-1">
                       {field === 'category' ? (
                         <select
@@ -357,9 +361,12 @@ const Menu = () => {
           )}
 
           <input placeholder={t.itemName} value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
-            <input placeholder={t.fullPrice} value={newItem.fullPrice} onChange={e => setNewItem(p => ({ ...p, fullPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
+              <input placeholder={t.fullPrice} value={newItem.fullPrice} onChange={e => setNewItem(p => ({ ...p, fullPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+            </div>
+            <input placeholder="Serving Size (e.g. 1, 1-2, 4)" value={newItem.servingSize} onChange={e => setNewItem(p => ({ ...p, servingSize: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
           </div>
         </div>
         <div className="flex justify-end mt-6">

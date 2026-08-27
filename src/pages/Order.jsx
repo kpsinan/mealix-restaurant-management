@@ -240,15 +240,28 @@ const Order = () => {
         // --- Calculate Suggested Quantity based on Table Capacity ---
         let suggestedQty = 1;
         if (data.settings.aiUpsellQtySuggestEnabled !== false) {
-           if (price < 50) {
-               // Cheap items (drinks, small sides): 1 per person
-               suggestedQty = sessionTableCapacity;
-           } else if (price < 150) {
-               // Medium items (appetizers to share): 1 for every 2 people
-               suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / 2));
+           let parsedServingSize = 0;
+           
+           if (item.servingSize) {
+               // Parse serving size ranges (e.g., "1", "1-2", "4") and get average
+               const parts = String(item.servingSize).split('-').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+               if (parts.length > 0) {
+                   parsedServingSize = parts.reduce((a,b) => a + b, 0) / parts.length;
+               }
+           }
+
+           if (parsedServingSize > 0) {
+               // Calculate exactly how many items are needed to satisfy table capacity
+               suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / parsedServingSize));
            } else {
-               // Large items: 1 for every 4 people
-               suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / 4));
+               // Fallback: price heuristic if no serving size is defined in menu
+               if (price < 50) {
+                   suggestedQty = sessionTableCapacity;
+               } else if (price < 150) {
+                   suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / 2));
+               } else {
+                   suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / 4));
+               }
            }
         }
         
