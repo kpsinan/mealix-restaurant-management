@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
-import db from "../firebase/firebase"; // Importing the initialized Firestore instance
+import { signOut } from "firebase/auth";
+import db, { auth } from "../firebase/firebase"; // Importing the initialized Firestore and Auth instance
 import { getTranslation } from "../translations";
 
 import {
@@ -61,6 +62,14 @@ const Sidebar = () => {
   const isRTL = language === 'ar'; // Right-to-Left check for Arabic
 
   useOutsideClick(profileRef, () => setProfileOpen(false));
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
 
   // 1. Load Sidebar Open/Close State from LocalStorage
   useEffect(() => {
@@ -217,7 +226,7 @@ const Sidebar = () => {
               <button className="flex w-full items-center px-4 py-2.5 text-sm text-[#1F2937] hover:bg-[#ECFDF5] hover:text-[#10B981] transition-colors">
                 <FaUserCircle className={`${isRTL ? "ml-3" : "mr-3"}`} /> {t.sidebar.profile}
               </button>
-              <button className="flex w-full items-center px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#FEE2E2] transition-colors">
+              <button onClick={handleLogout} className="flex w-full items-center px-4 py-2.5 text-sm text-[#EF4444] hover:bg-[#FEE2E2] transition-colors">
                 <FaSignOutAlt className={`${isRTL ? "ml-3" : "mr-3"}`} /> {t.sidebar.logout}
               </button>
             </div>

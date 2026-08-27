@@ -8,7 +8,8 @@ import { doc, onSnapshot } from "firebase/firestore";
  * your Firebase configuration and Translation utility.
  * In a real project structure, ensure these files exist at the specified paths.
  */
-import db from "../firebase/firebase"; 
+import { signOut } from "firebase/auth";
+import db, { auth } from "../firebase/firebase"; 
 import { getTranslation } from "../translations";
 
 import {
@@ -49,6 +50,14 @@ const Navbar = () => {
   // Get current translations based on the active language
   const t = getTranslation(language);
   const isRTL = language === "ar"; // RTL logic for Arabic
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
 
   // 1. Real-time Listener for Language Settings from Firebase (Mirroring Sidebar.jsx)
   useEffect(() => {
@@ -275,7 +284,7 @@ const Navbar = () => {
                       <FaUserCircle className={`${isRTL ? "ml-3" : "mr-3"} w-4 h-4`} />
                       {t.sidebar.profile}
                     </button>
-                    <button className="flex w-full items-center px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <button onClick={handleLogout} className="flex w-full items-center px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                       <FaSignOutAlt className={`${isRTL ? "ml-3" : "mr-3"} w-4 h-4`} />
                       {t.sidebar.logout}
                     </button>
