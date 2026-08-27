@@ -11,7 +11,8 @@ import {
   Info, 
   Save, 
   CheckCircle, 
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 
 // --- Constants (Now imported or kept if non-translated) ---
@@ -50,6 +51,8 @@ const Settings = () => {
     printFontSize: 'normal', // small, normal, large
     receiptFooter: 'Thank you for visiting!',
     showLogo: true,
+    // AI Settings
+    aiUpsellEnabled: true,
   });
 
   const showNotify = (message, type = 'success') => {
@@ -130,6 +133,7 @@ const Settings = () => {
     { id: 'localization', label: t.tabLocalization, icon: Globe },
     { id: 'printing', label: t.tabPrinting, icon: Printer },
     { id: 'shortcuts', label: t.tabShortcuts, icon: Keyboard },
+    { id: 'aiSettings', label: "AI Features", icon: Sparkles },
     { id: 'about', label: t.tabAbout, icon: Info },
   ];
 
@@ -364,6 +368,31 @@ const Settings = () => {
                        ))}
                     </tbody>
                  </table>
+              </div>
+            </div>
+          )}
+
+          {/* --- TAB: AI SETTINGS --- */}
+          {activeTab === 'aiSettings' && (
+            <div className="animate-in fade-in zoom-in-95 duration-300">
+              <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
+                  <Sparkles className={`w-6 h-6 text-purple-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
+                  <h2 className="text-xl font-bold text-gray-800">AI Features & Automation</h2>
+              </div>
+              <div className="grid grid-cols-1 gap-6">
+                <div className="p-5 border border-purple-100 bg-purple-50 rounded-xl">
+                     <label className="flex items-start cursor-pointer group">
+                        <div className="flex-shrink-0 mt-0.5">
+                            <input type="checkbox" name="aiUpsellEnabled" checked={formData.aiUpsellEnabled ?? true} onChange={handleChange} className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 cursor-pointer" />
+                        </div>
+                        <div className={`ml-4 ${isRTL ? 'mr-4 ml-0' : ''}`}>
+                            <span className="block font-bold text-gray-900 group-hover:text-purple-700 transition-colors">Intelligent Upsell Engine</span>
+                            <span className="block text-sm text-gray-600 mt-1 leading-relaxed">
+                                Automatically analyzes the current order in real-time and suggests high-margin or complementary items to the staff. This feature is non-blocking and appears subtly at the bottom of the order screen.
+                            </span>
+                        </div>
+                     </label>
+                </div>
               </div>
             </div>
           )}

@@ -21,7 +21,8 @@ const Icons = {
   Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>,
   Alert: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
   Link: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
-  Note: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+  Note: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+  Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
 };
 
 // --- Sub-Components ---
@@ -179,6 +180,55 @@ const Order = () => {
         (dataObj.quarter * (item.quarterPrice ?? 0));
     }, 0);
   }, [orderState.items, data.menu]);
+
+  // --- INTELLIGENT UPSELL ENGINE ---
+  const upsellSuggestions = useMemo(() => {
+    // 1. Check if admin disabled the feature
+    if (data.settings.aiUpsellEnabled === false) return [];
+    
+    // 2. Get active items in cart
+    const cartItemIds = Object.keys(orderState.items).filter(id => {
+       const qty = orderState.items[id];
+       return (qty.full > 0 || qty.half > 0 || qty.quarter > 0);
+    });
+
+    if (cartItemIds.length === 0) return []; // No items to base suggestions on
+
+    // 3. Find available menu items not already in the cart
+    const availableToUpsell = data.menu.filter(m => !cartItemIds.includes(m.id ?? m._id));
+    if (availableToUpsell.length === 0) return [];
+
+    // 4. Calculate average cart item price to determine what to suggest
+    let cartTotal = 0;
+    cartItemIds.forEach(id => {
+       const item = data.menu.find(i => (i.id ?? i._id) === id);
+       if (item) cartTotal += (item.fullPrice ?? item.price ?? 0);
+    });
+    const avgCartPrice = cartTotal / cartItemIds.length;
+
+    // 5. Smart sort: If they bought expensive mains, suggest cheaper sides/drinks. If they bought cheap things, suggest a high margin item.
+    const scoredItems = availableToUpsell.map(item => {
+        const price = item.fullPrice ?? item.price ?? 0;
+        let score = 0;
+        
+        // Pseudo-AI Logic
+        if (avgCartPrice > 150) {
+            // They ordered a main course. Suggest a side or drink (price between 30 and 120)
+            if (price >= 30 && price <= 120) score += 10;
+        } else {
+            // They ordered something cheap. Suggest a combo or high margin item
+            if (price > 120) score += 10;
+        }
+
+        // Add a bit of stable pseudo-randomness based on item name length so it's not always the exact same 2 items
+        score += (item.name.length % 5);
+        
+        return { item, score };
+    });
+
+    // 6. Return top 2 suggestions
+    return scoredItems.sort((a, b) => b.score - a.score).slice(0, 2).map(s => s.item);
+  }, [orderState.items, data.menu, data.settings.aiUpsellEnabled]);
 
   const handleSubmit = async () => {
     if (!session.tableId) return setUiState(prev => ({ ...prev, isModalOpen: true }));
@@ -378,6 +428,32 @@ const Order = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* --- INTELLIGENT UPSELL ENGINE UI --- */}
+        {!orderState.loading && upsellSuggestions.length > 0 && (
+          <div className="mt-6 bg-gradient-to-br from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-100 shadow-sm animate-fade-in-up">
+            <div className="flex items-center gap-2 mb-3 text-purple-800">
+              <Icons.Sparkles />
+              <span className="font-bold text-sm">AI Suggestions</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {upsellSuggestions.map(item => (
+                <div key={item.id ?? item._id} className="min-w-[200px] flex-1 bg-white p-3 rounded-lg border border-purple-100 shadow-sm flex flex-col justify-between gap-2">
+                  <div>
+                    <h4 className="font-bold text-gray-800 text-sm truncate">{item.name}</h4>
+                    <p className="text-xs text-gray-500">{data.settings.currencySymbol}{(item.fullPrice ?? item.price ?? 0).toFixed(2)}</p>
+                  </div>
+                  <button 
+                    onClick={() => handlePortionChange(item.id ?? item._id, 'full', 1)}
+                    className="w-full py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md text-xs font-bold transition-colors"
+                  >
+                    + Add to Order
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
