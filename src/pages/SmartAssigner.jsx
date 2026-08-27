@@ -1,30 +1,12 @@
 // src/pages/SmartAssigner.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  collection, 
-  onSnapshot, 
-  query,
-  where 
-} from "firebase/firestore";
-import db from "../firebase/firebase"; // Use shared instance for Auth consistency
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import db from "../firebase/firebase";
+import { Users, LayoutGrid, CheckCircle, XCircle } from "lucide-react";
 
-// --- ALGORITHM SETTINGS ---
-const CONFIG = {
-  maxTablesPerCombo: 4,
-  maxOptions: 3,
-  fullComboThreshold: 18,
-  comboSearchLimit: 200000,
-  weights: {
-    waste: 8,
-    count: 5,
-    adjacency: 1.5
-  }
-};
+// --- DP ALGORITHM FOR TABLE ASSIGNMENT ---
 
-// --- INTELLIGENCE ALGORITHM ---
-
-// Normalize Tables
 function normalizeTables(raw) {
   return raw.map(t => ({
     id: String(t.id ?? t._id ?? t.name),
@@ -34,7 +16,6 @@ function normalizeTables(raw) {
   }));
 }
 
-// Adjacency Score
 function adjacencyPenalty(combo) {
   const nums = combo
     .map(t => {
@@ -45,7 +26,6 @@ function adjacencyPenalty(combo) {
     .sort((a, b) => a - b);
 
   if (nums.length < 2) return 0;
-
   let close = 0;
   for (let i = 1; i < nums.length; i++) {
     const d = nums[i] - nums[i - 1];
@@ -55,131 +35,92 @@ function adjacencyPenalty(combo) {
   return -close;
 }
 
-// Score Combo
 function scoreCombo(combo, guests, weights) {
   const totalCapacity = combo.reduce((s, t) => s + t.capacity, 0);
   const waste = totalCapacity - guests;
   const count = combo.length;
-
   const adj = adjacencyPenalty(combo);
-  const score =
-    waste * weights.waste +
-    count * weights.count +
-    adj * weights.adjacency;
+  
+  const score = (waste * weights.waste) + (count * weights.count) + (adj * weights.adjacency);
+  
+  // Calculate a "Reason" for UI display
+  let reason = "Optimal fit";
+  if (waste === 0 && count === 1) reason = "Perfect single fit";
+  else if (waste === 0) reason = "Zero wasted seats";
+  else if (count === 1) reason = "Best single table";
+  else if (adj < 0) reason = "Adjacent tables combined";
 
   return {
     tables: combo,
     totalCapacity,
     waste,
     count,
-    score: Number(score.toFixed(4))
+    score: Number(score.toFixed(4)),
+    reason
   };
 }
 
-// Greedy fill from smallest → largest
-function greedyFill(available, guests) {
-  let cap = 0;
-  const combo = [];
-  for (const t of available) {
-    combo.push(t);
-    cap += t.capacity;
-    if (cap >= guests) return combo;
-  }
-  return null;
-}
-
-// Full AI Assignment Logic
-function assignTables(rawTables, guests, cfg = CONFIG) {
-  const tables = normalizeTables(rawTables);
-
-  // Filter for available tables (Double check, though Query handles this now)
-  const available = tables
+function assignTablesFast(rawTables, guests, allowCombining) {
+  const tables = normalizeTables(rawTables)
     .filter(t => t.status === "available" && t.capacity > 0)
     .sort((a, b) => a.capacity - b.capacity);
 
+  const weights = { waste: 8, count: 5, adjacency: 1.5 };
   const results = [];
   const sigSet = new Set();
 
-  const pushUnique = (opt) => {
-    const sig = opt.tables.map(t => t.id).sort().join("|");
+  const addResult = (combo) => {
+    const sig = combo.map(t => t.id).sort().join("|");
     if (!sigSet.has(sig)) {
       sigSet.add(sig);
-      results.push(opt);
+      results.push(scoreCombo(combo, guests, weights));
     }
   };
-  
-  if (guests <= 0) {
-      return [];
-  }
 
-  // Exact match
-  const exact = available.find(t => t.capacity === guests);
-  if (exact) {
-    const r = scoreCombo([exact], guests, cfg.weights);
-    return [r];
-  }
+  if (guests <= 0 || tables.length === 0) return [];
 
-  // Best single
-  const bestSingle = available.find(t => t.capacity >= guests);
-  if (bestSingle) {
-    pushUnique(scoreCombo([bestSingle], guests, cfg.weights));
-  }
+  // 1. Check for perfect single table
+  const exact = tables.find(t => t.capacity === guests);
+  if (exact) addResult([exact]);
 
-  // Greedy
-  const greedy = greedyFill(available, guests);
-  if (greedy) {
-    pushUnique(scoreCombo(greedy, guests, cfg.weights));
-  }
+  // 2. Check for best single table (smallest table that fits all)
+  const bestSingle = tables.find(t => t.capacity > guests);
+  if (bestSingle) addResult([bestSingle]);
 
-  // Combination search (limited)
-  const n = available.length;
-  if (n <= cfg.fullComboThreshold) {
-    const maxMask = 1 << n;
-    let checks = 0;
-
-    for (let mask = 1; mask < maxMask; mask++) {
-      if (++checks > cfg.comboSearchLimit) break;
-
-      const combo = [];
-      let cap = 0;
-      let count = 0;
-
-      for (let i = 0; i < n; i++) {
-        if (mask & (1 << i)) {
-          combo.push(available[i]);
-          cap += available[i].capacity;
-          count++;
-          if (count > cfg.maxTablesPerCombo) break;
-        }
+  // 3. DP / Backtracking for combinations (Only if combining is allowed)
+  if (allowCombining && !exact) {
+    // DFS to find combinations up to 4 tables
+    const dfs = (index, currentCombo, currentCap) => {
+      if (currentCap >= guests) {
+        addResult([...currentCombo]);
+        return;
       }
-      if (count > cfg.maxTablesPerCombo) continue;
-      if (cap >= guests) {
-        pushUnique(scoreCombo(combo, guests, cfg.weights));
+      if (currentCombo.length >= 4) return; // Max 4 tables per combo to prevent massive tables
+      if (index >= tables.length) return;
+
+      for (let i = index; i < Math.min(tables.length, index + 15); i++) {
+        currentCombo.push(tables[i]);
+        dfs(i + 1, currentCombo, currentCap + tables[i].capacity);
+        currentCombo.pop();
       }
-    }
+    };
+    dfs(0, [], 0);
   }
 
   if (results.length === 0) {
-    return [{
-      type: "error",
-      message: `Not enough space. Max capacity is ${available.reduce((a, b) => a + b.capacity, 0)}.`
-    }];
+    return [{ type: "error", message: `Not enough capacity. Max available is ${tables.reduce((a, b) => a + b.capacity, 0)}.` }];
   }
 
-  // Sort by quality
-  results.sort((a, b) => {
-    if (a.score !== b.score) return a.score - b.score;
-    if (a.waste !== b.waste) return a.waste - b.waste;
-    return a.count - b.count;
-  });
-
-  return results.slice(0, cfg.maxOptions);
+  // Sort by score
+  results.sort((a, b) => a.score - b.score);
+  return results.slice(0, 3); // Return top 3 options
 }
 
 // --- REACT COMPONENT ---
 const SmartAssigner = () => {
   const [tables, setTables] = useState([]);
   const [guests, setGuests] = useState(null);
+  const [allowCombining, setAllowCombining] = useState(true);
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -187,221 +128,167 @@ const SmartAssigner = () => {
 
   const navigate = useNavigate();
 
-  // Load tables from Firebase Realtime
   useEffect(() => {
-    // OPTIMIZATION: Only fetch tables that are currently 'available'.
-    // This reduces Firestore reads by ignoring updates to occupied tables.
-    const q = query(
-        collection(db, "tables"), 
-        where("status", "==", "available")
-    );
-    
+    const q = query(collection(db, "tables"), where("status", "==", "available"));
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
-        const tableData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setTables(tableData);
+        setTables(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setDbError(null);
       },
       (error) => {
         console.error("Error fetching tables:", error);
-        setDbError("Failed to load tables from database.");
+        setDbError("Failed to load tables.");
       }
     );
-
     return () => unsubscribe();
   }, []);
 
-  // RUN AI ALGORITHM
   const calculateAssignment = useCallback(() => {
-    if (!guests || guests <= 0) {
-      setOptions([{
-        type: "error",
-        message: "Please enter a valid number of guests (1 or more) to find tables."
-      }]);
-      return;
-    }
-
+    if (!guests || guests <= 0) return;
     setIsCalculating(true);
-    setOptions([]);
-
-    // Small timeout to allow UI to show "Analyzing..." state
+    
+    // Simulate slight delay for UI feedback
     setTimeout(() => {
-      const res = assignTables(tables, guests);
+      const res = assignTablesFast(tables, guests, allowCombining);
       setOptions(res);
       setIsCalculating(false);
-    }, 150);
-  }, [tables, guests]);
+    }, 50);
+  }, [tables, guests, allowCombining]);
+
+  // Auto-recalculate if guests or toggles change (only if there is already an input)
+  useEffect(() => {
+    if (guests && guests > 0) calculateAssignment();
+    else setOptions([]);
+  }, [guests, allowCombining, calculateAssignment]);
 
   const handleConfirm = (opt) => {
     if (opt.type === "error") return;
     setLoading(true);
-
     const ids = opt.tables.map(t => t.id);
     const primaryId = encodeURIComponent(ids[0]);
-    
-    // Construct linked tables parameter for merged combos
     const linked = ids.slice(1).map(id => encodeURIComponent(id)).join(",");
-
+    
     let url = `/order?tableId=${primaryId}`;
     if (linked) url += `&linked=${linked}`;
-
-    navigate(url);
     
-    // Reset loading state safely (component might unmount, but timeout handles cleanup visually)
+    navigate(url);
     setTimeout(() => setLoading(false), 500);
-  };
-  
-  const handleGuestChange = (e) => {
-    const value = e.target.value;
-    if (value === "") {
-      setGuests(null);
-    } else {
-      const parsedValue = parseInt(value, 10);
-      setGuests(Math.max(1, isNaN(parsedValue) ? 0 : parsedValue));
-    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white max-w-xl w-full rounded-2xl shadow-xl p-6 md:p-8 border border-gray-200">
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1 tracking-tight">
-            Host AI <span className="text-[#10B981]">Optimizer</span>
-          </h1>
-          <p className="text-sm sm:text-base text-gray-500 font-medium">
-            Find the most efficient table assignment for your guests.
-          </p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 font-sans">
+      <div className="bg-white max-w-3xl w-full rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        
+        {/* Header Section */}
+        <div className="bg-emerald-600 p-8 text-white text-center relative overflow-hidden">
+          <div className="absolute top-[-50%] left-[-10%] w-64 h-64 bg-emerald-500 rounded-full mix-blend-screen opacity-50 blur-3xl"></div>
+          <div className="absolute bottom-[-50%] right-[-10%] w-64 h-64 bg-teal-400 rounded-full mix-blend-screen opacity-50 blur-3xl"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 tracking-tight flex items-center justify-center gap-3">
+              <Users className="w-8 h-8" /> Smart Host AI
+            </h1>
+            <p className="text-emerald-100 font-medium">Optimal table assignments in milliseconds.</p>
+          </div>
         </div>
 
-        {/* Database Status Indicator */}
-        {dbError && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">
-            {dbError}
-          </div>
-        )}
-        {!dbError && tables.length === 0 && (
-           <div className="mb-4 text-center text-sm text-gray-400">
-             Waiting for available tables...
-           </div>
-        )}
+        <div className="p-6 md:p-8">
+          {dbError && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm font-medium border border-red-100">{dbError}</div>}
 
-        {/* Input & Action */}
-        <div className="flex flex-col md:flex-row items-stretch gap-4 mb-8">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Guest Count</label>
-            <input
-              type="number"
-              min="1"
-              value={guests === null ? "" : guests}
-              placeholder="Enter 1 or more"
-              onChange={handleGuestChange}
-              className="w-full p-3 sm:p-4 text-2xl sm:text-3xl font-extrabold text-center bg-white border border-gray-300 rounded-xl focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] transition duration-150 shadow-inner"
-            />
-          </div>
-
-          <button
-            onClick={calculateAssignment}
-            disabled={isCalculating || !guests || guests <= 0 || tables.length === 0}
-            className={`
-              w-full md:w-auto mt-4 md:mt-0 px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold transition duration-200 ease-in-out transform hover:scale-[1.01]
-              ${isCalculating || !guests || guests <= 0 || tables.length === 0
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none" 
-                : "bg-[#10B981] text-white shadow-lg shadow-emerald-500/50 hover:bg-[#059669] active:shadow-md"
-              }
-            `}
-          >
-            {isCalculating ? "Analyzing..." : "Find Best Tables"}
-          </button>
-        </div>
-
-        {/* RESULTS */}
-        <div className="space-y-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800 border-b pb-2 mb-4">Top Assignments ({options.length})</h2>
-          {options.map((opt, idx) => (
-            <div key={idx} className="animate-fade-in-up">
-
-              {opt.type === "error" ? (
-                <div className="p-4 sm:p-5 bg-red-50 border-l-4 border-red-500 rounded-xl shadow-sm">
-                  <p className="font-semibold text-red-700">Error: {opt.message}</p>
+          {/* Controls */}
+          <div className="flex flex-col md:flex-row gap-6 mb-8">
+            <div className="flex-1">
+              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Number of Guests</label>
+              <input
+                type="number"
+                min="1"
+                value={guests || ""}
+                placeholder="E.g., 4"
+                onChange={(e) => setGuests(parseInt(e.target.value) || null)}
+                className="w-full p-4 text-3xl font-black text-center text-emerald-900 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-0 transition-colors"
+              />
+            </div>
+            <div className="flex-1 flex flex-col justify-center">
+              <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Preferences</label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className={`w-12 h-6 rounded-full p-1 transition-colors ${allowCombining ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${allowCombining ? 'translate-x-6' : 'translate-x-0'}`}></div>
                 </div>
-              ) : (
-                <div 
-                  className={`
-                    border-2 rounded-xl p-4 sm:p-5 transition duration-200 ease-in-out hover:shadow-lg
-                    ${idx === 0 
-                      ? "border-[#10B981] bg-[#ECFDF5] shadow-md scale-[1.005]" 
-                      : "border-gray-200 bg-white"
-                    }
-                  `}
-                >
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    
-                    {/* Tables & Capacity Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {opt.tables.map(t => (
-                          <span 
-                            key={t.id} 
-                            className={`
-                              px-3 py-1 text-xs sm:text-sm font-semibold rounded-full 
-                              ${idx === 0 ? "bg-[#D1FAE5] text-[#065F46]" : "bg-gray-200 text-gray-700"}
-                            `}
-                          >
-                            {t.name} ({t.capacity})
-                          </span>
-                        ))}
-                      </div>
-                      <div className="text-sm text-gray-600 font-medium mt-1">
-                        Total Capacity: <b className="text-gray-800">{opt.totalCapacity}</b> — 
-                        {opt.waste === 0 ? (
-                          <span className="text-[#059669] ml-2 font-bold flex items-center">
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Perfect Fit
-                          </span>
-                        ) : (
-                          <span className="text-orange-600 ml-2 font-semibold">
-                            {opt.waste} Extra Seats
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Score: {opt.score}
+                <span className="text-gray-700 font-medium group-hover:text-emerald-600 transition-colors">Allow Combining Tables</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Results Area */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-end border-b border-gray-100 pb-3 mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Top Recommendations</h2>
+              <span className="text-sm text-gray-500 font-medium">{tables.length} tables available</span>
+            </div>
+
+            {isCalculating ? (
+              <div className="py-12 flex justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
+              </div>
+            ) : options.length > 0 ? (
+              options.map((opt, idx) => (
+                <div key={idx} className="animate-fade-in-up">
+                  {opt.type === "error" ? (
+                    <div className="p-5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+                      <XCircle className="w-6 h-6 text-red-500" />
+                      <p className="font-semibold text-red-700">{opt.message}</p>
+                    </div>
+                  ) : (
+                    <div className={`relative border-2 rounded-xl p-5 transition-all hover:shadow-lg ${idx === 0 ? 'border-emerald-500 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+                      {idx === 0 && <div className="absolute -top-3 -right-2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">Best Fit</div>}
+                      
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex-1 w-full">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle className={`w-5 h-5 ${idx === 0 ? 'text-emerald-500' : 'text-gray-400'}`} />
+                            <span className="font-bold text-gray-800 text-lg">{opt.reason}</span>
+                          </div>
+                          
+                          {/* Visual Table Representation */}
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {opt.tables.map(t => (
+                              <div key={t.id} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                <LayoutGrid className="w-4 h-4 text-gray-400" />
+                                <span className="font-bold text-gray-700">{t.name}</span>
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">{t.capacity} seats</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="flex gap-4 text-sm font-medium">
+                            <span className="text-gray-600">Total Seats: <span className="text-gray-900 font-bold">{opt.totalCapacity}</span></span>
+                            {opt.waste === 0 ? (
+                              <span className="text-emerald-600 bg-emerald-100 px-2 rounded">0 Wasted</span>
+                            ) : (
+                              <span className="text-orange-600 bg-orange-100 px-2 rounded">{opt.waste} Extra</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleConfirm(opt)}
+                          disabled={loading}
+                          className="w-full md:w-auto px-8 py-4 bg-gray-900 text-white rounded-xl font-bold text-base hover:bg-gray-800 transition-colors focus:ring-4 focus:ring-gray-200 disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {loading ? "Assigning..." : "Assign Tables"}
+                        </button>
                       </div>
                     </div>
-
-                    {/* Action Button */}
-                    <button
-                      onClick={() => handleConfirm(opt)}
-                      disabled={loading}
-                      className={`
-                        w-full sm:w-auto px-6 py-3 bg-[#10B981] text-white rounded-lg font-bold text-base transition duration-200 ease-in-out shadow-md hover:bg-[#059669] active:shadow-none
-                        ${loading ? "opacity-75 cursor-wait" : ""}
-                      `}
-                    >
-                      {loading ? "Redirecting..." : "Select"}
-                    </button>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-          {options.length === 0 && !isCalculating && guests && guests > 0 && (
-             <div className="p-5 text-center text-gray-500 bg-white rounded-xl border border-gray-300">
-                No matching assignments found for {guests} guests.
-             </div>
-          )}
-          {options.length === 0 && !isCalculating && (!guests || guests <= 0) && (
-             <div className="p-5 text-center text-gray-500 bg-white rounded-xl border border-gray-300">
-                Enter the number of guests above to find the optimal table layout.
-             </div>
-          )}
+              ))
+            ) : (
+              <div className="py-12 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                <LayoutGrid className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">Enter guest count to view smart assignments.</p>
+              </div>
+            )}
+          </div>
         </div>
-
       </div>
     </div>
   );
