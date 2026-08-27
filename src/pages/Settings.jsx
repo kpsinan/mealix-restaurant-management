@@ -53,6 +53,7 @@ const Settings = () => {
     showLogo: true,
     // AI Settings
     aiUpsellEnabled: true,
+    aiUpsellQtySuggestEnabled: true,
   });
 
   const showNotify = (message, type = 'success') => {
@@ -389,6 +390,20 @@ const Settings = () => {
                             <span className="block font-bold text-gray-900 group-hover:text-purple-700 transition-colors">Intelligent Upsell Engine</span>
                             <span className="block text-sm text-gray-600 mt-1 leading-relaxed">
                                 Automatically analyzes the current order in real-time and suggests high-margin or complementary items to the staff. This feature is non-blocking and appears subtly at the bottom of the order screen.
+                            </span>
+                        </div>
+                     </label>
+                </div>
+
+                <div className="p-5 border border-purple-100 bg-purple-50 rounded-xl">
+                     <label className="flex items-start cursor-pointer group">
+                        <div className="flex-shrink-0 mt-0.5">
+                            <input type="checkbox" name="aiUpsellQtySuggestEnabled" checked={formData.aiUpsellQtySuggestEnabled ?? true} onChange={handleChange} className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 cursor-pointer" />
+                        </div>
+                        <div className={`ml-4 ${isRTL ? 'mr-4 ml-0' : ''}`}>
+                            <span className="block font-bold text-gray-900 group-hover:text-purple-700 transition-colors">Table Capacity Quantity Suggestions</span>
+                            <span className="block text-sm text-gray-600 mt-1 leading-relaxed">
+                                When suggesting items, the AI will analyze the seated table's total capacity and recommend the exact quantity needed (e.g., 4 drinks for a table of 4).
                             </span>
                         </div>
                      </label>

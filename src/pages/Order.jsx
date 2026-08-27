@@ -181,6 +181,20 @@ const Order = () => {
     }, 0);
   }, [orderState.items, data.menu]);
 
+  // Calculate Total Table Capacity for Quantity Suggestions
+  const sessionTableCapacity = useMemo(() => {
+    if (!session.tableId || data.tables.length === 0) return 1;
+    let cap = 0;
+    const mainTable = data.tables.find(t => t.id === session.tableId);
+    if (mainTable) cap += (mainTable.capacity || 1);
+    
+    session.linkedTableIds.forEach(id => {
+       const t = data.tables.find(tbl => tbl.id === id);
+       if (t) cap += (t.capacity || 0);
+    });
+    return cap || 1;
+  }, [session.tableId, session.linkedTableIds, data.tables]);
+
   // --- INTELLIGENT UPSELL ENGINE ---
   const upsellSuggestions = useMemo(() => {
     // 1. Check if admin disabled the feature
@@ -223,12 +237,27 @@ const Order = () => {
         // Add a bit of stable pseudo-randomness based on item name length so it's not always the exact same 2 items
         score += (item.name.length % 5);
         
-        return { item, score };
+        // --- Calculate Suggested Quantity based on Table Capacity ---
+        let suggestedQty = 1;
+        if (data.settings.aiUpsellQtySuggestEnabled !== false) {
+           if (price < 50) {
+               // Cheap items (drinks, small sides): 1 per person
+               suggestedQty = sessionTableCapacity;
+           } else if (price < 150) {
+               // Medium items (appetizers to share): 1 for every 2 people
+               suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / 2));
+           } else {
+               // Large items: 1 for every 4 people
+               suggestedQty = Math.max(1, Math.ceil(sessionTableCapacity / 4));
+           }
+        }
+        
+        return { item, score, suggestedQty };
     });
 
     // 6. Return top 2 suggestions
-    return scoredItems.sort((a, b) => b.score - a.score).slice(0, 2).map(s => s.item);
-  }, [orderState.items, data.menu, data.settings.aiUpsellEnabled]);
+    return scoredItems.sort((a, b) => b.score - a.score).slice(0, 2);
+  }, [orderState.items, data.menu, data.settings.aiUpsellEnabled, data.settings.aiUpsellQtySuggestEnabled, sessionTableCapacity]);
 
   const handleSubmit = async () => {
     if (!session.tableId) return setUiState(prev => ({ ...prev, isModalOpen: true }));
@@ -434,19 +463,31 @@ const Order = () => {
         {/* --- INTELLIGENT UPSELL ENGINE UI --- */}
         {!orderState.loading && upsellSuggestions.length > 0 && (
           <div className="mt-6 bg-gradient-to-br from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-100 shadow-sm animate-fade-in-up">
-            <div className="flex items-center gap-2 mb-3 text-purple-800">
-              <Icons.Sparkles />
-              <span className="font-bold text-sm">AI Suggestions</span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-purple-800">
+                <Icons.Sparkles />
+                <span className="font-bold text-sm">AI Suggestions</span>
+              </div>
+              {data.settings.aiUpsellQtySuggestEnabled !== false && (
+                  <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                      Qty optimized for {sessionTableCapacity} {sessionTableCapacity === 1 ? 'guest' : 'guests'}
+                  </span>
+              )}
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {upsellSuggestions.map(item => (
-                <div key={item.id ?? item._id} className="min-w-[200px] flex-1 bg-white p-3 rounded-lg border border-purple-100 shadow-sm flex flex-col justify-between gap-2">
-                  <div>
-                    <h4 className="font-bold text-gray-800 text-sm truncate">{item.name}</h4>
-                    <p className="text-xs text-gray-500">{data.settings.currencySymbol}{(item.fullPrice ?? item.price ?? 0).toFixed(2)}</p>
+              {upsellSuggestions.map(({ item, suggestedQty }) => (
+                <div key={item.id ?? item._id} className="min-w-[220px] flex-1 bg-white p-3 rounded-lg border border-purple-100 shadow-sm flex flex-col justify-between gap-2">
+                  <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-sm truncate pr-2">{item.name}</h4>
+                        <p className="text-xs text-gray-500">{data.settings.currencySymbol}{(item.fullPrice ?? item.price ?? 0).toFixed(2)}</p>
+                      </div>
+                      <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap">
+                          x {suggestedQty}
+                      </span>
                   </div>
                   <button 
-                    onClick={() => handlePortionChange(item.id ?? item._id, 'full', 1)}
+                    onClick={() => handlePortionChange(item.id ?? item._id, 'full', suggestedQty)}
                     className="w-full py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md text-xs font-bold transition-colors"
                   >
                     + Add to Order
