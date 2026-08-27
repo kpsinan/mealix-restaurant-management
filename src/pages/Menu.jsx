@@ -361,13 +361,23 @@ const Menu = () => {
           )}
 
           <input placeholder={t.itemName} value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
-          <div className="grid grid-cols-2 gap-4">
+          
+          <div className="grid grid-cols-3 gap-4">
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
               <input placeholder={t.fullPrice} value={newItem.fullPrice} onChange={e => setNewItem(p => ({ ...p, fullPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
             </div>
-            <input placeholder="Serving Size (e.g. 1, 1-2, 4)" value={newItem.servingSize} onChange={e => setNewItem(p => ({ ...p, servingSize: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
+              <input placeholder={t.halfPrice} value={newItem.halfPrice} onChange={e => setNewItem(p => ({ ...p, halfPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
+              <input placeholder={t.quarterPrice} value={newItem.quarterPrice} onChange={e => setNewItem(p => ({ ...p, quarterPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+            </div>
           </div>
+          
+          <input placeholder="Serving Size (e.g. 1, 1-2, 4)" value={newItem.servingSize} onChange={e => setNewItem(p => ({ ...p, servingSize: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
         </div>
         <div className="flex justify-end mt-6">
           <button onClick={handleAddItem} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">{t.done}</button>

@@ -212,25 +212,47 @@ const Order = () => {
     const availableToUpsell = data.menu.filter(m => !cartItemIds.includes(m.id ?? m._id));
     if (availableToUpsell.length === 0) return [];
 
-    // 4. Calculate average cart item price to determine what to suggest
+    // 4. Calculate cart metrics
     let cartTotal = 0;
+    let totalServingsInCart = 0;
+    
     cartItemIds.forEach(id => {
        const item = data.menu.find(i => (i.id ?? i._id) === id);
-       if (item) cartTotal += (item.fullPrice ?? item.price ?? 0);
+       const qty = orderState.items[id];
+       
+       if (item) {
+           cartTotal += (item.fullPrice ?? item.price ?? 0);
+           
+           let parsedServingSize = 1; // fallback
+           if (item.servingSize) {
+               const parts = String(item.servingSize).split('-').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+               if (parts.length > 0) {
+                   parsedServingSize = parts.reduce((a,b) => a + b, 0) / parts.length;
+               }
+           }
+           
+           const totalQty = (qty.full || 0) + ((qty.half || 0) * 0.5) + ((qty.quarter || 0) * 0.25);
+           totalServingsInCart += (totalQty * parsedServingSize);
+       }
     });
+    
     const avgCartPrice = cartTotal / cartItemIds.length;
+    const isUnderOrdered = totalServingsInCart < sessionTableCapacity;
 
-    // 5. Smart sort: If they bought expensive mains, suggest cheaper sides/drinks. If they bought cheap things, suggest a high margin item.
+    // 5. Smart sort: Suggest mains if under-ordered, otherwise suggest based on cart average price
     const scoredItems = availableToUpsell.map(item => {
         const price = item.fullPrice ?? item.price ?? 0;
         let score = 0;
         
         // Pseudo-AI Logic
-        if (avgCartPrice > 150) {
-            // They ordered a main course. Suggest a side or drink (price between 30 and 120)
+        if (isUnderOrdered) {
+            // The food ordered is not enough for the table capacity. Suggest more main courses/heavy items!
+            if (price > 120) score += 20; 
+        } else if (avgCartPrice > 150) {
+            // They ordered enough expensive mains. Suggest a side or drink (price between 30 and 120)
             if (price >= 30 && price <= 120) score += 10;
         } else {
-            // They ordered something cheap. Suggest a combo or high margin item
+            // They ordered enough cheap things. Suggest a combo or high margin item
             if (price > 120) score += 10;
         }
 
