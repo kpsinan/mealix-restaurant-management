@@ -36,6 +36,7 @@ const Staff = () => {
     address: "",
     email: "",
     password: "",
+    role: "staff"
   });
 
   const [bulkRows, setBulkRows] = useState([
@@ -58,7 +59,7 @@ const Staff = () => {
     setLoading(true);
     try {
       await addStaff(newStaff);
-      setNewStaff({ name: "", contact: "", address: "", email: "", password: "" });
+      setNewStaff({ name: "", contact: "", address: "", email: "", password: "", role: "staff" });
       setIsAddOpen(false);
       await loadStaff();
     } catch (err) {
@@ -267,7 +268,23 @@ const Staff = () => {
                 className="w-full p-2.5 border rounded-lg bg-gray-50"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-2">If provided, this staff member can log in to the system to take orders.</p>
+            
+            <div className="mt-4">
+              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Role</label>
+              <select
+                value={newStaff.role}
+                onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                className="w-full p-2.5 border rounded-lg bg-white"
+              >
+                <option value="staff">Staff (Orders & Kitchen)</option>
+                <option value="billing">Billing (Orders & Billing)</option>
+                <option value="accountant">Accountant (Reports & Finance)</option>
+                <option value="manager">Manager (All except Settings)</option>
+                <option value="admin">Admin (Full Access)</option>
+              </select>
+            </div>
+            
+            <p className="text-xs text-gray-500 mt-2">If provided, this staff member can log in to the system with the specified role.</p>
           </div>
           <button
             onClick={handleAddStaff}

@@ -1,6 +1,7 @@
 // src/pages/Settings.jsx
 import React, { useState, useEffect } from 'react';
 import { getSettings, updateSettings } from '../firebase/firebase';
+import AccessControl from '../components/AccessControl';
 import { getTranslation, LANGUAGES, CURRENCIES } from '../translations'; // <-- UPDATED IMPORT
 
 import { 
@@ -12,7 +13,9 @@ import {
   Save, 
   CheckCircle, 
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Shield,
+  Users
 } from 'lucide-react';
 
 // --- Constants (Now imported or kept if non-translated) ---
@@ -135,6 +138,7 @@ const Settings = () => {
     { id: 'general', label: t.tabGeneral, icon: Store },
     { id: 'localization', label: t.tabLocalization, icon: Globe },
     { id: 'printing', label: t.tabPrinting, icon: Printer },
+    { id: 'access', label: 'Access Control', icon: Shield },
     { id: 'shortcuts', label: t.tabShortcuts, icon: Keyboard },
     { id: 'aiSettings', label: "AI Features", icon: Sparkles },
     { id: 'about', label: t.tabAbout, icon: Info },
@@ -353,6 +357,13 @@ const Settings = () => {
                      </label>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* --- TAB: ACCESS CONTROL --- */}
+          {activeTab === 'access' && (
+            <div className="animate-in fade-in zoom-in-95 duration-300">
+               <AccessControl />
             </div>
           )}
 

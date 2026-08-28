@@ -58,25 +58,45 @@ const usersCollection = collection(db, "users");
 /* =====================================================
    USERS & RBAC
 ===================================================== */
+
+export const DEFAULT_PERMISSIONS = {
+  admin: ['view_dashboard', 'manage_orders', 'manage_billing', 'manage_kitchen', 'manage_menu', 'manage_staff', 'manage_settings', 'view_reports', 'view_financials', 'manage_access'],
+  manager: ['view_dashboard', 'manage_orders', 'manage_billing', 'manage_kitchen', 'manage_menu', 'manage_staff', 'view_reports'],
+  accountant: ['view_dashboard', 'view_reports', 'view_financials'],
+  billing: ['manage_orders', 'manage_billing'],
+  staff: ['manage_orders', 'manage_kitchen']
+};
+
 export const getUserRole = async (uid) => {
   const snap = await getDoc(doc(db, "users", uid));
   if (snap.exists()) {
-    return snap.data().role || "admin";
+    const data = snap.data();
+    return {
+      role: data.role || "admin",
+      permissions: data.permissions || DEFAULT_PERMISSIONS[data.role || "admin"] || [],
+      blocked: data.blocked || false,
+      staffId: data.staffId || null
+    };
   }
   // Default to admin for legacy accounts or original creator
-  return "admin";
+  return { role: "admin", permissions: DEFAULT_PERMISSIONS.admin, blocked: false, staffId: null };
 };
 
-export const createStaffAccount = async (email, password, staffData) => {
+export const createStaffAccount = async (email, password, staffData, role = "staff", customPermissions = null) => {
   try {
     // Create auth user on secondary app
     const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     const uid = userCredential.user.uid;
     
+    // Determine permissions (use custom if provided, otherwise default for role)
+    const permissions = customPermissions || DEFAULT_PERMISSIONS[role] || [];
+    
     // Save role and linked staff document ID
     await setDoc(doc(db, "users", uid), {
       email,
-      role: "staff",
+      role,
+      permissions,
+      blocked: false,
       staffId: staffData.staffId, // The physical ID like STF-1002
       name: staffData.name,
       createdAt: Timestamp.now()
@@ -90,6 +110,15 @@ export const createStaffAccount = async (email, password, staffData) => {
     console.error("Error creating staff account:", error);
     throw error;
   }
+};
+
+export const getAllUsers = async () => {
+  const snap = await getDocs(usersCollection);
+  return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+};
+
+export const updateUserAccess = async (uid, updates) => {
+  return updateDoc(doc(db, "users", uid), updates);
 };
 
 /* =====================================================
@@ -220,7 +249,7 @@ export const addStaff = async (data) => {
   let uid = null;
   
   if (data.email && data.password) {
-    uid = await createStaffAccount(data.email, data.password, { staffId, name: data.name });
+    uid = await createStaffAccount(data.email, data.password, { staffId, name: data.name }, data.role);
   }
 
   // Don't save password in firestore staff collection

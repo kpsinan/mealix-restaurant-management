@@ -40,23 +40,23 @@ const useOutsideClick = (ref, callback) => {
 
 // Sidebar navigation items mapped to translation keys
 const navItems = [
-  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt, roles: ['admin'] },
-  { path: "/", key: "floorPlan", icon: FaHome, roles: ['admin', 'staff'] },
-  { path: "/smart-assign", key: "smartAssign", icon: FaMagic, roles: ['admin', 'staff'] },
-  { path: "/order", key: "order", icon: FaClipboardList, roles: ['admin', 'staff'] },
-  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell, roles: ['admin', 'staff'] },
-  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar, roles: ['admin', 'staff'] },
-  { path: "/attendance", key: "Attendance", icon: FaUsers, roles: ['staff'] },
-  { path: "/hr/productivity-kpi", key: "Leaderboard", icon: FaChartBar, roles: ['staff'] },
-  { path: "/menu", key: "menu", icon: FaUtensils, roles: ['admin'] },
-  { path: "/reports", key: "reports", icon: FaChartBar, roles: ['admin'] },
-  { path: "/staff", key: "staff", icon: FaUsers, roles: ['admin'] },
+  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt, permission: 'view_dashboard' },
+  { path: "/", key: "floorPlan", icon: FaHome },
+  { path: "/smart-assign", key: "smartAssign", icon: FaMagic },
+  { path: "/order", key: "order", icon: FaClipboardList, permission: 'manage_orders' },
+  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell, permission: 'manage_kitchen' },
+  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar, permission: 'manage_billing' },
+  { path: "/attendance", key: "Attendance", icon: FaUsers },
+  { path: "/hr/productivity-kpi", key: "Leaderboard", icon: FaChartBar },
+  { path: "/menu", key: "menu", icon: FaUtensils, permission: 'manage_menu' },
+  { path: "/reports", key: "reports", icon: FaChartBar, permission: 'view_reports' },
+  { path: "/staff", key: "staff", icon: FaUsers, permission: 'manage_staff' },
 ];
 
 import { UserContext } from "../App";
 
 const Sidebar = () => {
-  const { user, role } = React.useContext(UserContext);
+  const { user, role, permissions } = React.useContext(UserContext);
   const [isOpen, setIsOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
   const [language, setLanguage] = useState("en"); // Default to English initially
@@ -153,7 +153,7 @@ const Sidebar = () => {
 
         {/* Navigation */}
         <nav className="px-4 space-y-2">
-          {navItems.filter(item => item.roles.includes(role)).map((item) => {
+          {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map((item) => {
             const Icon = item.icon;
             const translatedLabel = t.sidebar[item.key] || item.key;
             return (
@@ -191,7 +191,7 @@ const Sidebar = () => {
 
       {/* Bottom Section: Settings & Profile */}
       <div className="px-4 py-4 border-t border-[#E5E7EB]">
-        {role === 'admin' && (
+        {permissions.includes('manage_settings') && (
           <NavLink
             to="/settings"
             className={({ isActive }) =>
@@ -250,15 +250,17 @@ const Sidebar = () => {
           >
             <img
               src="https://i.pravatar.cc/48"
-              alt="profile"
-              className="w-10 h-10 rounded-full border-2 border-[#10B981]"
+              alt="User"
+              className="w-10 h-10 rounded-full shrink-0 border-2 border-white shadow-sm"
             />
             {isOpen && (
-              <div className={`${isRTL ? "mr-3 text-right" : "ml-3 text-left"}`}>
-                <p className="font-semibold text-sm text-[#1F2937] leading-none">
-                  {t.sidebar.manager}
-                </p>
-                <p className="text-[10px] text-[#6B7280] mt-1 max-w-[120px] truncate">{auth.currentUser?.email || t.sidebar.admin}</p>
+              <div className={`flex flex-col ${isRTL ? "mr-3" : "ml-3"} overflow-hidden`}>
+                <span className="text-sm font-semibold text-[#1F2937] truncate capitalize">
+                  {auth.currentUser?.displayName || role}
+                </span>
+                <span className="text-xs text-[#6B7280] truncate capitalize">
+                  {role}
+                </span>
               </div>
             )}
           </div>

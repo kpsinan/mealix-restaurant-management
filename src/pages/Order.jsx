@@ -11,6 +11,7 @@ import {
   getTodayAttendance,
   addAttendance
 } from "../firebase/firebase";
+import { UserContext } from "../App";
 import Modal from "../components/Modal";
 
 // --- Icons System ---
@@ -70,10 +71,11 @@ const QuantityControl = React.memo(({ quantity, onDecrease, onIncrease }) => (
 const Order = () => {
   const isSidebarOpen = true; 
   const location = useLocation();
-
+  const { staffId: loggedInStaffId } = React.useContext(UserContext);
+  
   // State
   const [data, setData] = useState({ tables: [], staff: [], menu: [], settings: { currencySymbol: '₹' } });
-  const [session, setSession] = useState({ tableId: "", staffId: "", linkedTableIds: [] });
+  const [session, setSession] = useState({ tableId: "", staffId: loggedInStaffId || "", linkedTableIds: [] });
   // 'items' structure now includes 'note'
   const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false, generalNote: "" });
   const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
@@ -459,12 +461,28 @@ const Order = () => {
 
               {/* Staff Selection */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Staff</label>
-                <select value={session.staffId} onChange={(e) => setSession({ ...session, staffId: e.target.value })} 
-                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
-                  <option value="">Select Staff</option>
-                  {data.staff.map(s => <option key={s.id ?? s._id} value={s.id ?? s._id}>{s.name}</option>)}
-                </select>
+                <label className="text-xs font-semibold text-gray-500 uppercase ml-1">Staff Member</label>
+                <div className="relative">
+                  <select 
+                    value={session.staffId} 
+                    onChange={(e) => setSession({ ...session, staffId: e.target.value })} 
+                    disabled={!!loggedInStaffId}
+                    className={`w-full p-3.5 border rounded-xl appearance-none bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow shadow-sm ${loggedInStaffId ? 'bg-gray-100 opacity-80 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="" disabled>Select Staff</option>
+                    {data.staff.map((s) => (
+                      <option key={s.id ?? s._id} value={s.id ?? s._id}>{s.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <Icons.Chevron className="w-5 h-5 rotate-90" />
+                  </div>
+                </div>
+                {loggedInStaffId && (
+                  <p className="text-xs text-blue-600 mt-1 ml-1 flex items-center gap-1">
+                    <Icons.Lock className="w-3 h-3" /> Locked to your logged-in profile
+                  </p>
+                )}
               </div>
 
               {/* Attendance Warning */}

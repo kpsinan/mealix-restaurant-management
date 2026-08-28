@@ -26,27 +26,28 @@ import {
   FaMagic,
   FaTachometerAlt,
   FaChevronDown,
+  FaBars,
 } from "react-icons/fa";
 
 // Navigation Items Configuration using Translation Keys to match Sidebar.jsx logic
 const navItems = [
-  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt, roles: ['admin'] },
-  { path: "/", key: "floorPlan", icon: FaHome, roles: ['admin', 'staff'] },
-  { path: "/smart-assign", key: "smartAssign", icon: FaMagic, roles: ['admin', 'staff'] },
-  { path: "/order", key: "order", icon: FaClipboardList, roles: ['admin', 'staff'] },
-  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell, roles: ['admin', 'staff'] },
-  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar, roles: ['admin', 'staff'] },
-  { path: "/attendance", key: "Attendance", icon: FaUsers, roles: ['staff'] },
-  { path: "/hr/productivity-kpi", key: "Leaderboard", icon: FaChartBar, roles: ['staff'] },
-  { path: "/menu", key: "menu", icon: FaUtensils, roles: ['admin'] },
-  { path: "/reports", key: "reports", icon: FaChartBar, roles: ['admin'] },
-  { path: "/staff", key: "staff", icon: FaUsers, roles: ['admin'] },
+  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt, permission: 'view_dashboard' },
+  { path: "/", key: "floorPlan", icon: FaHome },
+  { path: "/smart-assign", key: "smartAssign", icon: FaMagic },
+  { path: "/order", key: "order", icon: FaClipboardList, permission: 'manage_orders' },
+  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell, permission: 'manage_kitchen' },
+  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar, permission: 'manage_billing' },
+  { path: "/attendance", key: "Attendance", icon: FaUsers },
+  { path: "/hr/productivity-kpi", key: "Leaderboard", icon: FaChartBar },
+  { path: "/menu", key: "menu", icon: FaUtensils, permission: 'manage_menu' },
+  { path: "/reports", key: "reports", icon: FaChartBar, permission: 'view_reports' },
+  { path: "/staff", key: "staff", icon: FaUsers, permission: 'manage_staff' },
 ];
 
 import { UserContext } from "../App";
 
 const Navbar = () => {
-  const { user, role } = React.useContext(UserContext);
+  const { user, role, permissions } = React.useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileExpanded, setProfileExpanded] = useState(false);
   const [language, setLanguage] = useState("en"); // Default language
@@ -105,48 +106,27 @@ const Navbar = () => {
 
   return (
     <>
-      {/* === TOP NAVBAR (Fixed for Mobile/Tablet) === */}
-      <nav 
+      {/* === TOP APP BAR === */}
+      <nav
         dir={isRTL ? "rtl" : "ltr"}
-        className="fixed top-0 left-0 w-full z-50 lg:hidden transition-all duration-300 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm"
+        className="lg:hidden fixed top-0 w-full bg-white shadow-sm border-b border-gray-100 z-50 transition-all duration-300"
       >
-        {/* SAFE AREA SPACER */}
-        <div className="w-full h-8 bg-transparent" />
-
-        <div className="flex items-center justify-between px-5 h-16">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-tr from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-200">
-              M
+        <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-50 p-2 rounded-xl">
+              <span className="text-emerald-500 text-xl font-black tracking-tighter">M</span>
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600">
+            <span className="text-xl font-bold tracking-tight text-gray-800">
               MealiX
             </span>
           </div>
 
-          {/* Animated Hamburger Button */}
           <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="group relative w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors focus:outline-none"
-            aria-label={isMenuOpen ? t.sidebar.collapse : t.sidebar.expand}
+            onClick={() => setIsMenuOpen(true)}
+            className="p-2 rounded-xl text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            aria-label="Open Menu"
           >
-            <div className="w-5 h-4 relative flex flex-col justify-between">
-              <span
-                className={`w-full h-0.5 bg-gray-800 rounded-full transition-all duration-300 ease-out origin-left ${
-                  isMenuOpen ? (isRTL ? "-rotate-45 translate-x-0.5" : "rotate-45 translate-x-0.5") : ""
-                }`}
-              />
-              <span
-                className={`w-full h-0.5 bg-gray-800 rounded-full transition-all duration-300 ease-out ${
-                  isMenuOpen ? "opacity-0 translate-x-2" : "opacity-100"
-                }`}
-              />
-              <span
-                className={`w-full h-0.5 bg-gray-800 rounded-full transition-all duration-300 ease-out origin-left ${
-                  isMenuOpen ? (isRTL ? "rotate-45 translate-x-0.5" : "-rotate-45 translate-x-0.5") : ""
-                }`}
-              />
-            </div>
+            <FaBars className="w-5 h-5" />
           </button>
         </div>
       </nav>
@@ -194,7 +174,7 @@ const Navbar = () => {
 
           {/* Navigation Items (Mapped to translations) */}
           <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1 scroll-smooth">
-            {navItems.filter(item => item.roles.includes(role)).map(({ path, key, icon: Icon }, index) => {
+            {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map(({ path, key, icon: Icon }, index) => {
               const label = t.sidebar[key] || key;
               return (
                 <NavLink
@@ -229,7 +209,7 @@ const Navbar = () => {
           {/* Bottom Section: Profile & Settings */}
           <div className="flex-none p-4 border-t border-gray-100 bg-gray-50/50">
             {/* Settings Link */}
-            {role === 'admin' && (
+            {permissions.includes('manage_settings') && (
               <NavLink
                 to="/settings"
                 className={({ isActive }) =>
@@ -251,24 +231,26 @@ const Navbar = () => {
                 onClick={() => setProfileExpanded(!profileExpanded)}
                 className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 transition-colors rounded-xl"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 overflow-hidden">
                   <div className="relative">
                     <img
-                      src="https://i.pravatar.cc/150?img=11"
-                      alt="Profile"
-                      className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-md"
+                      src="https://i.pravatar.cc/100"
+                      alt="User"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-200"
                     />
-                    <div className={`absolute bottom-0 ${isRTL ? "left-0" : "right-0"} w-3 h-3 bg-green-500 border-2 border-white rounded-full`}></div>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-gray-800">
-                      {auth.currentUser?.displayName || t.sidebar.manager}
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-sm font-bold text-gray-800 truncate capitalize">
+                      {auth.currentUser?.displayName || role}
                     </span>
-                    <span className="text-xs text-gray-500 max-w-[120px] truncate">{auth.currentUser?.email || t.sidebar.admin}</span>
+                    <span className="text-xs font-medium text-emerald-600 truncate capitalize">
+                      {role}
+                    </span>
                   </div>
                 </div>
                 <FaChevronDown
-                  className={`text-gray-400 transition-transform duration-300 ${
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
                     profileExpanded ? "rotate-180" : ""
                   }`}
                 />
