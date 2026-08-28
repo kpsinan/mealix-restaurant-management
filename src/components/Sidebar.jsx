@@ -40,18 +40,23 @@ const useOutsideClick = (ref, callback) => {
 
 // Sidebar navigation items mapped to translation keys
 const navItems = [
-  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt },
-  { path: "/", key: "floorPlan", icon: FaHome },
-  { path: "/smart-assign", key: "smartAssign", icon: FaMagic },
-  { path: "/order", key: "order", icon: FaClipboardList },
-  { path: "/menu", key: "menu", icon: FaUtensils },
-  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar },
-  { path: "/reports", key: "reports", icon: FaChartBar },
-  { path: "/staff", key: "staff", icon: FaUsers },
-  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell },
+  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt, roles: ['admin'] },
+  { path: "/", key: "floorPlan", icon: FaHome, roles: ['admin', 'staff'] },
+  { path: "/smart-assign", key: "smartAssign", icon: FaMagic, roles: ['admin', 'staff'] },
+  { path: "/order", key: "order", icon: FaClipboardList, roles: ['admin', 'staff'] },
+  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell, roles: ['admin', 'staff'] },
+  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar, roles: ['admin', 'staff'] },
+  { path: "/attendance", key: "Attendance", icon: FaUsers, roles: ['staff'] },
+  { path: "/hr/productivity-kpi", key: "Leaderboard", icon: FaChartBar, roles: ['staff'] },
+  { path: "/menu", key: "menu", icon: FaUtensils, roles: ['admin'] },
+  { path: "/reports", key: "reports", icon: FaChartBar, roles: ['admin'] },
+  { path: "/staff", key: "staff", icon: FaUsers, roles: ['admin'] },
 ];
 
+import { UserContext } from "../App";
+
 const Sidebar = () => {
+  const { user, role } = React.useContext(UserContext);
   const [isOpen, setIsOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
   const [language, setLanguage] = useState("en"); // Default to English initially
@@ -148,12 +153,13 @@ const Sidebar = () => {
 
         {/* Navigation */}
         <nav className="px-4 space-y-2">
-          {navItems.map(({ path, key, icon: Icon }) => {
-            const translatedLabel = t.sidebar[key] || "Link";
+          {navItems.filter(item => item.roles.includes(role)).map((item) => {
+            const Icon = item.icon;
+            const translatedLabel = t.sidebar[item.key] || item.key;
             return (
               <NavLink
-                key={path}
-                to={path}
+                key={item.path}
+                to={item.path}
                 className={({ isActive }) =>
                   `relative flex items-center rounded-lg font-medium py-3 px-4 transition-all duration-200 group ${
                     isActive
@@ -185,28 +191,30 @@ const Sidebar = () => {
 
       {/* Bottom Section: Settings & Profile */}
       <div className="px-4 py-4 border-t border-[#E5E7EB]">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `relative flex items-center rounded-lg font-medium py-3 px-4 transition-all duration-200 group ${
-              isActive
-                ? "bg-[#D1FAE5] text-[#065F46] shadow-sm"
-                : "hover:bg-[#C6F6D5] hover:text-[#065F46]"
-            } ${!isOpen && "justify-center"}`
-          }
-        >
-          <FaCog className="w-5 h-5 shrink-0" aria-hidden="true" />
-          {isOpen && <span className={`${isRTL ? "mr-4" : "ml-4"}`}>{t.sidebar.settings}</span>}
-          {!isOpen && (
-            <span
-              className={`absolute ${
-                isRTL ? "right-full mr-4" : "left-full ml-4"
-              } top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1F2937] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg transition-opacity pointer-events-none z-50`}
-            >
-              {t.sidebar.settings}
-            </span>
-          )}
-        </NavLink>
+        {role === 'admin' && (
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `relative flex items-center rounded-lg font-medium py-3 px-4 transition-all duration-200 group ${
+                isActive
+                  ? "bg-[#D1FAE5] text-[#065F46] shadow-sm"
+                  : "hover:bg-[#C6F6D5] hover:text-[#065F46]"
+              } ${!isOpen && "justify-center"}`
+            }
+          >
+            <FaCog className="w-5 h-5 shrink-0" aria-hidden="true" />
+            {isOpen && <span className={`${isRTL ? "mr-4" : "ml-4"}`}>{t.sidebar.settings}</span>}
+            {!isOpen && (
+              <span
+                className={`absolute ${
+                  isRTL ? "right-full mr-4" : "left-full ml-4"
+                } top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1F2937] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg transition-opacity pointer-events-none z-50`}
+              >
+                {t.sidebar.settings}
+              </span>
+            )}
+          </NavLink>
+        )}
 
         {/* Profile Section */}
         <div ref={profileRef} className="relative mt-2">

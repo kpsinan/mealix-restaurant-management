@@ -30,18 +30,23 @@ import {
 
 // Navigation Items Configuration using Translation Keys to match Sidebar.jsx logic
 const navItems = [
-  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt },
-  { path: "/", key: "floorPlan", icon: FaHome },
-  { path: "/smart-assign", key: "smartAssign", icon: FaMagic },
-  { path: "/order", key: "order", icon: FaClipboardList },
-  { path: "/menu", key: "menu", icon: FaUtensils },
-  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar },
-  { path: "/reports", key: "reports", icon: FaChartBar },
-  { path: "/staff", key: "staff", icon: FaUsers },
-  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell },
+  { path: "/dashboard", key: "dashboard", icon: FaTachometerAlt, roles: ['admin'] },
+  { path: "/", key: "floorPlan", icon: FaHome, roles: ['admin', 'staff'] },
+  { path: "/smart-assign", key: "smartAssign", icon: FaMagic, roles: ['admin', 'staff'] },
+  { path: "/order", key: "order", icon: FaClipboardList, roles: ['admin', 'staff'] },
+  { path: "/kitchen", key: "kitchen", icon: FaConciergeBell, roles: ['admin', 'staff'] },
+  { path: "/billing", key: "billing", icon: FaFileInvoiceDollar, roles: ['admin', 'staff'] },
+  { path: "/attendance", key: "Attendance", icon: FaUsers, roles: ['staff'] },
+  { path: "/hr/productivity-kpi", key: "Leaderboard", icon: FaChartBar, roles: ['staff'] },
+  { path: "/menu", key: "menu", icon: FaUtensils, roles: ['admin'] },
+  { path: "/reports", key: "reports", icon: FaChartBar, roles: ['admin'] },
+  { path: "/staff", key: "staff", icon: FaUsers, roles: ['admin'] },
 ];
 
+import { UserContext } from "../App";
+
 const Navbar = () => {
+  const { user, role } = React.useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileExpanded, setProfileExpanded] = useState(false);
   const [language, setLanguage] = useState("en"); // Default language
@@ -189,8 +194,8 @@ const Navbar = () => {
 
           {/* Navigation Items (Mapped to translations) */}
           <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1 scroll-smooth">
-            {navItems.map(({ path, key, icon: Icon }, index) => {
-              const label = t.sidebar[key] || "Link";
+            {navItems.filter(item => item.roles.includes(role)).map(({ path, key, icon: Icon }, index) => {
+              const label = t.sidebar[key] || key;
               return (
                 <NavLink
                   key={path}
@@ -224,19 +229,21 @@ const Navbar = () => {
           {/* Bottom Section: Profile & Settings */}
           <div className="flex-none p-4 border-t border-gray-100 bg-gray-50/50">
             {/* Settings Link */}
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                `flex items-center p-3 rounded-xl mb-3 transition-colors ${
-                  isActive
-                    ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100"
-                    : "text-gray-600 hover:bg-white hover:shadow-sm"
-                }`
-              }
-            >
-              <FaCog className={`w-5 h-5 ${isRTL ? "ml-3" : "mr-3"} text-gray-400`} />
-              <span className="font-medium">{t.sidebar.settings}</span>
-            </NavLink>
+            {role === 'admin' && (
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  `flex items-center p-3 rounded-xl mb-3 transition-colors ${
+                    isActive
+                      ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100"
+                      : "text-gray-600 hover:bg-white hover:shadow-sm"
+                  }`
+                }
+              >
+                <FaCog className={`w-5 h-5 ${isRTL ? "ml-3" : "mr-3"} text-gray-400`} />
+                <span className="font-medium">{t.sidebar.settings}</span>
+              </NavLink>
+            )}
 
             {/* Profile Card */}
             <div className="bg-white rounded-2xl p-1 shadow-sm border border-gray-100 overflow-hidden">

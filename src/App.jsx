@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase/firebase';
+import { auth, getUserRole } from './firebase/firebase';
 import Login from './pages/Login';
 
 // Layout & Network
@@ -48,20 +48,42 @@ import AbvAnalysis from './pages/AbvAnalysis';
 // HR Analytical Pages
 import StaffOrderVolume from './pages/hr/StaffOrderVolume';
 import StaffSalesContribution from './pages/hr/StaffSalesContribution';
-import StaffProductivityKPI from './pages/hr/StaffProductivityKPI'; // <--- NEW IMPORT
+import StaffProductivityKPI from './pages/hr/StaffProductivityKPI';
 import ActivityEngagementMonitor from './pages/hr/ActivityEngagementMonitor';
 import StaffLoadRevenueBalance from './pages/hr/StaffLoadRevenueBalance';
 
 // Others
 import SmartAssigner from './pages/SmartAssigner';
 
+export const UserContext = React.createContext({ user: null, role: 'admin' });
+
+const ProtectedRoute = ({ children, allowedRoles, role }) => {
+  if (!allowedRoles.includes(role)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">Access Denied</h2>
+        <p className="text-gray-500">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
+  return children;
+};
+
 const App = () => {
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState('admin');
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        const userRole = await getUserRole(currentUser.uid);
+        setUser(currentUser);
+        setRole(userRole);
+      } else {
+        setUser(null);
+        setRole('admin');
+      }
       setLoadingAuth(false);
     });
     return () => unsubscribe();
@@ -80,7 +102,7 @@ const App = () => {
   }
 
   return (
-    <>
+    <UserContext.Provider value={{ user, role }}>
       <NetworkHandler />
 
       {/* Layout Container */}
@@ -100,58 +122,52 @@ const App = () => {
         <main className="flex-1 overflow-y-auto relative">
           <div className="pt-28 pb-20 px-4 lg:pt-4 lg:pb-4 lg:px-6">
             <Routes>
-              {/* Core */}
+              {/* Allowed for all roles */}
               <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/smart-assign" element={<SmartAssigner />} />
               <Route path="/order" element={<Order />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/staff" element={<Staff />} />
               <Route path="/kitchen" element={<Kitchen />} />
               <Route path="/billing" element={<Billing />} />
-              <Route path="/hr/directory" element={<StaffDirectory />} />
-
-              {/* Reports Hubs */}
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/reports/sales" element={<SalesReport />} />
-              <Route path="/reports/sales-and-revenue" element={<SalesAndRevenue />} />
-              <Route path="/reports/analytical" element={<AnalyticalReports />} />
-
-              {/* Analytical Sub Pages */}
-              <Route path="/reports/analytical/sales-trends" element={<SalesTrendAnalysis />} />
-              <Route path="/reports/analytical/peak-times" element={<PeakTimeAnalysis />} />
-              <Route path="/reports/analytical/menu-performance" element={<MenuPerformance />} />
-              <Route path="/reports/analytical/time-comparison" element={<TimeComparisonReport />} />
-              <Route path="/reports/analytical/category-contribution" element={<CategoryContribution />} />
-              <Route path="/reports/analytical/table-utilization" element={<TableUtilization />} />
-              <Route path="/reports/analytical/abv-analysis" element={<AbvAnalysis />} />
+              <Route path="/attendance" element={<Attendance />} />
               
-              {/* HR Hub */}
-              <Route path="/staff-and-hr" element={<StaffAndHR />} />
-
-              {/* HR Analytics Routes */}
+              {/* Leaderboards for Staff */}
               <Route path="/hr/staff-order-volume" element={<StaffOrderVolume />} />
-              <Route path="/hr/sales-contribution" element={<StaffSalesContribution />} />
-              <Route path="/hr/productivity-kpi" element={<StaffProductivityKPI />} /> {/* <--- NEW ROUTE */}
+              <Route path="/hr/productivity-kpi" element={<StaffProductivityKPI />} />
               <Route path="/hr/activity-monitor" element={<ActivityEngagementMonitor />} />
               <Route path="/hr/load-revenue-balance" element={<StaffLoadRevenueBalance />} />
-              
-              {/* Other Reports */}
-              <Route path="/reports/item-wise-sales" element={<ItemWiseSalesReport />} />
-              <Route path="/reports/table-wise-sales" element={<TableWiseSalesReport />} />
-              <Route path="/reports/payment-mode" element={<PaymentModeReport />} />
-              <Route path="/reports/discounts" element={<DiscountsReport />} />
-              <Route path="/reports/order-type" element={<OrderTypeReport />} />
-              <Route path="/reports/hourly-sales" element={<HourlySalesReport />} />
 
-              {/* Settings */}
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/attendance" element={<Attendance />} />
+              {/* Admin Only Routes */}
+              <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin']} role={role}><Dashboard /></ProtectedRoute>} />
+              <Route path="/menu" element={<ProtectedRoute allowedRoles={['admin']} role={role}><Menu /></ProtectedRoute>} />
+              <Route path="/staff" element={<ProtectedRoute allowedRoles={['admin']} role={role}><Staff /></ProtectedRoute>} />
+              <Route path="/hr/directory" element={<ProtectedRoute allowedRoles={['admin']} role={role}><StaffDirectory /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']} role={role}><Settings /></ProtectedRoute>} />
+              <Route path="/staff-and-hr" element={<ProtectedRoute allowedRoles={['admin']} role={role}><StaffAndHR /></ProtectedRoute>} />
+              
+              {/* Financial & Full Reports - Admin Only */}
+              <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin']} role={role}><Reports /></ProtectedRoute>} />
+              <Route path="/reports/sales" element={<ProtectedRoute allowedRoles={['admin']} role={role}><SalesReport /></ProtectedRoute>} />
+              <Route path="/reports/sales-and-revenue" element={<ProtectedRoute allowedRoles={['admin']} role={role}><SalesAndRevenue /></ProtectedRoute>} />
+              <Route path="/reports/analytical" element={<ProtectedRoute allowedRoles={['admin']} role={role}><AnalyticalReports /></ProtectedRoute>} />
+              <Route path="/reports/analytical/sales-trends" element={<ProtectedRoute allowedRoles={['admin']} role={role}><SalesTrendAnalysis /></ProtectedRoute>} />
+              <Route path="/reports/analytical/peak-times" element={<ProtectedRoute allowedRoles={['admin']} role={role}><PeakTimeAnalysis /></ProtectedRoute>} />
+              <Route path="/reports/analytical/menu-performance" element={<ProtectedRoute allowedRoles={['admin']} role={role}><MenuPerformance /></ProtectedRoute>} />
+              <Route path="/reports/analytical/time-comparison" element={<ProtectedRoute allowedRoles={['admin']} role={role}><TimeComparisonReport /></ProtectedRoute>} />
+              <Route path="/reports/analytical/category-contribution" element={<ProtectedRoute allowedRoles={['admin']} role={role}><CategoryContribution /></ProtectedRoute>} />
+              <Route path="/reports/analytical/table-utilization" element={<ProtectedRoute allowedRoles={['admin']} role={role}><TableUtilization /></ProtectedRoute>} />
+              <Route path="/reports/analytical/abv-analysis" element={<ProtectedRoute allowedRoles={['admin']} role={role}><AbvAnalysis /></ProtectedRoute>} />
+              <Route path="/hr/sales-contribution" element={<ProtectedRoute allowedRoles={['admin']} role={role}><StaffSalesContribution /></ProtectedRoute>} />
+              <Route path="/reports/item-wise-sales" element={<ProtectedRoute allowedRoles={['admin']} role={role}><ItemWiseSalesReport /></ProtectedRoute>} />
+              <Route path="/reports/table-wise-sales" element={<ProtectedRoute allowedRoles={['admin']} role={role}><TableWiseSalesReport /></ProtectedRoute>} />
+              <Route path="/reports/payment-mode" element={<ProtectedRoute allowedRoles={['admin']} role={role}><PaymentModeReport /></ProtectedRoute>} />
+              <Route path="/reports/discounts" element={<ProtectedRoute allowedRoles={['admin']} role={role}><DiscountsReport /></ProtectedRoute>} />
+              <Route path="/reports/order-type" element={<ProtectedRoute allowedRoles={['admin']} role={role}><OrderTypeReport /></ProtectedRoute>} />
+              <Route path="/reports/hourly-sales" element={<ProtectedRoute allowedRoles={['admin']} role={role}><HourlySalesReport /></ProtectedRoute>} />
             </Routes>
           </div>
         </main>
       </div>
-    </>
+    </UserContext.Provider>
   );
 };
 

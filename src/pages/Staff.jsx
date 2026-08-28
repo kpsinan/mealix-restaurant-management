@@ -34,6 +34,8 @@ const Staff = () => {
     name: "",
     contact: "",
     address: "",
+    email: "",
+    password: "",
   });
 
   const [bulkRows, setBulkRows] = useState([
@@ -51,14 +53,17 @@ const Staff = () => {
     loadStaff();
   }, []);
 
-  /* ---------------- ADD ---------------- */
   const handleAddStaff = async () => {
     if (!newStaff.name.trim()) return alert("Name required");
     setLoading(true);
-    await addStaff(newStaff);
-    setNewStaff({ name: "", contact: "", address: "" });
-    setIsAddOpen(false);
-    await loadStaff();
+    try {
+      await addStaff(newStaff);
+      setNewStaff({ name: "", contact: "", address: "", email: "", password: "" });
+      setIsAddOpen(false);
+      await loadStaff();
+    } catch (err) {
+      alert("Failed to add staff. " + err.message);
+    }
     setLoading(false);
   };
 
@@ -224,31 +229,46 @@ const Staff = () => {
       <Modal isOpen={isAddOpen} onClose={() => !loading && setIsAddOpen(false)}>
         <h2 className="text-xl font-bold mb-4">Add New Staff</h2>
         <p className="text-sm text-slate-500 mb-4">A unique Staff ID will be assigned automatically upon saving.</p>
-        <div className="space-y-3">
+        <div className="space-y-4">
           <input
-            placeholder="Full Name"
-            className="w-full input"
+            placeholder="Name *"
             value={newStaff.name}
-            onChange={(e) =>
-              setNewStaff({ ...newStaff, name: e.target.value })
-            }
+            onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+            className="w-full p-2.5 border rounded-lg"
           />
           <input
             placeholder="Contact Number"
-            className="w-full input"
             value={newStaff.contact}
-            onChange={(e) =>
-              setNewStaff({ ...newStaff, contact: e.target.value })
-            }
+            onChange={(e) => setNewStaff({ ...newStaff, contact: e.target.value })}
+            className="w-full p-2.5 border rounded-lg"
           />
-          <input
-            placeholder="Home Address"
-            className="w-full input"
+          <textarea
+            placeholder="Address"
             value={newStaff.address}
-            onChange={(e) =>
-              setNewStaff({ ...newStaff, address: e.target.value })
-            }
+            onChange={(e) => setNewStaff({ ...newStaff, address: e.target.value })}
+            className="w-full p-2.5 border rounded-lg"
           />
+          
+          <div className="border-t pt-4 mt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">System Access (Optional)</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="email"
+                placeholder="Login Email"
+                value={newStaff.email}
+                onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                className="w-full p-2.5 border rounded-lg bg-gray-50"
+              />
+              <input
+                type="password"
+                placeholder="Login Password"
+                value={newStaff.password}
+                onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                className="w-full p-2.5 border rounded-lg bg-gray-50"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">If provided, this staff member can log in to the system to take orders.</p>
+          </div>
           <button
             onClick={handleAddStaff}
             disabled={loading}

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -38,6 +38,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 export const auth = getAuth(app);
 
+// Secondary app for creating staff without logging out admin
+const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+const secondaryAuth = getAuth(secondaryApp);
+
 /* =====================================================
    COLLECTIONS
 ===================================================== */
@@ -49,6 +53,44 @@ const attendanceCollection = collection(db, "attendance");
 const ordersCollection = collection(db, "orders");
 const settingsCollection = collection(db, "settings");
 const salesCollection = collection(db, "salesRecords");
+const usersCollection = collection(db, "users");
+
+/* =====================================================
+   USERS & RBAC
+===================================================== */
+export const getUserRole = async (uid) => {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (snap.exists()) {
+    return snap.data().role || "admin";
+  }
+  // Default to admin for legacy accounts or original creator
+  return "admin";
+};
+
+export const createStaffAccount = async (email, password, staffData) => {
+  try {
+    // Create auth user on secondary app
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    const uid = userCredential.user.uid;
+    
+    // Save role and linked staff document ID
+    await setDoc(doc(db, "users", uid), {
+      email,
+      role: "staff",
+      staffId: staffData.staffId, // The physical ID like STF-1002
+      name: staffData.name,
+      createdAt: Timestamp.now()
+    });
+
+    // Logout secondary app so it doesn't leave dangling sessions
+    await secondaryAuth.signOut();
+    
+    return uid;
+  } catch (error) {
+    console.error("Error creating staff account:", error);
+    throw error;
+  }
+};
 
 /* =====================================================
    SETTINGS
@@ -175,7 +217,16 @@ export const getNextStaffId = async () => {
 
 export const addStaff = async (data) => {
   const staffId = await getNextStaffId();
-  return addDoc(staffCollection, { ...data, staffId, createdAt: Timestamp.now() });
+  let uid = null;
+  
+  if (data.email && data.password) {
+    uid = await createStaffAccount(data.email, data.password, { staffId, name: data.name });
+  }
+
+  // Don't save password in firestore staff collection
+  const { password, ...safeData } = data;
+  
+  return addDoc(staffCollection, { ...safeData, staffId, authUid: uid, createdAt: Timestamp.now() });
 };
 
 export const addStaffInBulk = async (list) => {
