@@ -8,6 +8,8 @@ import {
   addOrder,
   updateMultipleTablesStatus, // Use bulk update
   getSettings,
+  getTodayAttendance,
+  addAttendance
 } from "../firebase/firebase";
 import Modal from "../components/Modal";
 
@@ -75,12 +77,57 @@ const Order = () => {
   // 'items' structure now includes 'note'
   const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false, generalNote: "" });
   const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
+  const [punchStatus, setPunchStatus] = useState({ loading: false, isPunchedIn: false, error: null });
 
   // Helpers
   const showNotification = useCallback((message, type = 'success') => {
     setUiState(prev => ({ ...prev, notification: { message, type } }));
     setTimeout(() => setUiState(prev => ({ ...prev, notification: null })), 3000);
   }, []);
+
+  const handleQuickPunchIn = async () => {
+    if (!session.staffId) return;
+    setPunchStatus(p => ({ ...p, loading: true }));
+    try {
+      await addAttendance({
+        staffId: session.staffId,
+        type: 'in',
+        note: 'Quick punch-in from Order page'
+      });
+      showNotification("Punched in successfully!", "success");
+      setPunchStatus({ loading: false, isPunchedIn: true, error: null });
+    } catch (err) {
+      showNotification("Failed to punch in", "error");
+      setPunchStatus(p => ({ ...p, loading: false }));
+    }
+  };
+
+  // Fetch Attendance when staff changes
+  useEffect(() => {
+    if (!session.staffId) {
+      setPunchStatus({ loading: false, isPunchedIn: false, error: null });
+      return;
+    }
+    
+    let mounted = true;
+    const checkPunch = async () => {
+      setPunchStatus(p => ({ ...p, loading: true }));
+      try {
+        const records = await getTodayAttendance(session.staffId);
+        if (mounted) {
+          if (records && records.length > 0) {
+            setPunchStatus({ loading: false, isPunchedIn: records[0].type === 'in', error: null });
+          } else {
+             setPunchStatus({ loading: false, isPunchedIn: false, error: null });
+          }
+        }
+      } catch (err) {
+        if (mounted) setPunchStatus({ loading: false, isPunchedIn: false, error: "Failed to check attendance" });
+      }
+    };
+    checkPunch();
+    return () => { mounted = false; };
+  }, [session.staffId]);
 
   // Fetch Data & Parse URL
   useEffect(() => {
@@ -419,11 +466,42 @@ const Order = () => {
                   {data.staff.map(s => <option key={s.id ?? s._id} value={s.id ?? s._id}>{s.name}</option>)}
                 </select>
               </div>
+
+              {/* Attendance Warning */}
+              {session.staffId && !punchStatus.loading && !punchStatus.isPunchedIn && (
+                  <div className={`p-4 rounded-xl border ${data.settings.mandatoryPunchIn ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+                      <div className="flex gap-3">
+                          <Icons.Alert />
+                          <div>
+                              <h4 className={`font-bold text-sm ${data.settings.mandatoryPunchIn ? 'text-red-800' : 'text-orange-800'}`}>
+                                  Staff Not Punched In
+                              </h4>
+                              <p className={`text-xs mt-1 ${data.settings.mandatoryPunchIn ? 'text-red-700' : 'text-orange-700'}`}>
+                                  {data.settings.mandatoryPunchIn 
+                                      ? "You must punch in before you can start taking orders." 
+                                      : "Warning: You are currently not punched in for this shift."}
+                              </p>
+                              <button 
+                                  onClick={handleQuickPunchIn}
+                                  className={`mt-3 px-4 py-2 rounded-lg text-xs font-bold text-white shadow-sm transition-transform active:scale-95 ${data.settings.mandatoryPunchIn ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}
+                              >
+                                  Quick Punch In Now
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              )}
             </div>
             
-            <button onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} disabled={!session.tableId || !session.staffId} 
-              className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation ${(!session.tableId || !session.staffId) ? "bg-gray-200 text-gray-400" : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}>
-              Start Order
+            <button 
+              onClick={() => setUiState(prev => ({ ...prev, isModalOpen: false }))} 
+              disabled={!session.tableId || !session.staffId || punchStatus.loading || (data.settings.mandatoryPunchIn && !punchStatus.isPunchedIn)} 
+              className={`mt-8 w-full py-3.5 rounded-xl font-bold text-sm shadow-md transition-all touch-manipulation 
+                  ${(!session.tableId || !session.staffId || punchStatus.loading || (data.settings.mandatoryPunchIn && !punchStatus.isPunchedIn)) 
+                      ? "bg-gray-200 text-gray-400" 
+                      : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"}`}
+            >
+              {punchStatus.loading ? "Checking Status..." : "Start Order"}
             </button>
           </div>
         </Modal>

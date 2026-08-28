@@ -54,6 +54,8 @@ const Settings = () => {
     // AI Settings
     aiUpsellEnabled: true,
     aiUpsellQtySuggestEnabled: true,
+    // Staff Settings
+    mandatoryPunchIn: false,
   });
 
   const showNotify = (message, type = 'success') => {
@@ -242,6 +244,22 @@ const Settings = () => {
                        <div className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-3.5 text-gray-400 font-bold`}>@</div>
                    </div>
                 </InputGroup>
+
+                {/* Staff Policy */}
+                <div className="p-4 border border-gray-100 bg-gray-50 rounded-xl mt-4">
+                  <h3 className="font-bold text-gray-800 mb-4">Staff Policy</h3>
+                  <label className="flex items-start cursor-pointer group">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <input type="checkbox" name="mandatoryPunchIn" checked={formData.mandatoryPunchIn ?? false} onChange={handleChange} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" />
+                    </div>
+                    <div className={`ml-4 ${isRTL ? 'mr-4 ml-0' : ''}`}>
+                      <span className="block font-bold text-gray-900 group-hover:text-blue-700 transition-colors">Mandatory Staff Punch-In</span>
+                      <span className="block text-sm text-gray-600 mt-1 leading-relaxed">
+                        If enabled, staff members cannot take new orders until they have punched in for their shift.
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
           )}
