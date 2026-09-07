@@ -1,8 +1,9 @@
 // src/pages/Settings.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { getSettings, updateSettings } from '../firebase/firebase';
 import AccessControl from '../components/AccessControl';
 import { getTranslation, LANGUAGES, CURRENCIES } from '../translations'; // <-- UPDATED IMPORT
+import { UserContext } from '../App';
 
 import { 
   Store, 
@@ -31,6 +32,7 @@ const SHORTCUTS_MAP = [
 ];
 
 const Settings = () => {
+  const { permissions } = useContext(UserContext);
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -138,9 +140,9 @@ const Settings = () => {
     { id: 'general', label: t.tabGeneral, icon: Store },
     { id: 'localization', label: t.tabLocalization, icon: Globe },
     { id: 'printing', label: t.tabPrinting, icon: Printer },
-    { id: 'access', label: 'Access Control', icon: Shield },
+    ...(permissions.includes('manage_access') ? [{ id: 'access', label: 'Access Control', icon: Shield }] : []),
     { id: 'shortcuts', label: t.tabShortcuts, icon: Keyboard },
-    { id: 'aiSettings', label: "AI Features", icon: Sparkles },
+    ...(permissions.includes('manage_access') ? [{ id: 'aiSettings', label: "AI Features", icon: Sparkles }] : []),
     { id: 'about', label: t.tabAbout, icon: Info },
   ];
 
