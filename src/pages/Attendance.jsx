@@ -58,7 +58,10 @@ const Attendance = () => {
     setAttendanceState(statusMap);
     
     // Load History for reports
-    const fetchId = (role === 'staff' && staffId) ? staffId : filterStaff;
+    let fetchId = filterStaff;
+    if (role === 'staff' && staff.length > 0) {
+      fetchId = staff[0].id;
+    }
     const records = await getAttendanceRecords(fetchId);
     setHistory(records);
     
