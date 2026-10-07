@@ -81,7 +81,7 @@ const Order = () => {
   // 'items' structure now includes 'note'
   const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false, generalNote: "" });
   const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
-  const [punchStatus, setPunchStatus] = useState({ loading: false, isPunchedIn: false, error: null });
+  const [punchStatus, setPunchStatus] = useState({ loading: false, isPunchedIn: false, error: null, record: null });
   const [showCamera, setShowCamera] = useState(false);
   const [punchPhoto, setPunchPhoto] = useState(null);
 
@@ -112,7 +112,8 @@ const Order = () => {
         reason: 'Quick punch-in from Order page'
       });
       showNotification("Punched in successfully!", "success");
-      setPunchStatus({ loading: false, isPunchedIn: true, error: null });
+      const records = await getTodayAttendance(session.staffId);
+      setPunchStatus({ loading: false, isPunchedIn: true, error: null, record: records[0] });
       setShowCamera(false);
       setPunchPhoto(null);
     } catch (err) {
@@ -124,7 +125,7 @@ const Order = () => {
   // Fetch Attendance when staff changes
   useEffect(() => {
     if (!session.staffId) {
-      setPunchStatus({ loading: false, isPunchedIn: false, error: null });
+      setPunchStatus({ loading: false, isPunchedIn: false, error: null, record: null });
       return;
     }
     
@@ -135,13 +136,13 @@ const Order = () => {
         const records = await getTodayAttendance(session.staffId);
         if (mounted) {
           if (records && records.length > 0) {
-            setPunchStatus({ loading: false, isPunchedIn: records[0].type === 'in', error: null });
+            setPunchStatus({ loading: false, isPunchedIn: records[0].type === 'in', error: null, record: records[0] });
           } else {
-             setPunchStatus({ loading: false, isPunchedIn: false, error: null });
+             setPunchStatus({ loading: false, isPunchedIn: false, error: null, record: null });
           }
         }
       } catch (err) {
-        if (mounted) setPunchStatus({ loading: false, isPunchedIn: false, error: "Failed to check attendance" });
+        if (mounted) setPunchStatus({ loading: false, isPunchedIn: false, error: "Failed to check attendance", record: null });
       }
     };
     checkPunch();
@@ -522,6 +523,29 @@ const Order = () => {
                               >
                                   Quick Punch In Now
                               </button>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
+              {/* Attendance Success Record */}
+              {session.staffId && !punchStatus.loading && punchStatus.isPunchedIn && punchStatus.record && (
+                  <div className="p-4 rounded-xl border bg-green-50 border-green-200">
+                      <div className="flex gap-3">
+                          {punchStatus.record.photoUrl ? (
+                              <img src={punchStatus.record.photoUrl} alt="Punch in" className="w-10 h-10 rounded-lg object-cover border border-green-200 bg-white" />
+                          ) : (
+                              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
+                                  <Icons.Check />
+                              </div>
+                          )}
+                          <div>
+                              <h4 className="font-bold text-sm text-green-800">
+                                  Punched In Successfully
+                              </h4>
+                              <p className="text-xs mt-0.5 text-green-700">
+                                  Time: {punchStatus.record.timestamp?.toLocaleString([], { timeStyle: 'short' }) || "Just now"}
+                              </p>
                           </div>
                       </div>
                   </div>
