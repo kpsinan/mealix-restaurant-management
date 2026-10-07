@@ -175,18 +175,26 @@ const Order = () => {
           const params = new URLSearchParams(location.search);
           const tId = params.get("tableId");
           const linked = params.get("linked");
+          
+          let resolvedStaffId = loggedInStaffId || "";
+          if (loggedInStaffId && staff) {
+            const foundStaff = staff.find(s => s.staffId === loggedInStaffId);
+            if (foundStaff) resolvedStaffId = foundStaff.id;
+          }
 
           if (tId) {
             // Auto-select Table ONLY and Merged Tables
             setSession(prev => ({ 
               ...prev, 
               tableId: tId, 
+              staffId: prev.staffId || resolvedStaffId,
               linkedTableIds: linked ? linked.split(',') : [] 
             }));
             
             // Modal stays open to force Staff selection
             setUiState(prev => ({ ...prev, isModalOpen: true }));
           } else {
+             setSession(prev => ({ ...prev, staffId: prev.staffId || resolvedStaffId }));
              setUiState(prev => ({ ...prev, isModalOpen: true }));
           }
         }
