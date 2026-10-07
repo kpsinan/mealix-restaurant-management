@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { getStaff, getTodayAttendance, addAttendance, getAttendanceRecords } from "../firebase/firebase";
 import Modal from "../components/Modal";
+import CameraCapture from "../components/CameraCapture";
+import { UserContext } from "../App";
 
 /* ---------------- ICONS ---------------- */
 const CameraIcon = () => (
@@ -11,6 +13,7 @@ const CameraIcon = () => (
 );
 
 const Attendance = () => {
+  const { role, staffId } = React.useContext(UserContext);
   const [staffList, setStaffList] = useState([]);
   const [attendanceState, setAttendanceState] = useState({});
   const [loading, setLoading] = useState(true);
@@ -27,15 +30,15 @@ const Attendance = () => {
   const [photo, setPhoto] = useState(null);
   const [punchOutReason, setPunchOutReason] = useState("End of Day");
 
-  // Camera Refs
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [cameraActive, setCameraActive] = useState(false);
+  // Camera is now handled by CameraCapture component
 
   /* ---------------- LOAD DATA ---------------- */
   const loadData = async () => {
     setLoading(true);
-    const staff = await getStaff();
+    let staff = await getStaff();
+    if (role === 'staff' && staffId) {
+      staff = staff.filter(s => s.id === staffId || s.staffId === staffId);
+    }
     setStaffList(staff);
 
     // Fetch today's status for the cards
@@ -55,7 +58,8 @@ const Attendance = () => {
     setAttendanceState(statusMap);
     
     // Load History for reports
-    const records = await getAttendanceRecords(filterStaff);
+    const fetchId = (role === 'staff' && staffId) ? staffId : filterStaff;
+    const records = await getAttendanceRecords(fetchId);
     setHistory(records);
     
     setLoading(false);
@@ -125,32 +129,6 @@ const Attendance = () => {
     });
   };
 
-  /* ---------------- CAMERA LOGIC ---------------- */
-  const startCamera = async () => {
-    setCameraActive(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch (err) {
-      alert("Camera Error: " + err.message);
-      setCameraActive(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
-    }
-    setCameraActive(false);
-  };
-
-  const capturePhoto = () => {
-    const context = canvasRef.current.getContext("2d");
-    context.drawImage(videoRef.current, 0, 0, 320, 240);
-    setPhoto(canvasRef.current.toDataURL("image/jpeg"));
-    stopCamera();
-  };
-
   /* ---------------- ACTION HANDLERS ---------------- */
   const uploadToImgBB = async (base64) => {
     const formData = new FormData();
@@ -180,7 +158,6 @@ const Attendance = () => {
 
       await loadData();
       setModalOpen(false);
-      stopCamera();
     } catch (e) { alert(e.message); }
     setProcessing(false);
   };
@@ -217,7 +194,7 @@ const Attendance = () => {
                 </div>
 
                 <button
-                  onClick={() => { setSelectedStaff(staff); setPhoto(null); setModalOpen(true); startCamera(); }}
+                  onClick={() => { setSelectedStaff(staff); setPhoto(null); setModalOpen(true); }}
                   className={`w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition active:scale-95
                     ${isIn ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                 >
@@ -238,14 +215,16 @@ const Attendance = () => {
 
             <div className="flex flex-wrap items-center gap-2">
               {/* STAFF FILTER */}
-              <select 
-                value={filterStaff}
-                onChange={(e) => setFilterStaff(e.target.value)}
-                className="bg-slate-50 border-slate-200 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 ring-indigo-500/20"
-              >
-                <option value="all">All Staff</option>
-                {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              {role !== 'staff' && (
+                <select 
+                  value={filterStaff}
+                  onChange={(e) => setFilterStaff(e.target.value)}
+                  className="bg-slate-50 border-slate-200 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 ring-indigo-500/20"
+                >
+                  <option value="all">All Staff</option>
+                  {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              )}
 
               {/* TAB SWITCHER */}
               <div className="bg-slate-100 p-1 rounded-lg flex">
@@ -332,35 +311,14 @@ const Attendance = () => {
         </div>
 
         {/* ATTENDANCE MODAL */}
-        <Modal isOpen={modalOpen} onClose={() => { stopCamera(); setModalOpen(false); }} size="md">
+        <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); }} size="md">
           {selectedStaff && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold border-b pb-2">
                 {attendanceState[selectedStaff.id]?.status === "in" ? "Punch Out" : "Punch In"}: {selectedStaff.name}
               </h2>
 
-              <div className="bg-slate-900 rounded-2xl overflow-hidden aspect-video relative flex items-center justify-center border-4 border-slate-100 shadow-inner">
-                {!photo ? (
-                  <>
-                    <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover mirror" />
-                    <canvas ref={canvasRef} width="320" height="240" className="hidden" />
-                  </>
-                ) : (
-                  <img src={photo} alt="Captured" className="w-full h-full object-contain" />
-                )}
-              </div>
-
-              <div className="flex justify-center">
-                {!photo ? (
-                  <button onClick={capturePhoto} className="bg-indigo-600 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-indigo-200">
-                    Capture Photo
-                  </button>
-                ) : (
-                  <button onClick={() => { setPhoto(null); startCamera(); }} className="text-indigo-600 font-bold px-4 py-2 hover:bg-indigo-50 rounded-lg">
-                    Retake Photo
-                  </button>
-                )}
-              </div>
+              <CameraCapture photo={photo} setPhoto={setPhoto} />
 
               {attendanceState[selectedStaff.id]?.status === "in" && (
                 <div className="mt-4">
@@ -389,7 +347,6 @@ const Attendance = () => {
           )}
         </Modal>
       </div>
-      <style>{`.mirror { transform: scaleX(-1); }`}</style>
     </div>
   );
 };

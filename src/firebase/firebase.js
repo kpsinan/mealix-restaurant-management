@@ -285,12 +285,29 @@ export const addStaffInBulk = async (list) => {
 export const getStaff = async () =>
   (await getDocs(staffCollection)).docs.map(d => ({ id: d.id, ...d.data() }));
 
-export const deleteStaff = async (id) =>
-  deleteDoc(doc(db, "staff", id));
+export const deleteStaff = async (id) => {
+  const staffDoc = await getDoc(doc(db, "staff", id));
+  if (staffDoc.exists()) {
+    const data = staffDoc.data();
+    if (data.authUid) {
+      await updateDoc(doc(db, "users", data.authUid), { blocked: true, deleted: true });
+    }
+  }
+  return deleteDoc(doc(db, "staff", id));
+};
 
 export const deleteStaffInBulk = async (ids) => {
   const batch = writeBatch(db);
-  ids.forEach(id => batch.delete(doc(db, "staff", id)));
+  for (const id of ids) {
+    const staffDoc = await getDoc(doc(db, "staff", id));
+    if (staffDoc.exists()) {
+      const data = staffDoc.data();
+      if (data.authUid) {
+        batch.update(doc(db, "users", data.authUid), { blocked: true, deleted: true });
+      }
+    }
+    batch.delete(doc(db, "staff", id));
+  }
   await batch.commit();
 };
 

@@ -13,6 +13,7 @@ import {
 } from "../firebase/firebase";
 import { UserContext } from "../App";
 import Modal from "../components/Modal";
+import CameraCapture from "../components/CameraCapture";
 
 // --- Icons System ---
 const Icons = {
@@ -81,6 +82,8 @@ const Order = () => {
   const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false, generalNote: "" });
   const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
   const [punchStatus, setPunchStatus] = useState({ loading: false, isPunchedIn: false, error: null });
+  const [showCamera, setShowCamera] = useState(false);
+  const [punchPhoto, setPunchPhoto] = useState(null);
 
   // Helpers
   const showNotification = useCallback((message, type = 'success') => {
@@ -89,16 +92,29 @@ const Order = () => {
   }, []);
 
   const handleQuickPunchIn = async () => {
-    if (!session.staffId) return;
+    if (!session.staffId || !punchPhoto) return;
     setPunchStatus(p => ({ ...p, loading: true }));
     try {
+      const formData = new FormData();
+      formData.append("image", punchPhoto.split(",")[1]);
+      const res = await fetch(`https://api.imgbb.com/1/upload?expiration=2592000&key=723964ef487c0899ac1278689c9bbb80`, {
+        method: "POST", body: formData
+      });
+      const uploadData = await res.json();
+      
+      const staffDetails = data.staff.find(s => (s.id || s._id) === session.staffId) || { name: 'Unknown' };
+
       await addAttendance({
         staffId: session.staffId,
+        staffName: staffDetails.name,
         type: 'in',
-        note: 'Quick punch-in from Order page'
+        photoUrl: uploadData.data.url,
+        reason: 'Quick punch-in from Order page'
       });
       showNotification("Punched in successfully!", "success");
       setPunchStatus({ loading: false, isPunchedIn: true, error: null });
+      setShowCamera(false);
+      setPunchPhoto(null);
     } catch (err) {
       showNotification("Failed to punch in", "error");
       setPunchStatus(p => ({ ...p, loading: false }));
@@ -501,7 +517,7 @@ const Order = () => {
                                       : "Warning: You are currently not punched in for this shift."}
                               </p>
                               <button 
-                                  onClick={handleQuickPunchIn}
+                                  onClick={() => setShowCamera(true)}
                                   className={`mt-3 px-4 py-2 rounded-lg text-xs font-bold text-white shadow-sm transition-transform active:scale-95 ${data.settings.mandatoryPunchIn ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}
                               >
                                   Quick Punch In Now
@@ -663,6 +679,17 @@ const Order = () => {
           </div>
         </div>
       </div>
+      {/* CAMERA MODAL */}
+      <Modal isOpen={showCamera} onClose={() => { setShowCamera(false); setPunchPhoto(null); }} title="Quick Punch In">
+        <CameraCapture photo={punchPhoto} setPhoto={setPunchPhoto} />
+        <button 
+          onClick={handleQuickPunchIn}
+          disabled={!punchPhoto || punchStatus.loading}
+          className={`w-full py-3 mt-4 rounded-xl font-bold text-white shadow-md ${!punchPhoto || punchStatus.loading ? 'bg-gray-300' : 'bg-green-600 hover:bg-green-700'}`}
+        >
+          {punchStatus.loading ? 'Punching In...' : 'Confirm Punch In'}
+        </button>
+      </Modal>
     </div>
   );
 };

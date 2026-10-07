@@ -25,7 +25,7 @@ const AccessControl = () => {
     setLoading(true);
     try {
       const data = await getAllUsers();
-      setUsers(data);
+      setUsers(data.filter(u => !u.deleted));
     } catch (error) {
       console.error(error);
     }
