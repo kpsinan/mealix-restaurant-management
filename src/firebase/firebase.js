@@ -341,11 +341,12 @@ export const getAttendanceRecords = async (staffId = null) => {
     let q = query(attendanceCollection, orderBy("timestamp", "desc"));
     
     if (staffId && staffId !== "all") {
-      q = query(attendanceCollection, where("staffId", "==", staffId), orderBy("timestamp", "desc"));
+      // Remove orderBy to avoid requiring a composite index in Firestore
+      q = query(attendanceCollection, where("staffId", "==", staffId));
     }
     
     const snap = await getDocs(q);
-    return snap.docs.map(d => {
+    let records = snap.docs.map(d => {
       const data = d.data();
       let ts = data.timestamp;
 
@@ -364,6 +365,13 @@ export const getAttendanceRecords = async (staffId = null) => {
         timestamp: ts 
       };
     });
+
+    // Sort client-side to avoid Firestore index requirement
+    if (staffId && staffId !== "all") {
+      records.sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    return records;
   } catch (error) {
     console.error("Error fetching attendance records:", error);
     return [];
