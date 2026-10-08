@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 const DOUBLE_TAP_MS = 300; // double-tap detection window
 
-const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onEnterSelectionMode, onDelete, isSelectionMode }) => {
+const TableCard = ({ table, isSelected, isAddButton, onClick, onDoubleClick, onEnterSelectionMode, onDelete, isSelectionMode, onViewQR }) => {
   const elRef = useRef(null);
   const lastTapRef = useRef(0);
   const [menuOpen, setMenuOpen] = useState(false);

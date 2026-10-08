@@ -35,6 +35,8 @@ const Home = () => {
   // State for selection mode
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedTables, setSelectedTables] = useState(new Set());
+  const [qrModalTable, setQrModalTable] = useState(null);
+  const [isExportingZip, setIsExportingZip] = useState(false);
 
   // State for the modal inputs
   const [addMode, setAddMode] = useState("single");
@@ -138,6 +140,37 @@ const Home = () => {
   };
   
   // Custom modal for confirmation instead of window.confirm
+  
+  const handleBulkExportQR = async () => {
+    if (selectedTables.size === 0) return;
+    setIsExportingZip(true);
+    
+    try {
+      const zip = new JSZip();
+      const tablesToExport = data.tables.filter(t => selectedTables.has(t.id ?? t.name));
+      
+      // Since we render them in a hidden div, they are in the DOM!
+      await new Promise(resolve => setTimeout(resolve, 100)); // wait for render
+      
+      tablesToExport.forEach(table => {
+         const svgId = `qr-svg-${table.id || table.name}`;
+         const svg = document.getElementById(svgId);
+         if (svg) {
+            const svgData = new XMLSerializer().serializeToString(svg);
+            zip.file(`MealiX_Table_${table.name}_QR.svg`, svgData);
+         }
+      });
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, "MealiX_Table_QRCodes.zip");
+      clearSelection();
+    } catch(e) {
+      console.error(e);
+      alert('Failed to export bulk QR codes');
+    }
+    setIsExportingZip(false);
+  };
+
   const handleDeleteSelected = async () => {
     if (selectedTables.size === 0) return;
     
@@ -346,7 +379,25 @@ const Home = () => {
           </div>
           <div className="flex items-center gap-3">
              {/* Add Table Button - Larger on desktop, but perfectly sized for mobile */}
-             <button 
+             
+                <button 
+                  onClick={handleBulkExportQR}
+                  disabled={isExportingZip}
+                  className="bg-white text-[#065F46] font-bold px-3 sm:px-4 py-2 rounded-lg text-sm shadow-sm hover:bg-emerald-50 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  {isExportingZip ? (
+                    <span className="animate-pulse">Zipping...</span>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                      <span className="hidden sm:inline">Export QR (ZIP)</span>
+                      <span className="sm:hidden">Export</span>
+                    </>
+                  )}
+                </button>
+                <button 
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center gap-2 bg-[#10B981] text-white px-4 py-2.5 sm:px-6 rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-[#059669] active:scale-[0.98] transition-all duration-150 ease-in-out"
              >
@@ -488,6 +539,7 @@ const Home = () => {
                     onClick={() => handleTableClick(id)}
                     onDoubleClick={() => openOrderFor(id)}
                     onEnterSelectionMode={() => handleEnterSelectionMode(id)}
+                    onViewQR={() => setQrModalTable(table)}
                     onDelete={() => handleDeleteTable(id)}
                   />
                 );
