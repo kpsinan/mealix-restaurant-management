@@ -109,21 +109,26 @@ const Navbar = () => {
       {/* === TOP APP BAR === */}
       <nav
         dir={isRTL ? "rtl" : "ltr"}
-        className="lg:hidden fixed top-0 w-full bg-white shadow-sm border-b border-gray-100 z-50 transition-all duration-300"
+        className="lg:hidden fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200/80 z-40 transition-all duration-300"
       >
         <div className="flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 p-2 rounded-xl">
-              <span className="text-emerald-500 text-xl font-black tracking-tighter">M</span>
+            <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+              <span className="text-emerald-600 text-xl font-black tracking-tighter">M</span>
             </div>
-            <span className="text-xl font-bold tracking-tight text-gray-800">
-              MealiX
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tight text-gray-800 leading-none">
+                MealiX
+              </span>
+              <span className="text-[10px] text-gray-500 tracking-wider mt-0.5">
+                POS System
+              </span>
+            </div>
           </div>
 
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="p-2 rounded-xl text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="p-2.5 rounded-xl text-gray-700 bg-gray-50 hover:bg-emerald-50 hover:text-emerald-600 active:scale-95 transition-all shadow-xs border border-gray-200/60"
             aria-label="Open Menu"
           >
             <FaBars className="w-5 h-5" />
@@ -134,13 +139,13 @@ const Navbar = () => {
       {/* === SLIDE-OUT DRAWER OVERLAY === */}
       <div
         dir={isRTL ? "rtl" : "ltr"}
-        className={`fixed inset-0 z-40 lg:hidden transition-all duration-500 ${
-          isMenuOpen ? "visible" : "invisible delay-300"
+        className={`fixed inset-0 z-[60] lg:hidden transition-all duration-300 ${
+          isMenuOpen ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"
         }`}
       >
         {/* Backdrop */}
         <div
-          className={`absolute inset-0 bg-gray-900/30 backdrop-blur-sm transition-opacity duration-500 ${
+          className={`absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300 ${
             isMenuOpen ? "opacity-100" : "opacity-0"
           }`}
           onClick={() => setIsMenuOpen(false)}
@@ -148,32 +153,38 @@ const Navbar = () => {
 
         {/* Drawer Content */}
         <div
-          className={`absolute ${isRTL ? "left-0" : "right-0"} top-0 h-full w-[85%] max-w-xs bg-white shadow-2xl transform transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col ${
+          className={`absolute ${isRTL ? "left-0" : "right-0"} top-0 h-full w-[85%] max-w-xs bg-white shadow-2xl transform transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col z-[61] ${
             isMenuOpen ? "translate-x-0" : (isRTL ? "-translate-x-full" : "translate-x-full")
           }`}
         >
           {/* Drawer Header */}
-          <div className="flex-none pt-8 px-6 pb-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                {t.sidebar.menu}
-              </p>
-              <h2 className="text-lg font-bold text-gray-800">
-                {language === 'ar' ? 'التنقل' : 'Navigation'}
-              </h2>
+          <div className="flex-none pt-5 px-5 pb-4 bg-gray-50/90 border-b border-gray-200/80 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-emerald-500 text-white p-2 rounded-xl shadow-xs font-black text-lg leading-none">
+                M
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900 leading-tight">
+                  MealiX
+                </h2>
+                <p className="text-[11px] font-medium text-emerald-600">
+                  {isRTL ? 'التنقل' : 'Navigation Menu'}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setIsMenuOpen(false)}
-              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+              className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all active:scale-95"
+              aria-label="Close Menu"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Navigation Items (Mapped to translations) */}
-          <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1 scroll-smooth">
+          <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1 scroll-smooth">
             {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map(({ path, key, icon: Icon }, index) => {
               const label = t.sidebar[key] || key;
               return (

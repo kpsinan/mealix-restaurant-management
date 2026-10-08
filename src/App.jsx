@@ -148,7 +148,7 @@ const App = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto relative">
-          <div className="pt-28 pb-20 px-4 lg:pt-4 lg:pb-4 lg:px-6">
+          <div className="pt-20 pb-20 px-4 lg:pt-4 lg:pb-4 lg:px-6">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/smart-assign" element={<SmartAssigner />} />
