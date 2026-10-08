@@ -6,6 +6,7 @@ import { getTranslation, LANGUAGES, CURRENCIES } from '../translations'; // <-- 
 import { UserContext } from '../App';
 
 import { 
+import PageSkeleton from '../components/PageSkeleton';
   Store, 
   Globe, 
   Printer, 
@@ -21,6 +22,7 @@ import {
 
 // --- Constants (Now imported or kept if non-translated) ---
 const SHORTCUTS_MAP = [
+  { category: 'Navigation', keys: 'Alt + B', action: 'Go to Billing & Print' },
   { category: 'Orders', keys: 'F3', action: 'New Dine-In Order' },
   { category: 'Orders', keys: 'F4', action: 'New Takeaway Order' },
   { category: 'Payment', keys: 'F7', action: 'Set Payment: Cash' },
@@ -158,14 +160,7 @@ const Settings = () => {
     </div>
   );
 
-  if (loading) return (
-    <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500 font-medium">{t.common.loading}</p>
-        </div>
-    </div>
-  );
+  if (loading) return <PageSkeleton />;
 
   return (
     <div className={`container mx-auto max-w-6xl py-8 px-4 ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
@@ -456,9 +451,33 @@ const Settings = () => {
                <h2 className="text-3xl font-extrabold text-gray-900">MealiX POS</h2>
                <span className="inline-block px-3 py-1 mt-3 text-xs font-bold text-blue-800 bg-blue-100 rounded-full">Version 3.6.0</span>
                
-               <p className="text-gray-500 mt-6 max-w-md text-center leading-relaxed">
-                  {"Smart POS System"}
-               </p>
+               <div className="text-gray-600 mt-6 max-w-2xl text-center leading-relaxed space-y-4">
+                  <p>
+                    <strong>MealiX POS</strong> is a next-generation Restaurant Management System designed to streamline operations from order taking to kitchen display and billing.
+                  </p>
+                  <p>
+                    Developed with modern web technologies, it features real-time synchronization, smart table assignment, and extensive multi-language support (including Arabic, Spanish, and Malayalam). 
+                    Our goal is to provide restaurant staff with an intuitive, lightning-fast interface to ensure seamless customer service.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                    <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <span className="block font-bold text-blue-600 text-xl">10+</span>
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Modules</span>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <span className="block font-bold text-emerald-600 text-xl">100%</span>
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Cloud Sync</span>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <span className="block font-bold text-purple-600 text-xl">Live</span>
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Analytics</span>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <span className="block font-bold text-orange-600 text-xl">Auto</span>
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Backups</span>
+                    </div>
+                  </div>
+               </div>
 
                <div className="mt-10 p-6 bg-blue-50 rounded-xl border border-blue-100 max-w-lg text-center">
                  <p className="text-lg font-serif italic text-blue-900">"Palestine is the anvil of our consciousness."</p>

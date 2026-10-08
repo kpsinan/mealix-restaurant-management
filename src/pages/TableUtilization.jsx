@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend 
 } from 'recharts';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import PageSkeleton from '../components/PageSkeleton';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ff6b6b', '#4ecdc4'];
 
@@ -86,11 +87,7 @@ const CategoryContribution = () => {
     fetchData();
   }, []);
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-    </div>
-  );
+  if (loading) return <PageSkeleton />;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

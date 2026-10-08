@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { getSalesByDateRange } from '../firebase/firebase'; // Ensure path is correct
 import { startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, isWithinInterval } from 'date-fns';
+import PageSkeleton from '../components/PageSkeleton';
 
 const TimeComparisonReport = () => {
   const [loading, setLoading] = useState(true);
@@ -145,11 +146,7 @@ const TimeComparisonReport = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      ) : (
+      {loading ? (<PageSkeleton />) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard 
             title="Total Revenue" 

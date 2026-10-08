@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, getUserRole } from './firebase/firebase';
 import Login from './pages/Login';
@@ -84,10 +84,24 @@ const ProtectedRoute = ({ children, requiredPermission, permissions }) => {
 };
 
 const App = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [userAccess, setUserAccess] = useState({ role: 'admin', permissions: [], blocked: false, staffId: null });
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [language, setLanguage] = useState('en');
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Navigate to Billing: Alt + B
+      if (e.altKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        navigate('/billing');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [navigate]);
 
   useEffect(() => {
     const fetchLanguage = async () => {

@@ -1,6 +1,7 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom"; // Assuming react-router is available
+import PageSkeleton from '../components/PageSkeleton';
 
 // --- ORIGINAL FIREBASE IMPORTS RESTORED ---
 import {
@@ -466,7 +467,7 @@ const Home = () => {
 
           {/* Tables Grid */}
           {loading ? (
-             <div className="text-center py-20 text-gray-400">Loading tables...</div>
+             <PageSkeleton />
           ) : filteredTables.length === 0 ? (
              <div className="text-center py-20 px-4 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
                <p className="text-lg">
