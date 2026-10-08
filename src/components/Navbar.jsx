@@ -26,6 +26,7 @@ import {
   FaMagic,
   FaTachometerAlt,
   FaChevronDown,
+  FaChevronUp,
   FaBars,
 } from "react-icons/fa";
 
@@ -51,11 +52,42 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileExpanded, setProfileExpanded] = useState(false);
   const [language, setLanguage] = useState("en"); // Default language
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  const navContainerRef = React.useRef(null);
   const location = useLocation();
 
   // Get current translations based on the active language
   const t = getTranslation(language);
   const isRTL = language === "ar"; // RTL logic for Arabic
+
+  const checkScroll = React.useCallback(() => {
+    const el = navContainerRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    setCanScrollUp(scrollTop > 5);
+    setCanScrollDown(scrollTop + clientHeight < scrollHeight - 5);
+  }, []);
+
+  useEffect(() => {
+    if (isMenuOpen) {
+      const timer = setTimeout(checkScroll, 100);
+      window.addEventListener("resize", checkScroll);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("resize", checkScroll);
+      };
+    }
+  }, [checkScroll, isMenuOpen, permissions]);
+
+  const scrollToMore = (direction = "down") => {
+    if (navContainerRef.current) {
+      navContainerRef.current.scrollBy({
+        top: direction === "down" ? 140 : -140,
+        behavior: "smooth",
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -65,7 +97,7 @@ const Navbar = () => {
     }
   };
 
-  // 1. Fetch Language Settings from Firebase (Optimized for cost efficiency: one-time read instead of real-time listener)
+  // 1. Fetch Language Settings from Firebase
   useEffect(() => {
     if (!db) return;
 
@@ -109,11 +141,11 @@ const Navbar = () => {
       {/* === TOP APP BAR === */}
       <nav
         dir={isRTL ? "rtl" : "ltr"}
-        className="lg:hidden fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200/80 z-40 transition-all duration-300"
+        className="lg:hidden fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md shadow-md border-b border-gray-200/90 z-40 transition-all duration-300"
       >
         <div className="flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+            <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100 shadow-xs">
               <span className="text-emerald-600 text-xl font-black tracking-tighter">M</span>
             </div>
             <div className="flex flex-col">
@@ -183,38 +215,78 @@ const Navbar = () => {
             </button>
           </div>
 
-          {/* Navigation Items (Mapped to translations) */}
-          <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1 scroll-smooth">
-            {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map(({ path, key, icon: Icon }, index) => {
-              const label = t.sidebar[key] || key;
-              return (
-                <NavLink
-                  key={path}
-                  to={path}
-                  className={({ isActive }) =>
-                    `flex items-center p-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden ${
-                      isActive
-                        ? "bg-emerald-50 text-emerald-700 font-semibold shadow-sm ring-1 ring-emerald-100"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600"
-                    }`
-                  }
+          {/* Main Nav Container with Dynamic Scroll Shadows & Cues (Same as Desktop Sidebar) */}
+          <div className="relative flex-1 min-h-0 flex flex-col">
+            {/* Top Scroll Indicator & Gradient Mask */}
+            {canScrollUp && (
+              <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white via-white/80 to-transparent z-20 pointer-events-none flex items-start justify-center pt-0.5">
+                <button
+                  onClick={() => scrollToMore("up")}
+                  title="Scroll Up"
+                  className="pointer-events-auto p-1 bg-white/90 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-full border border-gray-200 shadow-xs transition-all transform hover:scale-110 cursor-pointer"
                 >
-                  {({ isActive }) => (
-                    <>
-                      <Icon
-                        className={`w-5 h-5 ${isRTL ? "ml-4" : "mr-4"} transition-transform duration-300 group-hover:scale-110 ${
-                          isActive ? "text-emerald-600" : "text-gray-400 group-hover:text-emerald-500"
-                        }`}
-                      />
-                      <span className="relative z-10">{label}</span>
-                      {isActive && (
-                        <div className={`absolute ${isRTL ? "right-0" : "left-0"} top-1/2 -translate-y-1/2 h-8 w-1 bg-emerald-500 ${isRTL ? "rounded-l-full" : "rounded-r-full"}`} />
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              );
-            })}
+                  <FaChevronUp size={10} />
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Navigation List */}
+            <div
+              ref={navContainerRef}
+              onScroll={checkScroll}
+              className="flex-1 overflow-y-auto py-3 px-3 space-y-1 scroll-smooth"
+              style={{
+                WebkitOverflowScrolling: "touch",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+              {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map(({ path, key, icon: Icon }) => {
+                const label = t.sidebar[key] || key;
+                return (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    className={({ isActive }) =>
+                      `flex items-center p-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden ${
+                        isActive
+                          ? "bg-emerald-50 text-emerald-700 font-semibold shadow-sm ring-1 ring-emerald-100"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-emerald-600"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon
+                          className={`w-5 h-5 ${isRTL ? "ml-4" : "mr-4"} transition-transform duration-300 group-hover:scale-110 ${
+                            isActive ? "text-emerald-600" : "text-gray-400 group-hover:text-emerald-500"
+                          }`}
+                        />
+                        <span className="relative z-10">{label}</span>
+                        {isActive && (
+                          <div className={`absolute ${isRTL ? "right-0" : "left-0"} top-1/2 -translate-y-1/2 h-8 w-1 bg-emerald-500 ${isRTL ? "rounded-l-full" : "rounded-r-full"}`} />
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+
+            {/* Bottom Scroll Indicator & Gradient Mask */}
+            {canScrollDown && (
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white via-white/90 to-transparent z-20 flex items-end justify-center pb-1.5 pointer-events-none">
+                <button
+                  onClick={() => scrollToMore("down")}
+                  className="pointer-events-auto cursor-pointer flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-full shadow-xs transition-all transform hover:scale-105 active:scale-95 group"
+                >
+                  <span className="text-[11px] font-semibold tracking-tight text-emerald-700">
+                    {t.sidebar.moreFeatures || "Scroll for more"}
+                  </span>
+                  <FaChevronDown size={11} className="text-emerald-600 group-hover:translate-y-0.5 transition-transform animate-bounce" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Bottom Section: Profile & Settings */}
