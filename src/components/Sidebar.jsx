@@ -14,6 +14,8 @@ import {
   FaConciergeBell,
   FaBars,
   FaChevronLeft,
+  FaChevronDown,
+  FaChevronUp,
   FaFileInvoiceDollar,
   FaCog,
   FaSignOutAlt,
@@ -60,13 +62,42 @@ const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [profileOpen, setProfileOpen] = useState(false);
   const [language, setLanguage] = useState("en"); // Default to English initially
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
   const profileRef = useRef(null);
+  const navContainerRef = useRef(null);
 
   // Get translation object based on current state
   const t = getTranslation(language);
   const isRTL = language === 'ar'; // Right-to-Left check for Arabic
 
   useOutsideClick(profileRef, () => setProfileOpen(false));
+
+  const checkScroll = React.useCallback(() => {
+    const el = navContainerRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    setCanScrollUp(scrollTop > 5);
+    setCanScrollDown(scrollTop + clientHeight < scrollHeight - 5);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(checkScroll, 100);
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll, isOpen, permissions]);
+
+  const scrollToMore = (direction = "down") => {
+    if (navContainerRef.current) {
+      navContainerRef.current.scrollBy({
+        top: direction === "down" ? 140 : -140,
+        behavior: "smooth",
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -87,7 +118,7 @@ const Sidebar = () => {
     localStorage.setItem("sidebarOpen", JSON.stringify(isOpen));
   }, [isOpen]);
 
-  // 3. Fetch Language Settings from Firebase (Optimized for cost efficiency: one-time read instead of real-time listener)
+  // 3. Fetch Language Settings from Firebase
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -124,69 +155,103 @@ const Sidebar = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? t.sidebar.collapse : t.sidebar.expand}
-        className={`absolute ${isRTL ? "-left-3" : "-right-3"} top-8 z-10 p-1.5 rounded-full bg-[#E5E7EB] text-[#1F2937] hover:bg-[#10B981] hover:text-white transition-colors shadow-sm`}
+        className={`absolute ${isRTL ? "-left-3" : "-right-3"} top-8 z-30 p-1.5 rounded-full bg-[#E5E7EB] text-[#1F2937] hover:bg-[#10B981] hover:text-white transition-colors shadow-sm`}
       >
         {isOpen ? <FaChevronLeft className={isRTL ? "rotate-180" : ""} size={14} /> : <FaBars size={14} />}
       </button>
 
-      {/* Top Section: Logo + Nav */}
-      <div
-        className={`flex-1 flex flex-col ${
-          isOpen ? "overflow-y-auto overflow-x-hidden" : "overflow-hidden"
-        }`}
-        style={scrollbarHiddenStyle}
-      >
-        {/* Brand */}
-        <div className={`flex items-center h-20 px-6 shrink-0 ${!isOpen && "justify-center px-0"}`}>
-          <span className="text-[#10B981] text-3xl font-bold">M</span>
-          {isOpen && (
-            <div className={`ml-4 flex flex-col ${isRTL ? "mr-4 ml-0" : ""}`}>
-              <span className="text-2xl font-bold tracking-wider text-[#10B981] leading-tight">
-                MealiX
-              </span>
-              <span className="text-[10px] text-[#6B7280] tracking-wider mt-0.5">
-                Developed by Sinan KP
-              </span>
-            </div>
-          )}
+      {/* Brand Header */}
+      <div className={`flex items-center h-20 px-6 shrink-0 border-b border-transparent ${!isOpen && "justify-center px-0"}`}>
+        <span className="text-[#10B981] text-3xl font-bold">M</span>
+        {isOpen && (
+          <div className={`ml-4 flex flex-col ${isRTL ? "mr-4 ml-0" : ""}`}>
+            <span className="text-2xl font-bold tracking-wider text-[#10B981] leading-tight">
+              MealiX
+            </span>
+            <span className="text-[10px] text-[#6B7280] tracking-wider mt-0.5">
+              Developed by Sinan KP
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Main Nav Container with Dynamic Scroll Shadows & Cues */}
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        {/* Top Scroll Indicator & Gradient Mask */}
+        {canScrollUp && (
+          <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#F9FAFB] via-[#F9FAFB]/80 to-transparent z-20 pointer-events-none flex items-start justify-center pt-0.5">
+            <button
+              onClick={() => scrollToMore("up")}
+              title="Scroll Up"
+              className="pointer-events-auto p-1 bg-white/90 text-[#10B981] hover:bg-[#10B981] hover:text-white rounded-full border border-[#E5E7EB] shadow-xs transition-all transform hover:scale-110 cursor-pointer"
+            >
+              <FaChevronUp size={10} />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable Navigation List */}
+        <div
+          ref={navContainerRef}
+          onScroll={checkScroll}
+          className={`flex-1 ${
+            isOpen ? "overflow-y-auto overflow-x-hidden" : "overflow-hidden"
+          } py-2 scroll-smooth`}
+          style={scrollbarHiddenStyle}
+        >
+          <nav className="px-4 space-y-2">
+            {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map((item) => {
+              const Icon = item.icon;
+              const translatedLabel = t.sidebar[item.key] || item.key;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `relative flex items-center rounded-lg font-medium py-3 px-4 transition-all duration-200 group ${
+                      isActive
+                        ? "bg-[#D1FAE5] text-[#065F46] shadow-sm"
+                        : "hover:bg-[#C6F6D5] hover:text-[#065F46]"
+                    } ${!isOpen && "justify-center"}`
+                  }
+                >
+                  <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                  {isOpen && (
+                    <span className={`${isRTL ? "mr-4" : "ml-4"} flex-1 whitespace-nowrap`}>
+                      {translatedLabel}
+                    </span>
+                  )}
+                  {!isOpen && (
+                    <span
+                      className={`absolute ${
+                        isRTL ? "right-full mr-4" : "left-full ml-4"
+                      } top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1F2937] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg transition-opacity pointer-events-none z-50`}
+                    >
+                      {translatedLabel}
+                    </span>
+                  )}
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Navigation */}
-        <nav className="px-4 space-y-2">
-          {navItems.filter(item => !item.permission || permissions.includes(item.permission)).map((item) => {
-            const Icon = item.icon;
-            const translatedLabel = t.sidebar[item.key] || item.key;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `relative flex items-center rounded-lg font-medium py-3 px-4 transition-all duration-200 group ${
-                    isActive
-                      ? "bg-[#D1FAE5] text-[#065F46] shadow-sm"
-                      : "hover:bg-[#C6F6D5] hover:text-[#065F46]"
-                  } ${!isOpen && "justify-center"}`
-                }
-              >
-                <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                {isOpen && (
-                  <span className={`${isRTL ? "mr-4" : "ml-4"} flex-1 whitespace-nowrap`}>
-                    {translatedLabel}
-                  </span>
-                )}
-                {!isOpen && (
-                  <span
-                    className={`absolute ${
-                      isRTL ? "right-full mr-4" : "left-full ml-4"
-                    } top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#1F2937] text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap shadow-lg transition-opacity pointer-events-none z-50`}
-                  >
-                    {translatedLabel}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
+        {/* Bottom Scroll Indicator & Gradient Mask */}
+        {canScrollDown && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#F9FAFB] via-[#F9FAFB]/90 to-transparent z-20 flex items-end justify-center pb-1.5 pointer-events-none">
+            <button
+              onClick={() => scrollToMore("down")}
+              className="pointer-events-auto cursor-pointer flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#065F46] border border-emerald-200/80 rounded-full shadow-xs transition-all transform hover:scale-105 active:scale-95 group"
+            >
+              {isOpen && (
+                <span className="text-[11px] font-semibold tracking-tight text-[#065F46]">
+                  {t.sidebar.moreFeatures || "Scroll for more"}
+                </span>
+              )}
+              <FaChevronDown size={11} className="text-[#10B981] group-hover:translate-y-0.5 transition-transform animate-bounce" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Bottom Section: Settings & Profile */}
