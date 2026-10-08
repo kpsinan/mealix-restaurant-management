@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllUsers, updateUserAccess, DEFAULT_PERMISSIONS } from '../firebase/firebase';
+import { getAllUsers, getStaff, updateUserAccess, DEFAULT_PERMISSIONS } from '../firebase/firebase';
 import { FaUserShield, FaBan, FaCheck, FaEdit, FaTimes } from 'react-icons/fa';
 
 const ALL_AVAILABLE_PERMISSIONS = [
@@ -24,8 +24,16 @@ const AccessControl = () => {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const data = await getAllUsers();
-      setUsers(data.filter(u => !u.deleted));
+      const [data, staffData] = await Promise.all([getAllUsers(), getStaff()]);
+      const activeStaffIds = new Set(staffData.map(s => s.staffId).filter(Boolean));
+      
+      setUsers(data.filter(u => {
+        if (u.deleted) return false;
+        if (u.staffId && u.role !== 'admin') {
+          return activeStaffIds.has(u.staffId);
+        }
+        return true;
+      }));
     } catch (error) {
       console.error(error);
     }

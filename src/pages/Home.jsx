@@ -15,6 +15,10 @@ import {
 import Modal from "../components/Modal";
 import TableCard from "../components/TableCard";
 import TableQRCode from "../components/TableQRCode";
+import QRScannerModal from "../components/QRScannerModal";
+import { QRCodeSVG } from "qrcode.react";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 import { UserContext } from "../App";
 
 
@@ -38,6 +42,7 @@ const Home = () => {
   const [selectedTables, setSelectedTables] = useState(new Set());
   const [qrModalTable, setQrModalTable] = useState(null);
   const [isExportingZip, setIsExportingZip] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // State for the modal inputs
   const [addMode, setAddMode] = useState("single");
@@ -148,7 +153,7 @@ const Home = () => {
     
     try {
       const zip = new JSZip();
-      const tablesToExport = data.tables.filter(t => selectedTables.has(t.id ?? t.name));
+      const tablesToExport = tables.filter(t => selectedTables.has(t.id ?? t.name));
       
       // Since we render them in a hidden div, they are in the DOM!
       await new Promise(resolve => setTimeout(resolve, 100)); // wait for render
@@ -382,7 +387,7 @@ const Home = () => {
              {/* Add Table Button - Larger on desktop, but perfectly sized for mobile */}
              
                 
-                <button 
+                <button onClick={() => setIsScannerOpen(true)} className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-200 px-3 py-2.5 sm:px-4 rounded-xl font-semibold shadow-sm hover:bg-blue-200 active:scale-[0.98] transition-all duration-150 ease-in-out" title="Scan Table QR Code"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h4v4H4V4zm6 0h10v2H10V4zm0 4h10v2H10V8zM4 10h4v4H4v-4zm0 6h4v4H4v-4zm6 0h10v2H10v-2zm0 4h10v2H10v-2z"/><path d="M2 2v6h6V2H2zm4 4H4V4h2v2zM2 16v6h6v-6H2zm4 4H4v-2h2v2zM16 2v6h6V2h-6zm4 4h-2V4h2v2z"/></svg><span className="hidden sm:inline">Scan QR</span></button><button onClick={() => setIsScannerOpen(true)} className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-200 px-3 py-2.5 sm:px-4 rounded-xl font-semibold shadow-sm hover:bg-blue-200 active:scale-[0.98] transition-all duration-150 ease-in-out" title="Scan Table QR Code"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h4v4H4V4zm6 0h10v2H10V4zm0 4h10v2H10V8zM4 10h4v4H4v-4zm0 6h4v4H4v-4zm6 0h10v2H10v-2zm0 4h10v2H10v-2z"/><path d="M2 2v6h6V2H2zm4 4H4V4h2v2zM2 16v6h6v-6H2zm4 4H4v-2h2v2zM16 2v6h6V2h-6zm4 4h-2V4h2v2z"/></svg><span className="hidden sm:inline">Scan QR</span></button><button 
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center gap-2 bg-[#10B981] text-white px-4 py-2.5 sm:px-6 rounded-xl font-semibold shadow-lg shadow-emerald-200 hover:bg-[#059669] active:scale-[0.98] transition-all duration-150 ease-in-out"
              >
@@ -492,6 +497,13 @@ const Home = () => {
                   Cancel
                 </button>
                 <button 
+                  onClick={handleBulkExportQR}
+                  disabled={isExportingZip}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium text-white rounded-lg shadow-md transition-colors ${isExportingZip ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+                >
+                  {isExportingZip ? 'Exporting...' : 'Export QR (ZIP)'}
+                </button>
+                <button onClick={handleBulkExportQR} disabled={isExportingZip} className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium text-white rounded-lg shadow-md transition-colors ${isExportingZip ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}>{isExportingZip ? 'Exporting...' : 'Export QR (ZIP)'}</button><button 
                   onClick={handleDeleteSelected}
                   className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-md transition-colors"
                 >
@@ -702,6 +714,35 @@ const Home = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Table QR Scanner Modal */}
+      <QRScannerModal 
+        isOpen={isScannerOpen} 
+        onClose={() => setIsScannerOpen(false)} 
+        onScanSuccess={(decodedText) => {
+          try {
+            const parsed = JSON.parse(decodedText);
+            if (parsed.type === "mealix_table" && parsed.tableId) {
+               setIsScannerOpen(false);
+               navigate(`/order?tableId=${encodeURIComponent(parsed.tableId)}`);
+            } else {
+               alert("Invalid QR Code scanned.");
+            }
+          } catch(e) {
+            alert("Failed to parse QR Code data.");
+          }
+        }} 
+      />
+
+      {/* Hidden QR Codes for Bulk Export */}
+      <div className="hidden">
+        {Array.from(selectedTables).map(id => {
+          const table = tables.find(t => (t.id ?? t.name) === id);
+          if (!table) return null;
+          const qrData = JSON.stringify({ type: "mealix_table", tableId: id });
+          return <QRCodeSVG key={id} id={`qr-svg-${id}`} value={qrData} size={256} level="H" />;
+        })}
+      </div>
 
       {/* Table QR Code View Modal */}
       {qrModalTable && (
