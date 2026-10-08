@@ -14,7 +14,7 @@ import {
 import { UserContext } from "../App";
 import Modal from "../components/Modal";
 import CameraCapture from "../components/CameraCapture";
-
+import QRScannerModal from "../components/QRScannerModal";
 // --- Icons System ---
 const Icons = {
   Chevron: ({ className }) => <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>,
@@ -80,7 +80,7 @@ const Order = () => {
   const [session, setSession] = useState({ tableId: "", staffId: loggedInStaffId || "", linkedTableIds: [] });
   // 'items' structure now includes 'note'
   const [orderState, setOrderState] = useState({ items: {}, expandedId: null, loading: false, submitting: false, generalNote: "" });
-  const [uiState, setUiState] = useState({ isModalOpen: true, notification: null });
+  const [uiState, setUiState] = useState({ isModalOpen: true, notification: null, isScannerOpen: false });
   const [punchStatus, setPunchStatus] = useState({ loading: false, isPunchedIn: false, error: null, record: null });
   const [showCamera, setShowCamera] = useState(false);
   const [punchPhoto, setPunchPhoto] = useState(null);
@@ -90,6 +90,21 @@ const Order = () => {
     setUiState(prev => ({ ...prev, notification: { message, type } }));
     setTimeout(() => setUiState(prev => ({ ...prev, notification: null })), 3000);
   }, []);
+
+  const handleQRScanSuccess = (decodedText) => {
+    try {
+      const data = JSON.parse(decodedText);
+      if (data.type === 'mealix_table' && data.tableId) {
+         setSession(prev => ({ ...prev, tableId: data.tableId, linkedTableIds: [] }));
+         setUiState(prev => ({ ...prev, isScannerOpen: false }));
+         showNotification("Table scanned successfully!", "success");
+      } else {
+         showNotification("Invalid QR Code scanned.", "error");
+      }
+    } catch(e) {
+      showNotification("Failed to parse QR Code data.", "error");
+    }
+  };
 
   const handleQuickPunchIn = async () => {
     if (!session.staffId || !punchPhoto) return;
@@ -477,11 +492,23 @@ const Order = () => {
                         </button>
                     </div>
                 ) : (
-                    <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value, linkedTableIds: [] })} 
-                      className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
-                      <option value="">Select Table</option>
-                      {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name} (Cap: {t.capacity || 0})</option>)}
-                    </select>
+                    <div className="flex gap-2">
+                      <select value={session.tableId} onChange={(e) => setSession({ ...session, tableId: e.target.value, linkedTableIds: [] })} 
+                        className="flex-1 p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none">
+                        <option value="">Select Table</option>
+                        {data.tables.map(t => <option key={t.id ?? t._id} value={t.id ?? t._id}>{t.name} (Cap: {t.capacity || 0})</option>)}
+                      </select>
+                      <button 
+                        onClick={() => setUiState(prev => ({ ...prev, isScannerOpen: true }))}
+                        className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-3.5 rounded-xl border border-blue-200 flex items-center justify-center transition-colors"
+                        title="Scan Table QR Code"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                           <path d="M4 4h4v4H4V4zm6 0h10v2H10V4zm0 4h10v2H10V8zM4 10h4v4H4v-4zm0 6h4v4H4v-4zm6 0h10v2H10v-2zm0 4h10v2H10v-2z" />
+                           <path d="M2 2v6h6V2H2zm4 4H4V4h2v2zM2 16v6h6v-6H2zm4 4H4v-2h2v2zM16 2v6h6V2h-6zm4 4h-2V4h2v2z" />
+                        </svg>
+                      </button>
+                    </div>
                 )}
               </div>
 
@@ -722,6 +749,11 @@ const Order = () => {
           {punchStatus.loading ? 'Punching In...' : 'Confirm Punch In'}
         </button>
       </Modal>
+      <QRScannerModal 
+        isOpen={uiState.isScannerOpen} 
+        onClose={() => setUiState(prev => ({ ...prev, isScannerOpen: false }))} 
+        onScanSuccess={handleQRScanSuccess} 
+      />
     </div>
   );
 };
