@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import Modal from './Modal'; // Reusing the existing Modal component
 
 const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
   const [error, setError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const scannerRef = useRef(null);
 
   useEffect(() => {
-    let html5QrCode;
-    
     if (isOpen) {
       setError('');
       setIsScanning(true);
       
       // Delay initialization slightly to ensure the modal DOM element is fully rendered
       setTimeout(() => {
-        html5QrCode = new Html5Qrcode("qr-reader");
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        scannerRef.current = html5QrCode;
         
         html5QrCode.start(
           { facingMode: "environment" }, 
@@ -25,9 +25,10 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
           },
           (decodedText, decodedResult) => {
             // Stop scanning once we get a successful read
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
+            if (scannerRef.current && scannerRef.current.isScanning) {
+                scannerRef.current.stop().then(() => {
                     setIsScanning(false);
+                    scannerRef.current = null;
                     onScanSuccess(decodedText);
                 }).catch(err => {
                     console.error("Error stopping QR Code scanner.", err);
@@ -46,17 +47,27 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
     }
 
     return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(err => console.error("Error stopping scanner on unmount", err));
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().then(() => {
+          scannerRef.current = null;
+        }).catch(err => console.error("Error stopping scanner on unmount", err));
       }
     };
   }, [isOpen, onScanSuccess]);
 
   const handleClose = () => {
-    if (isScanning) {
-        // We let the cleanup function handle stopping if they close early
+    if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().then(() => {
+            setIsScanning(false);
+            scannerRef.current = null;
+            onClose();
+        }).catch(err => {
+            console.error("Error stopping scanner on close", err);
+            onClose();
+        });
+    } else {
+        onClose();
     }
-    onClose();
   };
 
   return (
