@@ -13,10 +13,12 @@ import {
 // --- ORIGINAL COMPONENT IMPORTS RESTORED ---
 import Modal from "../components/Modal";
 import TableCard from "../components/TableCard";
+import { UserContext } from "../App";
 
 
 // --- HOME COMPONENT (ORIGINAL LOGIC) ---
 const Home = () => {
+  const { t } = React.useContext(UserContext);
   const [tables, setTables] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -338,7 +340,7 @@ const Home = () => {
         {/* --- HEADER SECTION --- */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Floor Plan</h1>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t.floorPlan.title}</h1>
             <p className="text-gray-500 mt-1 text-sm sm:text-base">Manage tables and live status</p>
           </div>
           <div className="flex items-center gap-3">
@@ -357,12 +359,10 @@ const Home = () => {
         </div>
 
         {/* --- STATS DASHBOARD --- */}
-        {/* CHANGED: grid-cols-1 for mobile (stack vertically), sm:grid-cols-3 for tablet/desktop (side-by-side) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          {/* Total Tables Card - Removed col-span-2 to allow standard stacking/grid behavior */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Total Tables</p>
+              <p className="text-sm font-medium text-gray-500">{t.common.all}</p>
               <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
             </div>
             <div className="p-3 bg-gray-100 rounded-xl text-gray-600">
@@ -374,7 +374,7 @@ const Home = () => {
           {/* Available Tables Card */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Available</p>
+              <p className="text-sm font-medium text-gray-500">{t.floorPlan.available}</p>
               <p className="text-3xl font-bold text-[#10B981]">{stats.available}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl text-[#10B981]">

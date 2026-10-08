@@ -32,7 +32,7 @@ const SHORTCUTS_MAP = [
 ];
 
 const Settings = () => {
-  const { permissions } = useContext(UserContext);
+  const { permissions, setLanguage: setGlobalLanguage } = useContext(UserContext);
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,6 +77,7 @@ const Settings = () => {
           const lang = data.language || 'en';
           // Set translation based on loaded language
           setT(getTranslation(lang)); 
+          if (setGlobalLanguage) setGlobalLanguage(lang);
           
           // Merge existing settings with defaults (in case new fields were added)
           setFormData(prev => ({ ...prev, ...data, language: lang }));
@@ -89,7 +90,7 @@ const Settings = () => {
       }
     };
     loadData();
-  }, []);
+  }, [setGlobalLanguage]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -108,6 +109,7 @@ const Settings = () => {
     if (name === 'language') {
         const newLang = value;
         setT(getTranslation(newLang)); // Update translation object immediately
+        if (setGlobalLanguage) setGlobalLanguage(newLang);
         setFormData(prev => ({
             ...prev,
             language: newLang
@@ -126,6 +128,7 @@ const Settings = () => {
     setSaving(true);
     try {
       await updateSettings(formData);
+      if (setGlobalLanguage) setGlobalLanguage(formData.language);
       showNotify(t.saveSuccess, "success"); // Use current translation for success message
     } catch (err) {
       console.error("Error saving settings:", err);

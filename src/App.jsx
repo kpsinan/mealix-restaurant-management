@@ -55,14 +55,20 @@ import StaffLoadRevenueBalance from './pages/hr/StaffLoadRevenueBalance';
 // Others
 import SmartAssigner from './pages/SmartAssigner';
 
-import { signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import db from './firebase/firebase';
+import { getTranslation } from './translations';
 
 export const UserContext = React.createContext({ 
   user: null, 
   role: 'admin',
   permissions: [],
   blocked: false,
-  staffId: null
+  staffId: null,
+  language: 'en',
+  setLanguage: () => {},
+  t: getTranslation('en'),
+  isRTL: false
 });
 
 const ProtectedRoute = ({ children, requiredPermission, permissions }) => {
@@ -81,6 +87,25 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [userAccess, setUserAccess] = useState({ role: 'admin', permissions: [], blocked: false, staffId: null });
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [language, setLanguage] = useState('en');
+
+  useEffect(() => {
+    const fetchLanguage = async () => {
+      try {
+        const settingsRef = doc(db, "settings", "appSettings");
+        const docSnap = await getDoc(settingsRef);
+        if (docSnap.exists() && docSnap.data().language) {
+          setLanguage(docSnap.data().language);
+        }
+      } catch (err) {
+        console.error("Error fetching language in App:", err);
+      }
+    };
+    fetchLanguage();
+  }, []);
+
+  const t = getTranslation(language);
+  const isRTL = language === 'ar';
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -130,7 +155,7 @@ const App = () => {
   }
 
   return (
-    <UserContext.Provider value={{ user, ...userAccess }}>
+    <UserContext.Provider value={{ user, ...userAccess, language, setLanguage, t, isRTL }}>
       <NetworkHandler />
 
       {/* Layout Container */}
