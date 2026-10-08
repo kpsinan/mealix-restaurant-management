@@ -14,6 +14,7 @@ import {
 // --- ORIGINAL COMPONENT IMPORTS RESTORED ---
 import Modal from "../components/Modal";
 import TableCard from "../components/TableCard";
+import TableQRCode from "../components/TableQRCode";
 import { UserContext } from "../App";
 
 
@@ -701,6 +702,14 @@ const Home = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Table QR Code View Modal */}
+      {qrModalTable && (
+        <TableQRCode 
+          table={qrModalTable} 
+          onClose={() => setQrModalTable(null)} 
+        />
+      )}
     </div>
   );
 };
