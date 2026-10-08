@@ -129,10 +129,10 @@ const Settings = () => {
     try {
       await updateSettings(formData);
       if (setGlobalLanguage) setGlobalLanguage(formData.language);
-      showNotify(t.saveSuccess, "success"); // Use current translation for success message
+      showNotify(t.settings.saveSuccess, "success"); // Use current translation for success message
     } catch (err) {
       console.error("Error saving settings:", err);
-      showNotify(t.saveError, "error"); // Use current translation for error message
+      showNotify(t.common.error, "error"); // Use current translation for error message
     } finally {
       setSaving(false);
     }
@@ -140,13 +140,13 @@ const Settings = () => {
 
   // --- Tabs Config (Uses dynamic translations) ---
   const tabs = [
-    { id: 'general', label: t.tabGeneral, icon: Store },
-    { id: 'localization', label: t.tabLocalization, icon: Globe },
-    { id: 'printing', label: t.tabPrinting, icon: Printer },
+    { id: 'general', label: t.settings.tabGeneral, icon: Store },
+    { id: 'localization', label: t.settings.tabLocalization, icon: Globe },
+    { id: 'printing', label: t.settings.tabPrinting, icon: Printer },
     ...(permissions.includes('manage_access') ? [{ id: 'access', label: 'Access Control', icon: Shield }] : []),
-    { id: 'shortcuts', label: t.tabShortcuts, icon: Keyboard },
+    { id: 'shortcuts', label: t.settings.tabShortcuts, icon: Keyboard },
     ...(permissions.includes('manage_access') ? [{ id: 'aiSettings', label: "AI Features", icon: Sparkles }] : []),
-    { id: 'about', label: t.tabAbout, icon: Info },
+    { id: 'about', label: t.settings.tabAbout, icon: Info },
   ];
 
   // --- Render Helper ---
@@ -162,7 +162,7 @@ const Settings = () => {
     <div className="flex h-screen w-full items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500 font-medium">{t.loading}</p>
+            <p className="text-gray-500 font-medium">{t.common.loading}</p>
         </div>
     </div>
   );
@@ -172,8 +172,8 @@ const Settings = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">{t.settingsTitle}</h1>
-          <p className="text-gray-500 text-sm mt-1">{t.settingsSubtitle}</p>
+          <h1 className="text-3xl font-bold text-gray-800">{t.settings.title}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t.settings.subtitle}</p>
         </div>
         <button 
           onClick={handleSave} 
@@ -181,9 +181,9 @@ const Settings = () => {
           className={`flex items-center justify-center px-6 py-3 rounded-lg font-bold text-white shadow-lg transition-all ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl active:scale-95'}`}
         >
           {saving ? (
-            <span className="flex items-center"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> {t.saving}</span>
+            <span className="flex items-center"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> {t.common.saving}</span>
           ) : (
-            <><Save className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} /> {t.saveChanges}</>
+            <><Save className={`w-5 h-5 ${isRTL ? 'ml-2' : 'mr-2'}`} /> {t.common.save}</>
           )}
         </button>
       </div>
@@ -235,19 +235,19 @@ const Settings = () => {
             <div className="animate-in fade-in zoom-in-95 duration-300">
               <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
                   <Store className={`w-6 h-6 text-blue-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                  <h2 className="text-xl font-bold text-gray-800">{t.generalTitle}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">{"General Configuration"}</h2>
               </div>
               
               <div className="grid grid-cols-1 gap-6">
-                <InputGroup label={t.restaurantName}>
-                   <input type="text" name="restaurantName" value={formData.restaurantName} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder={t.restaurantNamePlaceholder} dir="auto" />
+                <InputGroup label={t.settings.restaurantName}>
+                   <input type="text" name="restaurantName" value={formData.restaurantName} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder={"Enter restaurant name"} dir="auto" />
                 </InputGroup>
 
-                <InputGroup label={t.address} subLabel={t.addressSubtitle}>
-                   <textarea name="address" value={formData.address} onChange={handleChange} rows="3" className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder={t.addressPlaceholder} dir="auto" />
+                <InputGroup label={t.settings.address} subLabel={"Appears on receipt"}>
+                   <textarea name="address" value={formData.address} onChange={handleChange} rows="3" className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder={"Enter full address"} dir="auto" />
                 </InputGroup>
 
-                <InputGroup label={t.upiId} subLabel={t.upiIdSubtitle}>
+                <InputGroup label={t.settings.upiId} subLabel={"For QR code payments"}>
                    <div className="relative">
                        <input type="text" name="upiId" value={formData.upiId} onChange={handleChange} className={`w-full p-3 ${isRTL ? 'pr-10' : 'pl-10'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all`} placeholder="username@bank" dir="auto" />
                        <div className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-3.5 text-gray-400 font-bold`}>@</div>
@@ -278,17 +278,17 @@ const Settings = () => {
             <div className="animate-in fade-in zoom-in-95 duration-300">
               <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
                   <Globe className={`w-6 h-6 text-blue-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                  <h2 className="text-xl font-bold text-gray-800">{t.localizationTitle}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">{"Localization & Region"}</h2>
               </div>
 
               <div className="max-w-lg">
-                <InputGroup label={t.appLanguage} subLabel={t.appLanguageSubtitle}>
+                <InputGroup label={t.settings.appLanguage} subLabel={"Select system language"}>
                    <select name="language" value={formData.language} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none">
                      {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
                    </select>
                 </InputGroup>
 
-                <InputGroup label={t.defaultCurrency} subLabel={t.defaultCurrencySubtitle}>
+                <InputGroup label={t.settings.defaultCurrency} subLabel={"Used across the app"}>
                    <select
                       name="currency"
                       value={JSON.stringify({ symbol: formData.currencySymbol, code: formData.currencyCode })}
@@ -309,12 +309,12 @@ const Settings = () => {
             <div className="animate-in fade-in zoom-in-95 duration-300">
               <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
                   <Printer className={`w-6 h-6 text-blue-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                  <h2 className="text-xl font-bold text-gray-800">{t.printingTitle}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">{"Receipt Printing"}</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                   <InputGroup label={t.paperSize} subLabel={t.paperSizeSubtitle}>
+                   <InputGroup label={t.settings.paperSize} subLabel={"58mm or 80mm printers"}>
                       <div className="flex gap-4 mt-2">
                         {['58mm', '80mm'].map(size => (
                           <label key={size} className={`flex-1 flex flex-col items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.printWidth === size ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -328,7 +328,7 @@ const Settings = () => {
                 </div>
 
                 <div>
-                   <InputGroup label={t.fontDensity} subLabel={t.fontDensitySubtitle}>
+                   <InputGroup label={t.settings.fontDensity} subLabel={"Adjust text size on receipt"}>
                        <div className="flex gap-2 mt-2 bg-gray-100 p-1 rounded-lg">
                           {['small', 'normal', 'large'].map(size => (
                              <button
@@ -347,7 +347,7 @@ const Settings = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                    <InputGroup label={t.footerMessage} subLabel={t.footerMessageSubtitle}>
+                    <InputGroup label={t.settings.footerMessage} subLabel={"Message at bottom of bill"}>
                         <input type="text" name="receiptFooter" value={formData.receiptFooter} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" dir="auto" />
                     </InputGroup>
                 </div>
@@ -356,8 +356,8 @@ const Settings = () => {
                      <label className="flex items-center p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
                         <input type="checkbox" name="showLogo" checked={formData.showLogo} onChange={handleChange} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                         <div className={`ml-4 ${isRTL ? 'mr-4 ml-0' : ''}`}>
-                            <span className="block font-bold text-gray-800">{t.showLogo}</span>
-                            <span className="block text-sm text-gray-500">{t.showLogoSubtitle}</span>
+                            <span className="block font-bold text-gray-800">{t.settings.showLogo}</span>
+                            <span className="block text-sm text-gray-500">{"Print logo at top"}</span>
                         </div>
                      </label>
                 </div>
@@ -377,16 +377,16 @@ const Settings = () => {
             <div className="animate-in fade-in zoom-in-95 duration-300">
               <div className="flex items-center mb-6 pb-4 border-b border-gray-100">
                   <Keyboard className={`w-6 h-6 text-blue-600 ${isRTL ? 'ml-3' : 'mr-3'}`} />
-                  <h2 className="text-xl font-bold text-gray-800">{t.shortcutsTitle}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">{"Keyboard Shortcuts"}</h2>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-gray-200">
                  <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50">
                        <tr className={isRTL ? 'rtl' : 'ltr'}>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">{t.shortcutsKey}</th>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">{t.shortcutsAction}</th>
-                          <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">{t.shortcutsCategory}</th>
+                          <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">{"Key / Combo"}</th>
+                          <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">{"Action"}</th>
+                          <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">{"Category"}</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -457,7 +457,7 @@ const Settings = () => {
                <span className="inline-block px-3 py-1 mt-3 text-xs font-bold text-blue-800 bg-blue-100 rounded-full">Version 3.6.0</span>
                
                <p className="text-gray-500 mt-6 max-w-md text-center leading-relaxed">
-                  {t.appSlogan}
+                  {"Smart POS System"}
                </p>
 
                <div className="mt-10 p-6 bg-blue-50 rounded-xl border border-blue-100 max-w-lg text-center">

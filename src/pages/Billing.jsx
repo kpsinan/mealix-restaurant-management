@@ -228,8 +228,8 @@ const Billing = () => {
     
     setBillDetails({
       order: ord,
-      tableName: state.tables.find(t => t.id === ord.tableId)?.name || "N/A",
-      staffName: state.staff.find(s => s.id === ord.staffId || s.staffId === ord.staffId)?.name || "N/A",
+      tableName: state.tables.find(t => (t.id || t._id) === ord.tableId)?.name || "N/A",
+      staffName: state.staff.find(s => (s.id || s._id || s.staffId) === ord.staffId)?.name || "N/A",
       items: (ord.items || []).map(i => {
         const mi = state.menuItems.find(m => m.id === i.itemId);
         return { ...i, name: mi?.name || i.name, price: Number(mi?.price ?? i.price ?? 0) };

@@ -131,7 +131,7 @@ const Menu = () => {
   // Add Single Handler
   const handleAddItem = async () => {
     if (!newItem.name?.trim() || !newItem.fullPrice || isNaN(parseFloat(newItem.fullPrice))) {
-      return showNotify(t.addItemTitle + " requires name and valid price.", "error");
+      return showNotify((t.menu?.addItemTitle || "Add/Edit Menu Item") + " requires name and valid price.", "error");
     }
     await addMenuItem({ 
       ...newItem, 
@@ -217,8 +217,8 @@ const Menu = () => {
         <table className="w-full text-sm text-left text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0 z-10">
             <tr>
-              <th className="px-4 py-3 text-center">{isUpdate ? t.matchStatus : t.status}</th>
-              {[t.itemName, t.fullPrice, t.halfPrice, t.quarterPrice, "Category", "Serving Size", t.ingredients, t.specialNote].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
+              <th className="px-4 py-3 text-center">{isUpdate ? (t.menu?.matchStatus || "Match Status") : (t.common.status || "Status")}</th>
+              {[(t.menu?.itemName || "Item Name"), (t.menu?.fullPrice || "Full Price"), (t.menu?.halfPrice || "Half Price"), (t.menu?.quarterPrice || "Quarter Price"), "Category", "Serving Size", (t.menu?.ingredients || "Ingredients"), (t.menu?.specialNote || "Special Note")].map(h => <th key={h} className="px-4 py-3">{h}</th>)}
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -286,22 +286,22 @@ const Menu = () => {
         <header className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
           <div>
             <h1 className={`text-2xl sm:text-4xl font-bold ${selection.active ? 'text-blue-700' : 'text-gray-800'}`}>
-              {selection.active ? `${selection.items.length} ${t.selected}` : t.menuTitle}
+              {selection.active ? `${selection.items.length} ${(t.menu?.selected || "Selected")}` : (t.menu?.title || "Menu Management")}
             </h1>
-            <p className="mt-1 text-gray-500">{selection.active ? t.selectSubtitle : t.menuSubtitle}</p>
+            <p className="mt-1 text-gray-500">{selection.active ? (t.menu?.selectSubtitle || "Select items to perform actions") : (t.menu?.subtitle || "Manage your dishes & categories")}</p>
           </div>
           <div className="flex gap-2">
             {!selection.active ? (
               <>
-                <button onClick={() => toggleModal('bulkSelect')} className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-800">{t.bulkActions}</button>
-                <button onClick={() => toggleModal('single')} className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">{t.addNewItem}</button>
-                <button onClick={() => setSelection({ active: true, items: [], deleting: false })} className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">{t.selectItems}</button>
+                <button onClick={() => toggleModal('bulkSelect')} className="px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-800">{(t.menu?.bulkActions || "Bulk Actions")}</button>
+                <button onClick={() => toggleModal('single')} className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">{(t.menu?.addNewItem || "Add New Item")}</button>
+                <button onClick={() => setSelection({ active: true, items: [], deleting: false })} className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">{(t.menu?.selectItems || "Select Items")}</button>
               </>
             ) : (
               <>
-                <button onClick={() => setSelection(p => ({ ...p, items: p.items.length === menuItems.length ? [] : menuItems.map(i => i.id) }))} className="px-4 py-2 bg-gray-200 rounded-lg">{selection.items.length === menuItems.length ? t.deselectAll : t.selectAll}</button>
-                <button onClick={() => toggleModal('confirm')} disabled={!selection.items.length} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{t.delete}</button>
-                <button onClick={() => setSelection({ active: false, items: [], deleting: false })} className="px-4 py-2 bg-gray-200 rounded-lg">{t.cancel}</button>
+                <button onClick={() => setSelection(p => ({ ...p, items: p.items.length === menuItems.length ? [] : menuItems.map(i => i.id) }))} className="px-4 py-2 bg-gray-200 rounded-lg">{selection.items.length === menuItems.length ? (t.menu?.deselectAll || "Deselect All") : (t.menu?.selectAll || "Select All")}</button>
+                <button onClick={() => toggleModal('confirm')} disabled={!selection.items.length} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{t.common.delete}</button>
+                <button onClick={() => setSelection({ active: false, items: [], deleting: false })} className="px-4 py-2 bg-gray-200 rounded-lg">{t.common.cancel}</button>
               </>
             )}
           </div>
@@ -311,7 +311,7 @@ const Menu = () => {
           {!selection.active && (
             <button onClick={() => toggleModal('single')} className="group border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center min-h-[180px] hover:border-blue-500 hover:bg-blue-50 transition-all">
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center group-hover:bg-blue-200 text-2xl text-gray-500 group-hover:text-blue-600">+</div>
-              <span className="mt-3 text-gray-600 font-semibold group-hover:text-blue-700">{t.addNewItem}</span>
+              <span className="mt-3 text-gray-600 font-semibold group-hover:text-blue-700">{(t.menu?.addNewItem || "Add New Item")}</span>
             </button>
           )}
           {menuItems.map(item => (
@@ -329,17 +329,17 @@ const Menu = () => {
 
       {/* Confirmation Modal */}
       <Modal isOpen={modals.confirm} onClose={() => toggleModal('confirm', false)}>
-        <h2 className="text-2xl font-bold mb-4">{t.confirmDeleteTitle}</h2>
-        <p className="text-gray-600 mb-6">{t.confirmDeleteMsg} {selection.items.length} items</p>
+        <h2 className="text-2xl font-bold mb-4">{(t.menu?.confirmDeleteTitle || "Confirm Deletion")}</h2>
+        <p className="text-gray-600 mb-6">{(t.menu?.confirmDeleteMsg || "Are you sure you want to delete")} {selection.items.length} items</p>
         <div className="flex justify-end gap-4">
-          <button onClick={() => toggleModal('confirm', false)} className="px-6 py-2 bg-gray-200 rounded-lg">{t.cancel}</button>
-          <button onClick={handleBulkDelete} disabled={selection.deleting} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{selection.deleting ? t.deleting : t.delete}</button>
+          <button onClick={() => toggleModal('confirm', false)} className="px-6 py-2 bg-gray-200 rounded-lg">{t.common.cancel}</button>
+          <button onClick={handleBulkDelete} disabled={selection.deleting} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">{selection.deleting ? t.common.deleting : t.common.delete}</button>
         </div>
       </Modal>
 
       {/* Single Add Modal */}
       <Modal isOpen={modals.single} onClose={() => toggleModal('single', false)}>
-        <h2 className="text-2xl font-bold mb-5">{t.addItemTitle}</h2>
+        <h2 className="text-2xl font-bold mb-5">{(t.menu?.addItemTitle || "Add/Edit Menu Item")}</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <select
@@ -360,27 +360,27 @@ const Menu = () => {
             </div>
           )}
 
-          <input placeholder={t.itemName} value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
+          <input placeholder={(t.menu?.itemName || "Item Name")} value={newItem.name} onChange={e => setNewItem(p => ({ ...p, name: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
           
           <div className="grid grid-cols-3 gap-4">
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
-              <input placeholder={t.fullPrice} value={newItem.fullPrice} onChange={e => setNewItem(p => ({ ...p, fullPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+              <input placeholder={(t.menu?.fullPrice || "Full Price")} value={newItem.fullPrice} onChange={e => setNewItem(p => ({ ...p, fullPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
             </div>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
-              <input placeholder={t.halfPrice} value={newItem.halfPrice} onChange={e => setNewItem(p => ({ ...p, halfPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+              <input placeholder={(t.menu?.halfPrice || "Half Price")} value={newItem.halfPrice} onChange={e => setNewItem(p => ({ ...p, halfPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
             </div>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">{settings.currencySymbol}</span>
-              <input placeholder={t.quarterPrice} value={newItem.quarterPrice} onChange={e => setNewItem(p => ({ ...p, quarterPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
+              <input placeholder={(t.menu?.quarterPrice || "Quarter Price")} value={newItem.quarterPrice} onChange={e => setNewItem(p => ({ ...p, quarterPrice: e.target.value }))} className="w-full p-2.5 pl-8 border rounded-lg" />
             </div>
           </div>
           
           <input placeholder="Serving Size (e.g. 1, 1-2, 4)" value={newItem.servingSize} onChange={e => setNewItem(p => ({ ...p, servingSize: e.target.value }))} className="w-full p-2.5 border rounded-lg" />
         </div>
         <div className="flex justify-end mt-6">
-          <button onClick={handleAddItem} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">{t.done}</button>
+          <button onClick={handleAddItem} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700">{(t.common.save || "Done")}</button>
         </div>
       </Modal>
 
@@ -389,14 +389,14 @@ const Menu = () => {
         <Modal isOpen={true} onClose={() => { toggleModal('bulkAdd', false); toggleModal('bulkUpdate', false); }} size="5xl">
           <div className="flex flex-col h-full">
             <div className="mb-4">
-              <h2 className="text-2xl font-bold">{modals.bulkAdd ? t.bulkAddTitle : t.bulkUpdateTitle}</h2>
-              <p className="text-gray-600 mt-1">{modals.bulkAdd ? t.bulkAddSubtitle : t.bulkUpdateSubtitle}</p>
+              <h2 className="text-2xl font-bold">{modals.bulkAdd ? (t.menu?.bulkAddTitle || "Bulk Add Items") : (t.menu?.bulkUpdateTitle || "Bulk Update Items")}</h2>
+              <p className="text-gray-600 mt-1">{modals.bulkAdd ? (t.menu?.bulkAddSubtitle || "Add multiple items at once") : (t.menu?.bulkUpdateSubtitle || "Update multiple items at once")}</p>
             </div>
             {renderBulkTable(modals.bulkUpdate)}
             <div className="flex items-center justify-between mt-6">
-              <button onClick={() => setBulkItems(p => [...p, { name: "", fullPrice: "", halfPrice: "", quarterPrice: "", category: "", ingredients: "", specialNote: "" }])} className="bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 font-semibold">{t.addRow}</button>
+              <button onClick={() => setBulkItems(p => [...p, { name: "", fullPrice: "", halfPrice: "", quarterPrice: "", category: "", ingredients: "", specialNote: "" }])} className="bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 font-semibold">{(t.menu?.addRow || "Add Row")}</button>
               <button onClick={() => handleBulkSubmit(modals.bulkUpdate)} disabled={isProcessing} className={`px-8 py-2.5 rounded-lg text-white font-bold ${isProcessing ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                {isProcessing ? t.processing : (modals.bulkUpdate ? t.updateItems : t.addItems)}
+                {isProcessing ? (t.common.saving || "Processing...") : (modals.bulkUpdate ? (t.menu?.updateItems || "Update Items") : (t.menu?.addItems || "Add Items"))}
               </button>
             </div>
           </div>
@@ -405,10 +405,10 @@ const Menu = () => {
 
       {/* Bulk Select Options */}
       <Modal isOpen={modals.bulkSelect} onClose={() => toggleModal('bulkSelect', false)}>
-        <h2 className="text-2xl font-bold mb-4">{t.bulkActionTitle}</h2>
+        <h2 className="text-2xl font-bold mb-4">{(t.menu?.bulkActionTitle || "Bulk Actions")}</h2>
         <div className="space-y-4">
-          <button onClick={() => initBulk('bulkAdd')} className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-bold">{t.addNewItemsBtn}</button>
-          <button onClick={() => initBulk('bulkUpdate')} className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-bold">{t.updateExistingBtn}</button>
+          <button onClick={() => initBulk('bulkAdd')} className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-bold">{(t.menu?.addNewItemsBtn || "Add New Items")}</button>
+          <button onClick={() => initBulk('bulkUpdate')} className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-bold">{(t.menu?.updateExistingBtn || "Update Existing Items")}</button>
         </div>
       </Modal>
     </div>

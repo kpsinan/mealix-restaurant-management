@@ -19,16 +19,16 @@ const ALL_TRANSLATIONS = {
 
   en: {
     sidebar: {
-      dashboard: "Dashboard",
-      floorPlan: "Floor Plan",
-      smartAssign: "Smart Assign",
-      order: "Take Order",
-      menu: "Menu Management",
-      billing: "Billing & Cashier",
-      reports: "Reports Hub",
-      staff: "Staff Directory",
-      kitchen: "Kitchen Display (KDS)",
-      settings: "System Settings",
+      dashboard: "Home",
+      floorPlan: "Tables",
+      smartAssign: "Auto Assign",
+      order: "New Order",
+      menu: "Menu",
+      billing: "Billing",
+      reports: "Reports",
+      staff: "Staff",
+      kitchen: "Kitchen",
+      settings: "Settings",
       profile: "My Profile",
       logout: "Sign Out",
       manager: "Restaurant Manager",
@@ -63,7 +63,7 @@ const ALL_TRANSLATIONS = {
       close: "Close"
     },
     dashboard: {
-      title: "Dashboard Overview",
+      title: "Home",
       overview: "Real-time Sales & Performance",
       syncing: "Syncing Analytics...",
       noData: "No Sales Data Available Today",
@@ -87,7 +87,7 @@ const ALL_TRANSLATIONS = {
       last30: "Last 30 Days"
     },
     order: {
-      title: "Take New Order",
+      title: "New Order",
       selectTables: "Select Table(s)",
       searchPlaceholder: "Search dishes or categories...",
       allCategories: "All Categories",
@@ -111,7 +111,7 @@ const ALL_TRANSLATIONS = {
       punchInSuccess: "Staff Attendance Marked Present!"
     },
     kitchen: {
-      title: "Kitchen Display System (KDS)",
+      title: "Kitchen Orders",
       subtitle: "Live Kitchen Orders & Preparation Status",
       pendingOrders: "Pending KOTs",
       cookingOrders: "In Preparation",
@@ -124,7 +124,7 @@ const ALL_TRANSLATIONS = {
       noKitchenOrders: "No active orders in kitchen right now."
     },
     billing: {
-      title: "Billing & Checkout",
+      title: "Billing",
       subtitle: "Manage Receipts & Finalize Payments",
       selectOrder: "Select Active Table / Order",
       invoiceNo: "Invoice #",
@@ -141,7 +141,7 @@ const ALL_TRANSLATIONS = {
       paymentSuccess: "Payment Completed Successfully!"
     },
     attendance: {
-      title: "Staff Attendance & History",
+      title: "Staff Attendance",
       subtitle: "Daily Check-in Logs & Photo Records",
       punchInBtn: "Quick Punch In",
       punchOutBtn: "Punch Out",
@@ -155,7 +155,7 @@ const ALL_TRANSLATIONS = {
       historyTitle: "Attendance History"
     },
     floorPlan: {
-      title: "Floor Plan & Table Status",
+      title: "Tables",
       available: "Available",
       occupied: "Occupied",
       reserved: "Reserved",
@@ -164,7 +164,7 @@ const ALL_TRANSLATIONS = {
       openOrder: "Open Order"
     },
     reports: {
-      title: "Reports & Analytics Hub",
+      title: "Reports",
       subtitle: "Comprehensive Restaurant Performance Insights",
       financials: "Sales & Revenue Reports",
       menuAnalysis: "Menu & Item Performance",
@@ -172,7 +172,7 @@ const ALL_TRANSLATIONS = {
       exportPDF: "Export PDF Report"
     },
     settings: {
-      title: "System Settings",
+      title: "Settings",
       subtitle: "Configure Restaurant Details, Language & Printing",
       saveSuccess: "Settings saved permanently!",
       tabGeneral: "General",
